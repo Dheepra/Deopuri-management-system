@@ -1,0 +1,114 @@
+================================================================================
+DEOPURI – POSTMAN API LIST (Product CRUD)
+================================================================================
+Base URL (default): http://localhost:8080
+Products base path: /api/products
+App run: backend folder se → .\mvnw.cmd -pl deopuri-app spring-boot:run
+
+Har request me (jahan JSON body ho): Header add karein
+  Key: Content-Type
+  Value: application/json
+
+================================================================================
+1) CREATE PRODUCT
+================================================================================
+Method:     POST
+URL:        http://localhost:8080/api/products
+Headers:    Content-Type: application/json
+
+Body (raw JSON):
+{
+  "name": "Ashwagandha Powder",
+  "description": "100g pack",
+  "price": 299.0,
+  "quantity": 50
+}
+
+Expected: 201 Created + response body me "id" bhi aayega
+
+--------------------------------------------------------------------------------
+Postman → Import → Raw text (curl):
+curl -X POST "http://localhost:8080/api/products" -H "Content-Type: application/json" -d "{\"name\":\"Ashwagandha Powder\",\"description\":\"100g pack\",\"price\":299,\"quantity\":50}"
+
+================================================================================
+2) GET ALL PRODUCTS
+================================================================================
+Method:     GET
+URL:        http://localhost:8080/api/products
+Headers:    (koi zaroori header nahi)
+
+Expected: 200 OK + JSON array
+
+--------------------------------------------------------------------------------
+curl:
+curl -X GET "http://localhost:8080/api/products"
+
+================================================================================
+3) GET PRODUCT BY ID
+================================================================================
+Method:     GET
+URL:        http://localhost:8080/api/products/1
+            (1 ki jagah apna product id use karein)
+
+Headers:    (koi zaroori header nahi)
+
+Expected: 200 OK + JSON object | 404 agar id na mile
+
+--------------------------------------------------------------------------------
+curl:
+curl -X GET "http://localhost:8080/api/products/1"
+
+================================================================================
+4) UPDATE PRODUCT
+================================================================================
+Method:     PUT
+URL:        http://localhost:8080/api/products/1
+            (1 ki jagah update karna wala id)
+
+Headers:    Content-Type: application/json
+
+Body (raw JSON):
+{
+  "name": "Ashwagandha Powder (Updated)",
+  "description": "200g pack",
+  "price": 549.0,
+  "quantity": 30
+}
+
+Expected: 200 OK + updated JSON | 404 agar id na mile
+
+--------------------------------------------------------------------------------
+curl:
+curl -X PUT "http://localhost:8080/api/products/1" -H "Content-Type: application/json" -d "{\"name\":\"Ashwagandha Powder (Updated)\",\"description\":\"200g pack\",\"price\":549,\"quantity\":30}"
+
+================================================================================
+5) DELETE PRODUCT
+================================================================================
+Method:     DELETE
+URL:        http://localhost:8080/api/products/1
+            (1 ki jagah delete karna wala id)
+
+Headers:    (koi zaroori header nahi)
+
+Expected: 204 No Content | 404 agar id na mile
+
+--------------------------------------------------------------------------------
+curl:
+curl -X DELETE "http://localhost:8080/api/products/1"
+
+================================================================================
+POSTMAN COLLECTION QUICK SETUP
+================================================================================
+1) Postman me naya Collection: "Deopuri Products"
+2) Variables (Collection level):
+   - baseUrl = http://localhost:8080
+3) Har request ki URL: {{baseUrl}}/api/products  (aur id wale me /{{id}} ya direct /1)
+
+================================================================================
+NOTES
+================================================================================
+- Port change ho to URL me 8080 badlein (application.properties me server.port)
+- MySQL + database connect hona chahiye (deopuri DB)
+- Product fields: name (required), description (optional), price (required), quantity (required)
+
+================================================================================
