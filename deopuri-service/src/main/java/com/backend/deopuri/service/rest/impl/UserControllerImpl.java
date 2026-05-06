@@ -9,8 +9,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.backend.deopuri.api.model.Users;
@@ -24,6 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RestController
+@RequestMapping(UserApiPaths.BASE)
+
 public class UserControllerImpl implements UserController {
 
     private static final Logger logger = LoggerFactory.getLogger(UserControllerImpl.class);
@@ -34,36 +41,43 @@ public class UserControllerImpl implements UserController {
     @PostMapping(UserApiPaths.REGISTER)
 
     public String registerUser(@Valid @RequestBody Users user) {
+
         return service.register(user);
     }
 
-    // 👉 yahi add karna hai
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Map<String, String> handleValidation(MethodArgumentNotValidException ex) {
+    public ResponseEntity<Map<String, String>> handleValidationErrors(MethodArgumentNotValidException ex) {
 
         Map<String, String> errors = new HashMap<>();
 
-        ex.getBindingResult().getFieldErrors()
-                .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+            errors.put(error.getField(), error.getDefaultMessage());
+        });
 
-        return errors;
+        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+    }
+
+    @PutMapping(UserApiPaths.APPROVE)
+    @Override
+    public String approveUser(@PathVariable int id,
+            @RequestParam String adminEmail) {
+        return service.approveUser(id, adminEmail);
+    }
+
+    @PutMapping(UserApiPaths.REJECT)
+    public String rejectUser(@PathVariable int id,
+            @RequestParam String adminEmail) {
+        return service.rejectUser(id, adminEmail);
+    }
+
+    @GetMapping(UserApiPaths.PENDING)
+    public List<Users> getPendingUsers() {
+        return service.getPendingUsers();
     }
 
     @Override
-    public Object loginUser(Users user) {
-
-        Users validUser = service.login(user.getEmail(), user.getPassword());
-
-        if (validUser != null) {
-            if ("ADMIN".equalsIgnoreCase(validUser.getRoleBase())) {
-                return "Welcome Admin";
-            } else if ("HOSPITAL".equalsIgnoreCase(validUser.getRoleBase())) {
-                return "Welcome Hospital";
-            } else {
-                return "Welcome Medical";
-            }
-        }
-        return "Invalid Email or Password";
+    public String loginUser(Users user) {
+        return service.login(user.getEmail(), user.getPassword());
     }
 
     @Override

@@ -13,7 +13,7 @@ public interface UserController {
     String registerUser(@Valid @RequestBody Users user);
 
     @PostMapping(UserApiPaths.LOGIN)
-    Object loginUser(@RequestBody Users user);
+    String loginUser(@RequestBody Users user);
 
     @GetMapping(UserApiPaths.GET_ALL)
     List<Users> getAllUsers();
@@ -29,4 +29,16 @@ public interface UserController {
 
     @DeleteMapping(UserApiPaths.DELETE)
     String deleteUser(@PathVariable int id);
+
+    // ✅ FINAL (ONLY THESE KEEP)
+   
+    String approveUser(@PathVariable int id, @RequestParam String adminEmail);
+
+
+    
+    @PutMapping(UserApiPaths.REJECT)
+    String rejectUser(@PathVariable int id, @RequestParam String adminEmail);
+
+    @GetMapping(UserApiPaths.PENDING)
+    List<Users> getPendingUsers();
 }

@@ -17,6 +17,11 @@ public interface UsersDao extends JpaRepository<Users, Integer> {
     
 
     List<Users> findByFirstNameStartingWithIgnoreCase(String firstName);
+
+    List<Users> findByStatus(String status);
+
+    
+    
     
    
 }

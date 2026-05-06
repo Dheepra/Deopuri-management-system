@@ -16,4 +16,8 @@ public final class UserApiPaths {
 
     public static final String UPDATE = "/user/{id}";
     public static final String DELETE = "/user/{id}";
+
+public static final String APPROVE = "/admin/approve/{id}";
+    public static final String REJECT = "/admin/reject/{id}";
+     public static final String PENDING = "/admin/pending";
 }

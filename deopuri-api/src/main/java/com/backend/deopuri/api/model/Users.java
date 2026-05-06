@@ -1,13 +1,8 @@
 package com.backend.deopuri.api.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-
+import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
 
 @Entity
 @Table(name = "Users")
@@ -52,84 +47,111 @@ public class Users {
     @Column(name = "role_base")
     private String roleBase;
 
-	
-	
-	public Users() {
-		super();
-		// TODO Auto-generated constructor stub
-	}
+    // ✅ NEW FIELD
+    @Column(name = "status")
+    private String status;
 
+    // Default constructor
+    public Users() {
+        super();
+    }
 
-	public Users(String firstName, String lastName, String email, String password, String mobileNo, String address,
-			String shopName, String roleBase) {
-		super();
-		this.firstName = firstName;
-		this.lastName = lastName;
-		this.email = email;
-		this.password = password;
-		this.mobileNo = mobileNo;
-		this.address = address;
-		this.shopName = shopName;
-		this.roleBase = roleBase;
-	}
-	
-	
-	@Override
-	public String toString() {
-	    return "Users [firstName=" + firstName + ", lastName=" + lastName +
-	           ", email=" + email + ", roleBase=" + roleBase + "]";
-	}
+    // Parameterized constructor
+    public Users(String firstName, String lastName, String email, String password, String mobileNo,
+                 String address, String shopName, String roleBase, String status) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.password = password;
+        this.mobileNo = mobileNo;
+        this.address = address;
+        this.shopName = shopName;
+        this.roleBase = roleBase;
+        this.status = status;
+    }
 
-	public String getFirstName() {
-		return firstName;
-	}
-	public void setFirstName(String firstName) {
-		this.firstName = firstName;
-	}
-	public String getLastName() {
-		return lastName;
-	}
-	public void setLastName(String lastName) {
-		this.lastName = lastName;
-	}
-	public String getEmail() {
-		return email;
-	}
-	public void setEmail(String email) {
-		this.email = email;
-	}
-	public String getPassword() {
-		return password;
-	}
-	public void setPassword(String password) {
-		this.password = password;
-	}
-	public String getMobileNo() {
-		return mobileNo;
-	}
-	public void setMobileNo(String mobileNo) {
-		this.mobileNo = mobileNo;
-	}
-	public String getAddress() {
-		return address;
-	}
-	public void setAddress(String address) {
-		this.address = address;
-	}
-	public String getShopName() {
-		return shopName;
-	}
-	public void setShopName(String shopName) {
-		this.shopName = shopName;
-	}
-	public String getRoleBase() {
-		return roleBase;
-	}
-	public void setRoleBase(String roleBase) {
-		this.roleBase = roleBase;
-	}
-	
-	
-	
+    // toString
+    @Override
+    public String toString() {
+        return "Users [firstName=" + firstName + ", lastName=" + lastName +
+                ", email=" + email + ", roleBase=" + roleBase + ", status=" + status + "]";
+    }
 
+    // Getters & Setters
+
+    public int getId() {
+        return id;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getMobileNo() {
+        return mobileNo;
+    }
+
+    public void setMobileNo(String mobileNo) {
+        this.mobileNo = mobileNo;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getShopName() {
+        return shopName;
+    }
+
+    public void setShopName(String shopName) {
+        this.shopName = shopName;
+    }
+
+    public String getRoleBase() {
+        return roleBase;
+    }
+
+    public void setRoleBase(String roleBase) {
+        this.roleBase = roleBase;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
 }
