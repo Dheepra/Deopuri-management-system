@@ -1,39 +1,65 @@
 package com.backend.deopuri.security.jwt;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+
+import io.jsonwebtoken.security.Keys;
+
 import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
 
 import java.util.Date;
 
 @Component
 public class JwtUtil {
 
-    private String secret = "mysecretkey";
+    private final String SECRET =
+            "MYSECRETKEY123456789MYSECRETKEY123456789";
 
-    public String generateToken(String username, String role) {
+    private final SecretKey secretKey =
+            Keys.hmacShaKeyFor(SECRET.getBytes());
+
+    public String generateToken(String email, String role) {
 
         return Jwts.builder()
-                .setSubject(username)
+
+                .subject(email)
+
                 .claim("role", role)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
-                .signWith(SignatureAlgorithm.HS256, secret)
+
+                .issuedAt(new Date())
+
+                .expiration(
+                        new Date(System.currentTimeMillis() + 1000 * 60 * 60)
+                )
+
+                .signWith(secretKey)
+
                 .compact();
     }
 
-    public Claims extractClaims(String token) {
+    public Claims extractAllClaims(String token) {
 
         return Jwts.parser()
-                .setSigningKey(secret)
-                .parseClaimsJws(token)
-                .getBody();
+
+                .verifyWith(secretKey)
+
+                .build()
+
+                .parseSignedClaims(token)
+
+                .getPayload();
     }
 
     public String extractUsername(String token) {
-        return extractClaims(token).getSubject();
+
+        return extractAllClaims(token).getSubject();
     }
 
     public String extractRole(String token) {
-        return extractClaims(token).get("role", String.class);
+
+        return extractAllClaims(token)
+                .get("role", String.class);
     }
 }

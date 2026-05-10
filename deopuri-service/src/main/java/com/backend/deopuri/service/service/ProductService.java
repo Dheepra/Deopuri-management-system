@@ -1,18 +1,20 @@
 package com.backend.deopuri.service.service;
 
+
+
 import com.backend.deopuri.api.model.Product;
 
 import java.util.List;
 
 public interface ProductService {
 
-	Product create(Product product);
+    Product create(Product product);
 
-	List<Product> findAll();
+    List<Product> findAll();
 
-	Product findById(Long id);
+    Product findById(Long id);
 
-	Product update(Long id, Product product);
+    Product update(Long id, Product product);
 
-	void delete(Long id);
+    void delete(Long id);
 }

@@ -71,9 +71,7 @@ public class UserServicesImpl implements UserServices {
             return "User not approved by admin";
         }
 
-        String role = "ROLE_" + user.getRoleBase();
-
-        return jwtUtil.generateToken(user.getEmail(), role);
+        return jwtUtil.generateToken(email, user.getRoleBase());
     }
 
     // ================= APPROVE USER =================
@@ -122,10 +120,10 @@ public class UserServicesImpl implements UserServices {
         return "User rejected successfully";
     }
 
-@Override
-public List<Users> getPendingUsers() {
-    return dao.findByStatus("PENDING");
-}
+    @Override
+    public List<Users> getPendingUsers() {
+        return dao.findByStatus("PENDING");
+    }
 
     // ================= GET ALL USERS =================
     @Override
