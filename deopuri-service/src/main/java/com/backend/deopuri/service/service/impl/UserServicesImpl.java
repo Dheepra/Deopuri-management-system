@@ -5,11 +5,12 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
 import com.backend.deopuri.api.model.Users;
+import com.backend.deopuri.exception.ResourceNotFoundException;
+import com.backend.deopuri.security.jwt.JwtUtil;
 import com.backend.deopuri.service.dao.UsersDao;
 import com.backend.deopuri.service.service.UserServices;
-
-import com.backend.deopuri.security.jwt.JwtUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,8 @@ import org.slf4j.LoggerFactory;
 @Service
 public class UserServicesImpl implements UserServices {
 
-    private static final Logger logger = LoggerFactory.getLogger(UserServicesImpl.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(UserServicesImpl.class);
 
     @Autowired
     private UsersDao dao;
@@ -32,22 +34,32 @@ public class UserServicesImpl implements UserServices {
     @Override
     public String register(Users user) {
 
+        logger.info("========== USER REGISTER START ==========");
+
         Users existingUser = dao.findByEmail(user.getEmail());
 
         if (existingUser != null) {
+
+            logger.warn("EMAIL ALREADY REGISTERED : {}",
+                    user.getEmail());
+
             return "Email already registered";
         }
 
-        // 🔥 IMPORTANT: encode password
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setPassword(
+                passwordEncoder.encode(user.getPassword()));
 
-        if (user.getRoleBase() == null || user.getRoleBase().isEmpty()) {
+        if (user.getRoleBase() == null
+                || user.getRoleBase().isEmpty()) {
+
             user.setRoleBase("MEDICAL");
         }
 
         user.setStatus("PENDING");
 
         dao.save(user);
+
+        logger.info("USER REGISTERED SUCCESSFULLY");
 
         return "Registration Successful";
     }
@@ -56,43 +68,73 @@ public class UserServicesImpl implements UserServices {
     @Override
     public String login(String email, String password) {
 
+        logger.info("========== USER LOGIN START ==========");
+
         Users user = dao.findByEmail(email);
 
         if (user == null) {
-            return "User not found";
+
+            logger.warn("USER NOT FOUND : {}", email);
+
+            throw new ResourceNotFoundException(
+                    "User not found");
         }
 
-        // 🔥 password match FIX
-        if (!passwordEncoder.matches(password, user.getPassword())) {
+        if (!passwordEncoder.matches(
+                password,
+                user.getPassword())) {
+
+            logger.warn("INVALID PASSWORD FOR : {}", email);
+
             return "Invalid password";
         }
 
         if (!"APPROVED".equals(user.getStatus())) {
+
+            logger.warn("USER NOT APPROVED : {}", email);
+
             return "User not approved by admin";
         }
 
-        return jwtUtil.generateToken(email, user.getRoleBase());
+        logger.info("LOGIN SUCCESSFUL : {}", email);
+
+        return jwtUtil.generateToken(
+                email,
+                user.getRoleBase());
     }
 
     // ================= APPROVE USER =================
     @Override
     public String approveUser(int userId, String adminEmail) {
 
+        logger.info("========== APPROVE USER START ==========");
+
         Users admin = dao.findByEmail(adminEmail);
 
-        if (admin == null || !"ADMIN".equals(admin.getRoleBase())) {
+        if (admin == null
+                || !"ADMIN".equals(admin.getRoleBase())) {
+
+            logger.warn("NON ADMIN TRYING TO APPROVE USER");
+
             return "Only admin can approve users";
         }
 
-        Users user = dao.findById(userId).orElse(null);
+        Users user = dao.findById(userId)
+                .orElseThrow(() -> {
 
-        if (user == null) {
-            return "User not found";
-        }
+                    logger.warn(
+                            "USER NOT FOUND WITH ID : {}",
+                            userId);
+
+                    return new ResourceNotFoundException(
+                            "User not found");
+                });
 
         user.setStatus("APPROVED");
 
         dao.save(user);
+
+        logger.info("USER APPROVED SUCCESSFULLY");
 
         return "User approved successfully";
     }
@@ -101,45 +143,80 @@ public class UserServicesImpl implements UserServices {
     @Override
     public String rejectUser(int userId, String adminEmail) {
 
+        logger.info("========== REJECT USER START ==========");
+
         Users admin = dao.findByEmail(adminEmail);
 
-        if (admin == null || !"ADMIN".equals(admin.getRoleBase())) {
+        if (admin == null
+                || !"ADMIN".equals(admin.getRoleBase())) {
+
+            logger.warn("NON ADMIN TRYING TO REJECT USER");
+
             return "Only admin can reject users";
         }
 
-        Users user = dao.findById(userId).orElse(null);
+        Users user = dao.findById(userId)
+                .orElseThrow(() -> {
 
-        if (user == null) {
-            return "User not found";
-        }
+                    logger.warn(
+                            "USER NOT FOUND WITH ID : {}",
+                            userId);
+
+                    return new ResourceNotFoundException(
+                            "User not found");
+                });
 
         user.setStatus("REJECTED");
 
         dao.save(user);
 
+        logger.info("USER REJECTED SUCCESSFULLY");
+
         return "User rejected successfully";
     }
 
+    // ================= GET PENDING USERS =================
     @Override
     public List<Users> getPendingUsers() {
+
+        logger.info("GETTING ALL PENDING USERS");
+
         return dao.findByStatus("PENDING");
     }
 
     // ================= GET ALL USERS =================
     @Override
     public List<Users> getAllUsers() {
+
+        logger.info("GETTING ALL USERS");
+
         return dao.findAll();
     }
 
     // ================= GET USER BY ID =================
     @Override
     public Users getUserById(int id) {
-        return dao.findById(id).orElse(null);
+
+        logger.info("GET USER BY ID : {}", id);
+
+        return dao.findById(id)
+                .orElseThrow(() -> {
+
+                    logger.warn(
+                            "USER NOT FOUND WITH ID : {}",
+                            id);
+
+                    return new ResourceNotFoundException(
+                            "User not found");
+                });
     }
 
     // ================= SEARCH USER =================
     @Override
     public List<Users> getUserssearchByFirstName(String name) {
+
+        logger.info("SEARCH USER BY NAME : {}", name);
+
         return dao.findByFirstNameStartingWithIgnoreCase(name);
     }
 
@@ -147,11 +224,18 @@ public class UserServicesImpl implements UserServices {
     @Override
     public Users updateUser(int id, Users user) {
 
-        Users existing = dao.findById(id).orElse(null);
+        logger.info("========== UPDATE USER START ==========");
 
-        if (existing == null) {
-            return null;
-        }
+        Users existing = dao.findById(id)
+                .orElseThrow(() -> {
+
+                    logger.warn(
+                            "USER NOT FOUND WITH ID : {}",
+                            id);
+
+                    return new ResourceNotFoundException(
+                            "User not found");
+                });
 
         if (user.getFirstName() != null)
             existing.setFirstName(user.getFirstName());
@@ -163,7 +247,9 @@ public class UserServicesImpl implements UserServices {
             existing.setEmail(user.getEmail());
 
         if (user.getPassword() != null)
-            existing.setPassword(passwordEncoder.encode(user.getPassword()));
+            existing.setPassword(
+                    passwordEncoder.encode(
+                            user.getPassword()));
 
         if (user.getMobileNo() != null)
             existing.setMobileNo(user.getMobileNo());
@@ -174,27 +260,41 @@ public class UserServicesImpl implements UserServices {
         if (user.getShopName() != null)
             existing.setShopName(user.getShopName());
 
-        // ❌ ROLE UPDATE BLOCK (security safe)
-        // existing.setRoleBase(user.getRoleBase());
+        Users updatedUser = dao.save(existing);
 
-        return dao.save(existing);
+        logger.info("USER UPDATED SUCCESSFULLY");
+
+        return updatedUser;
     }
 
     // ================= DELETE USER =================
     @Override
     public String deleteUser(int id) {
 
-        if (dao.existsById(id)) {
-            dao.deleteById(id);
-            return "Deleted Successfully";
-        }
+        logger.info("========== DELETE USER START ==========");
 
-        return "User Not Found";
+        Users user = dao.findById(id)
+                .orElseThrow(() -> {
+
+                    logger.warn(
+                            "USER NOT FOUND WITH ID : {}",
+                            id);
+
+                    return new ResourceNotFoundException(
+                            "User not found");
+                });
+
+        dao.delete(user);
+
+        logger.info("USER DELETED SUCCESSFULLY");
+
+        return "Deleted Successfully";
     }
 
-    // ================= SAVE (helper) =================
+    // ================= SAVE =================
     @Override
     public void save(Users user) {
+
         dao.save(user);
     }
 }

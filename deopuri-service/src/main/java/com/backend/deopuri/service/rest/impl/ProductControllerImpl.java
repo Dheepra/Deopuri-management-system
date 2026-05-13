@@ -1,15 +1,22 @@
 package com.backend.deopuri.service.rest.impl;
 
 import com.backend.deopuri.api.model.Product;
+import com.backend.deopuri.api.model.ProductVariant;
 import com.backend.deopuri.api.rest.ProductController;
+import com.backend.deopuri.service.dao.ProductRepository;
+import com.backend.deopuri.service.dao.ProductVariantDao;
 import com.backend.deopuri.service.service.ProductService;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -18,13 +25,36 @@ import java.util.List;
 @RequestMapping("/api/products")
 public class ProductControllerImpl implements ProductController {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(ProductControllerImpl.class);
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private ProductVariantDao variantDao;
+
+    private static final Logger log = LoggerFactory.getLogger(ProductControllerImpl.class);
 
     private final ProductService productService;
 
     public ProductControllerImpl(ProductService productService) {
         this.productService = productService;
+    }
+
+    @PostMapping("/add-variant")
+    public ProductVariant addVariant(
+            @RequestParam Long productId,
+            @RequestBody ProductVariant request) {
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        ProductVariant variant = new ProductVariant();
+
+        variant.setSize(request.getSize());
+        variant.setStock(request.getStock());
+
+        variant.setProduct(product);
+
+        return variantDao.save(variant);
     }
 
     @Override
@@ -40,8 +70,7 @@ public class ProductControllerImpl implements ProductController {
 
         return new ResponseEntity<>(
                 savedProduct,
-                HttpStatus.CREATED
-        );
+                HttpStatus.CREATED);
     }
 
     @Override
@@ -57,25 +86,26 @@ public class ProductControllerImpl implements ProductController {
     }
 
     @Override
-public ResponseEntity<Product> findById(Long id) {
+    public ResponseEntity<Product> findById(Long id) {
 
-    log.info("========== GET PRODUCT BY ID API HIT ==========");
-    log.info("REQUEST ID : {}", id);
+        log.info("========== GET PRODUCT BY ID API HIT ==========");
+        log.info("REQUEST ID : {}", id);
 
-    Product product = productService.findById(id);
+        Product product = productService.findById(id);
 
-    if (product == null) {
-        log.warn("PRODUCT NOT FOUND : {}", id);
-        return ResponseEntity.notFound().build();
+        if (product == null) {
+            log.warn("PRODUCT NOT FOUND : {}", id);
+            return ResponseEntity.notFound().build();
+        }
+
+        log.info("PRODUCT FOUND SUCCESSFULLY");
+        log.info("NAME : {}", product.getName());
+        log.info("PRICE : {}", product.getPrice());
+        log.info("QUANTITY : {}", product.getQuantity());
+
+        return ResponseEntity.ok(product);
     }
 
-    log.info("PRODUCT FOUND SUCCESSFULLY");
-    log.info("NAME : {}", product.getName());
-    log.info("PRICE : {}", product.getPrice());
-    log.info("QUANTITY : {}", product.getQuantity());
-
-    return ResponseEntity.ok(product);
-}
     @Override
     public ResponseEntity<Product> update(
             Long id,
@@ -84,8 +114,7 @@ public ResponseEntity<Product> findById(Long id) {
         log.info("========== UPDATE PRODUCT API HIT ==========");
         log.info("PRODUCT ID : {}", id);
 
-        Product updatedProduct =
-                productService.update(id, product);
+        Product updatedProduct = productService.update(id, product);
 
         log.info("PRODUCT UPDATED SUCCESSFULLY");
 
@@ -105,5 +134,4 @@ public ResponseEntity<Product> findById(Long id) {
         return ResponseEntity.noContent().build();
     }
 
-    
 }

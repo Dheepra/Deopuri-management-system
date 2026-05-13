@@ -42,8 +42,8 @@ public class SecurityConfig {
                 // PUBLIC APIs
                 .requestMatchers("/api/login", "/api/register").permitAll()
                 .requestMatchers("/api/products/**").permitAll()
-                .requestMatchers("/error").permitAll()
-
+              
+                .requestMatchers("/api/orders/**").authenticated()
                 // ADMIN ONLY
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 

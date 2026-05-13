@@ -1,24 +1,28 @@
 package com.backend.deopuri.service.service.impl;
 
 import com.backend.deopuri.api.model.Product;
+import com.backend.deopuri.exception.ResourceNotFoundException;
 import com.backend.deopuri.service.dao.ProductRepository;
 import com.backend.deopuri.service.service.ProductService;
-import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.springframework.stereotype.Service;
 
 @Service
 public class ProductServiceImpl implements ProductService {
 
-    private static final Logger log = LoggerFactory.getLogger(ProductServiceImpl.class);
+    private static final Logger log =
+            LoggerFactory.getLogger(ProductServiceImpl.class);
 
     private final ProductRepository productRepository;
 
     public ProductServiceImpl(ProductRepository productRepository) {
+
         this.productRepository = productRepository;
     }
 
@@ -39,7 +43,7 @@ public class ProductServiceImpl implements ProductService {
         return savedProduct;
     }
 
-     @Override
+    @Override
     public List<Product> findAll() {
 
         log.info("SERVICE: GET ALL PRODUCTS START");
@@ -51,7 +55,6 @@ public class ProductServiceImpl implements ProductService {
         return list;
     }
 
-    // ================= GET PRODUCT BY ID =================
     @Override
     public Product findById(Long id) {
 
@@ -60,81 +63,92 @@ public class ProductServiceImpl implements ProductService {
 
         return productRepository.findById(id)
                 .map(product -> {
+
                     log.info("PRODUCT FOUND SUCCESSFULLY");
                     log.info("PRODUCT NAME: {}", product.getName());
+
                     return product;
                 })
-                .orElseGet(() -> {
+                .orElseThrow(() -> {
+
                     log.warn("PRODUCT NOT FOUND WITH ID: {}", id);
-                    return null;
+
+                    return new ResourceNotFoundException(
+                            "Product not found");
                 });
     }
-  @Override
-public Product update(Long id, Product product) {
 
-    log.info("========== UPDATE PRODUCT START ==========");
-    log.info("PRODUCT ID : {}", id);
+    @Override
+    public Product update(Long id, Product product) {
 
-    Optional<Product> optional = productRepository.findById(id);
+        log.info("========== UPDATE PRODUCT START ==========");
+        log.info("PRODUCT ID : {}", id);
 
-    if (optional.isEmpty()) {
+        Optional<Product> optional =
+                productRepository.findById(id);
 
-        log.warn("PRODUCT NOT FOUND WITH ID : {}", id);
+        if (optional.isEmpty()) {
 
-        throw new RuntimeException("Product not found");
+            log.warn("PRODUCT NOT FOUND WITH ID : {}", id);
+
+            throw new ResourceNotFoundException(
+                    "Product not found");
+        }
+
+        Product oldProduct = optional.get();
+
+        if (product.getName() != null) {
+
+            log.info("UPDATING NAME");
+
+            oldProduct.setName(product.getName());
+        }
+
+        if (product.getDescription() != null) {
+
+            log.info("UPDATING DESCRIPTION");
+
+            oldProduct.setDescription(
+                    product.getDescription());
+        }
+
+        if (product.getPrice() != null) {
+
+            log.info("UPDATING PRICE");
+
+            oldProduct.setPrice(product.getPrice());
+        }
+
+        if (product.getQuantity() != null) {
+
+            log.info("UPDATING QUANTITY");
+
+            oldProduct.setQuantity(product.getQuantity());
+        }
+
+        if (product.getImageUrl() != null) {
+
+            log.info("UPDATING IMAGE URL");
+
+            oldProduct.setImageUrl(product.getImageUrl());
+        }
+
+        if (product.getManufacturingDate() != null) {
+
+            log.info("UPDATING MANUFACTURING DATE");
+
+            oldProduct.setManufacturingDate(
+                    product.getManufacturingDate());
+        }
+
+        Product updatedProduct =
+                productRepository.save(oldProduct);
+
+        log.info("PRODUCT UPDATED SUCCESSFULLY");
+        log.info("========== UPDATE PRODUCT END ==========");
+
+        return updatedProduct;
     }
-
-    Product oldProduct = optional.get();
-
-    if (product.getName() != null) {
-
-        log.info("UPDATING NAME");
-
-        oldProduct.setName(product.getName());
-    }
-
-    if (product.getDescription() != null) {
-
-        log.info("UPDATING DESCRIPTION");
-
-        oldProduct.setDescription(product.getDescription());
-    }
-
-    if (product.getPrice() != null) {
-
-        log.info("UPDATING PRICE");
-
-        oldProduct.setPrice(product.getPrice());
-    }
-
-    if (product.getQuantity() != null) {
-
-        log.info("UPDATING QUANTITY");
-
-        oldProduct.setQuantity(product.getQuantity());
-    }
-
-    if (product.getImageUrl() != null) {
-
-        log.info("UPDATING IMAGE URL");
-
-        oldProduct.setImageUrl(product.getImageUrl());
-    }
-
-    if (product.getManufacturingDate() != null) {
-
-        log.info("UPDATING MANUFACTURING DATE");
-
-        oldProduct.setManufacturingDate(product.getManufacturingDate());
-    }
-
-    Product updatedProduct = productRepository.save(oldProduct);
-
-    log.info("PRODUCT UPDATED SUCCESSFULLY");
-    log.info("========== UPDATE PRODUCT END ==========");
-
-    return updatedProduct;
-}
 
     @Override
     public void delete(Long id) {
@@ -142,7 +156,16 @@ public Product update(Long id, Product product) {
         log.info("========== DELETE PRODUCT START ==========");
         log.info("DELETE PRODUCT ID : {}", id);
 
-        productRepository.deleteById(id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> {
+
+                    log.warn("PRODUCT NOT FOUND WITH ID : {}", id);
+
+                    return new ResourceNotFoundException(
+                            "Product not found");
+                });
+
+        productRepository.delete(product);
 
         log.info("PRODUCT DELETED SUCCESSFULLY");
 
