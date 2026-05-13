@@ -1,26 +1,17 @@
-HELP.md
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
 
-# Maven
-target/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-
-# Logs
-*.log
-
-# Compiled files
-*.class
-
-# Package files
-*.jar
-*.war
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# STS
+# =========================
+# IDE Files
+# =========================
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
 .apt_generated
 .classpath
 .factorypath
@@ -29,13 +20,70 @@ target/
 .springBeans
 .sts4-cache
 
-# IntelliJ
-.idea
-*.iws
-*.iml
-*.ipr
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+hs_err_pid*
+replay_pid*
 
+# =========================
+# Environment Files
+# =========================
+.env
+.env.*
+application-local.properties
+application-local.yml
+
+# =========================
+# Frontend
+# =========================
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/.cache/
+node_modules/
+
+# =========================
+# Backend - Maven / Spring Boot
+# =========================
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+HELP.md
+
+# =========================
+# Java
+# =========================
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# =========================
+# Temporary Files
+# =========================
+tmp/
+temp/
+*.tmp
+
+# =========================
+# Coverage / Reports
+# =========================
+coverage/
+.nyc_output/
+sonar-report/
+
+# =========================
 # NetBeans
+# =========================
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -44,14 +92,3 @@ target/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
-
-# VS Code
-.vscode/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Temp / crash logs
-hs_err_pid*
-replay_pid*
