@@ -1,0 +1,14 @@
+package com.deopuri;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication(scanBasePackages = "com.deopuri")
+
+public class DeopuriApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(DeopuriApplication.class, args);
+	}
+
+}

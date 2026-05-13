@@ -1,0 +1,27 @@
+{
+  "name": "deopuri",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Deopuri Management System — Spring Boot backend + Vite/React frontend",
+  "scripts": {
+    "postinstall": "npm --prefix frontend install",
+    "dev": "concurrently --kill-others-on-fail --names \"BACKEND,FRONTEND\" --prefix-colors \"bgGreen.bold,bgBlue.bold\" \"npm:backend\" \"npm:frontend\"",
+    "backend": "cd backend && ./mvnw -DskipTests -pl deopuri-api,deopuri-service install -q && cd deopuri-app && ../mvnw spring-boot:run",
+    "backend:win": "cd backend && mvnw.cmd -DskipTests -pl deopuri-api,deopuri-service install -q && cd deopuri-app && ..\\mvnw.cmd spring-boot:run",
+    "frontend": "npm --prefix frontend run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && ./mvnw -DskipTests package",
+    "build:backend:win": "cd backend && mvnw.cmd -DskipTests package",
+    "build:frontend": "npm --prefix frontend run build",
+    "test:backend": "cd backend && ./mvnw test",
+    "lint:frontend": "npm --prefix frontend run lint",
+    "clean": "rm -rf node_modules frontend/node_modules frontend/dist backend/deopuri-api/target backend/deopuri-service/target backend/deopuri-app/target"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">=10"
+  }
+}

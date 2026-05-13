@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50:  #eef9f5;
+  --color-brand-100: #d3f0e3;
+  --color-brand-200: #a7e1c8;
+  --color-brand-300: #6fcca6;
+  --color-brand-400: #3eb285;
+  --color-brand-500: #1f9b6e;
+  --color-brand-600: #157d58;
+  --color-brand-700: #126348;
+  --color-brand-800: #11503a;
+  --color-brand-900: #0f4231;
+  --color-ink-50:    #f7f8fa;
+  --color-ink-100:   #eef1f5;
+  --color-ink-200:   #d8dee7;
+  --color-ink-300:   #b4bdcc;
+  --color-ink-400:   #8693a8;
+  --color-ink-500:   #5d6b82;
+  --color-ink-600:   #44516a;
+  --color-ink-700:   #2f3a52;
+  --color-ink-800:   #1c2538;
+  --color-ink-900:   #0b1322;
+  --color-night-700: #0f172a;
+  --color-night-800: #0a1124;
+  --color-night-900: #060a18;
+
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Inter", "Segoe UI", system-ui, sans-serif;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -8px rgba(15, 23, 42, 0.12);
+  --shadow-card-hover: 0 4px 8px rgba(15, 23, 42, 0.06), 0 24px 48px -12px rgba(15, 23, 42, 0.2);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink-800);
+  background: var(--color-ink-50);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img {
+  user-select: none;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes mesh-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.85; }
+  50%      { transform: translate3d(2%, -2%, 0) scale(1.05); opacity: 1; }
+}
+
+.animate-mesh {
+  animation: mesh-drift 14s ease-in-out infinite;
+}
+
+.bg-grid-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-float {
+  animation: float-soft 5s ease-in-out infinite;
+}
