@@ -35,9 +35,9 @@ public class OrdersServiceImpl implements OrdersService {
     private final UsersDao usersDao;
 
     public OrdersServiceImpl(OrdersDao dao,
-                             ProductRepository productRepository,
-                             ProductVariantDao variantDao,
-                             UsersDao usersDao) {
+            ProductRepository productRepository,
+            ProductVariantDao variantDao,
+            UsersDao usersDao) {
         this.dao = dao;
         this.productRepository = productRepository;
         this.variantDao = variantDao;
@@ -46,41 +46,118 @@ public class OrdersServiceImpl implements OrdersService {
 
     @Override
     public OrderResponse placeOrder(OrderRequest request) {
+
         Users user = currentUser();
 
-        Product product = productRepository.findById(request.productId())
+        Product product = productRepository
+                .findById(request.productId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Product not found with id " + request.productId()));
+                        "Product not found with id "
+                                + request.productId()));
 
-        ProductVariant variant = variantDao.findById(request.variantId())
+        ProductVariant variant = variantDao
+                .findById(request.variantId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Variant not found with id " + request.variantId()));
+                        "Variant not found with id "
+                                + request.variantId()));
 
         if (variant.getProduct() == null
-                || !variant.getProduct().getId().equals(product.getId())) {
-            throw new IllegalArgumentException("Variant does not belong to the given product");
+                || !variant.getProduct()
+                        .getId()
+                        .equals(product.getId())) {
+
+            throw new IllegalArgumentException(
+                    "Variant does not belong to the given product");
         }
+
+        Orders order = dao.findByUserAndProductAndVariantAndStatus(
+                user,
+                product,
+                variant,
+                OrderStatus.PENDING)
+
+                .orElse(new Orders());
+
+        if (order.getId() == null) {
+
+            if (variant.getStock() < request.quantity()) {
+
+                throw new InsufficientStockException(
+                        "Insufficient stock: available "
+                                + variant.getStock()
+                                + ", requested "
+                                + request.quantity());
+            }
+
+            order.setUser(user);
+
+            order.setProduct(product);
+
+            order.setVariant(variant);
+
+            order.setQuantity(0);
+
+            order.setTotalAmount(0.0);
+
+            order.setStatus(
+                    OrderStatus.PENDING);
+
+        }
+
+        int finalQuantity = order.getQuantity()
+                + request.quantity();
 
         if (variant.getStock() < request.quantity()) {
+
             throw new InsufficientStockException(
-                    "Insufficient stock: available " + variant.getStock()
-                            + ", requested " + request.quantity());
+                    "Insufficient stock");
         }
 
-        variant.setStock(variant.getStock() - request.quantity());
+        variant.setStock(
+                variant.getStock()
+                        - request.quantity());
 
-        Orders order = new Orders();
-        order.setUser(user);
-        order.setProduct(product);
-        order.setVariant(variant);
-        order.setQuantity(request.quantity());
-        order.setTotalAmount(product.getPrice() * request.quantity());
-        order.setStatus(OrderStatus.PENDING);
+        order.setQuantity(
+                finalQuantity);
+
+        order.setTotalAmount(
+                finalQuantity
+                        * product.getPrice());
 
         Orders saved = dao.save(order);
-        log.info("Order placed id={} userId={} productId={} quantity={}",
-                saved.getId(), user.getId(), product.getId(), request.quantity());
+
+        log.info(
+                "Order placed id={} userId={} productId={} quantity={}",
+                saved.getId(),
+                user.getId(),
+                product.getId(),
+                finalQuantity);
+
         return toResponse(saved);
+    }
+
+    @Override
+    public String confirmOrder(int userId) {
+
+        Users user = usersDao.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User Not Found"));
+
+        List<Orders> cartItems = dao.findByUserAndStatus(user, OrderStatus.PENDING);
+
+        if (cartItems.isEmpty()) {
+            throw new RuntimeException("Cart Empty");
+        }
+
+        double total = 0;
+
+        for (Orders order : cartItems) {
+            order.setStatus(OrderStatus.CONFIRMED);
+            total += order.getTotalAmount();
+        }
+
+        dao.saveAll(cartItems);
+
+        return "Order Confirmed. Total = " + total;
     }
 
     @Override

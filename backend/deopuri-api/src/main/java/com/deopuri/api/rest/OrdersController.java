@@ -26,6 +26,11 @@ public interface OrdersController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     ResponseEntity<List<OrderResponse>> getAllOrders();
+    // CONFIRM CART ORDER
+
+    @PostMapping("/confirm/{userId}")
+    ResponseEntity<String> confirmOrder(
+            @PathVariable int userId);
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
@@ -37,7 +42,7 @@ public interface OrdersController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     ResponseEntity<OrderResponse> updateOrderStatus(@PathVariable Long id,
-                                                    @Valid @RequestBody OrderStatusUpdateRequest request);
+            @Valid @RequestBody OrderStatusUpdateRequest request);
 
     @PutMapping("/{id}/amount")
     @PreAuthorize("hasRole('ADMIN')")

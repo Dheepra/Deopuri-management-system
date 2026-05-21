@@ -16,6 +16,8 @@ public interface OrdersService {
 
     List<OrderResponse> getAllOrders();
 
+    String confirmOrder(int userId);
+
     List<OrderResponse> getUserOrders(int userId);
 
     List<OrderResponse> getCurrentUserOrders();

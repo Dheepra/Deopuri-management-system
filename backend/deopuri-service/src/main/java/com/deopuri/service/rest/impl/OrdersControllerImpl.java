@@ -31,6 +31,13 @@ public class OrdersControllerImpl implements OrdersController {
     }
 
     @Override
+    public ResponseEntity<String> confirmOrder(int userId) {
+
+        return ResponseEntity.ok(
+                service.confirmOrder(userId));
+    }
+
+    @Override
     public ResponseEntity<List<OrderResponse>> getUserOrders(int userId) {
         return ResponseEntity.ok(service.getUserOrders(userId));
     }
