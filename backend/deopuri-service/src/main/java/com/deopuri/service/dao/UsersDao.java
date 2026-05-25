@@ -20,5 +20,7 @@ public interface UsersDao extends JpaRepository<Users, Integer> {
 
     List<Users> findByFirstNameStartingWithIgnoreCase(String firstName);
 
+    List<Users> findByRole(UserRole role);
+
     List<Users> findByStatus(UserStatus status);
 }

@@ -56,7 +56,7 @@ public class Users {
     @PrePersist
     void onCreate() {
         if (role == null) {
-            role = UserRole.MEDICAL;
+            role = UserRole.MEDICAL_ADMIN;
         }
         if (status == null) {
             status = UserStatus.PENDING;

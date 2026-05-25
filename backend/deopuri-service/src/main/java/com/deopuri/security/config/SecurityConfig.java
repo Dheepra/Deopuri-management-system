@@ -35,14 +35,23 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+
                         .requestMatchers(publicEndpoints.matcher()).permitAll()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        .requestMatchers(
+                                "/api/admin/approve-user/**")
+                        .permitAll()
+
+                        .requestMatchers(
+                                "/api/admin/**")
+                        .hasRole("ADMIN")
+
                         .requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
+
                         .anyRequest().authenticated())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -15,7 +15,8 @@ public interface UserServices {
 
     LoginResponse login(LoginRequest request);
 
-    UserResponse approveUser(int userId);
+   UserResponse approveUser(int userId);
+   
 
     UserResponse rejectUser(int userId);
 

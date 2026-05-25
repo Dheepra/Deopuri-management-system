@@ -1,16 +1,15 @@
 package com.deopuri.service.rest.impl;
 
-import com.deopuri.api.dto.LoginRequest;
-import com.deopuri.api.dto.LoginResponse;
+
 import com.deopuri.api.dto.RoleUpdateRequest;
-import com.deopuri.api.dto.UserRegisterRequest;
+
 import com.deopuri.api.dto.UserResponse;
 import com.deopuri.api.dto.UserUpdateRequest;
 import com.deopuri.api.rest.UserController;
 import com.deopuri.security.SecurityUtils;
 import com.deopuri.service.dao.UsersDao;
 import com.deopuri.service.service.UserServices;
-import org.springframework.http.HttpStatus;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,16 +25,6 @@ public class UserControllerImpl implements UserController {
     public UserControllerImpl(UserServices service, UsersDao usersDao) {
         this.service = service;
         this.usersDao = usersDao;
-    }
-
-    @Override
-    public ResponseEntity<UserResponse> registerUser(UserRegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.register(request));
-    }
-
-    @Override
-    public ResponseEntity<LoginResponse> loginUser(LoginRequest request) {
-        return ResponseEntity.ok(service.login(request));
     }
 
     @Override

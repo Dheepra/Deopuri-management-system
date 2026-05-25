@@ -6,7 +6,9 @@ public record LoginResponse(
         String token,
         String tokenType,
         long expiresInSeconds,
-        UserRole role) {
+        UserRole role
+        
+        ) {
 
     public static LoginResponse bearer(String token, long expiresInSeconds, UserRole role) {
         return new LoginResponse(token, "Bearer", expiresInSeconds, role);

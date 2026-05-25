@@ -1,6 +1,6 @@
 package com.deopuri.api.dto;
 
-import com.deopuri.api.model.UserRole;
+
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -13,5 +13,5 @@ public record UserRegisterRequest(
         @NotBlank(message = "Mobile number is required") @Size(min = 10, max = 10, message = "Mobile number must be 10 digits") String mobileNo,
         @NotBlank(message = "Address is required") String address,
         @NotBlank(message = "Shop name is required") String shopName,
-        UserRole role) {
+       String role) {
 }
