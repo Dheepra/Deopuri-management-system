@@ -10,14 +10,14 @@ export const ROLES = Object.freeze({
 const BACKEND_TO_FRONTEND = Object.freeze({
   ADMIN: ROLES.COMPANY_ADMIN,
   HOSPITAL_ADMIN: ROLES.HOSPITAL_ADMIN,
-  MEDICAL: ROLES.MEDICAL_ADMIN,
+  MEDICAL_ADMIN: ROLES.MEDICAL_ADMIN,
 });
 
 // Frontend role → backend UserRole enum value sent in API bodies.
 const FRONTEND_TO_BACKEND = Object.freeze({
   [ROLES.COMPANY_ADMIN]: 'ADMIN',
   [ROLES.HOSPITAL_ADMIN]: 'HOSPITAL_ADMIN',
-  [ROLES.MEDICAL_ADMIN]: 'MEDICAL',
+  [ROLES.MEDICAL_ADMIN]: 'MEDICAL_ADMIN',
 });
 
 export function fromBackendRole(role) {

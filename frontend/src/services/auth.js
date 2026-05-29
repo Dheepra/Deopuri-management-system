@@ -1,6 +1,7 @@
 import { http } from './http.js';
 import { fromBackendRole } from '../auth/roles.js';
 
+
 // Backend ErrorResponse: { timestamp, status, error, message, path, fieldErrors[] }
 function normalizeError(err) {
   if (err?.response) {
@@ -31,12 +32,77 @@ export async function signUp(payload) {
 // Returns a session shape that AuthContext consumes directly.
 export async function signIn({ email, password }) {
   try {
-    const { data } = await http.post('/api/auth/login', { email, password });
+    const { data } = await http.post('/api/auth/login', {
+      email,
+      password,
+    });
+
+    console.log("LOGIN RESPONSE=", data);
+
     return {
       token: data?.token,
       role: fromBackendRole(data?.role),
-      user: { email, backendRole: data?.role },
+      user: {
+        email,
+        backendRole: data?.role,
+      },
     };
+  } catch (err) {
+    throw normalizeError(err);
+  }
+
+}
+export async function getPendingUsers() {
+  try {
+    const { data } =
+      await http.get(
+        '/api/admin/users/pending'
+      );
+
+    return data;
+
+  } catch (err) {
+
+    throw normalizeError(
+      err
+    );
+
+  }
+}
+
+
+export async function approveUser(
+  id
+) {
+
+  try {
+
+    const { data } =
+      await http.put(
+        `/api/admin/users/${id}/approve`
+      );
+
+    return data;
+
+  } catch (err) {
+
+    throw normalizeError(
+      err
+    );
+
+  }
+
+}
+
+export async function rejectUser(id) {
+  try {
+    const { data } =
+      await http.put(
+        `/api/admin/users/${id}/reject`
+      );
+
+    return data;
+
   } catch (err) {
     throw normalizeError(err);
   }

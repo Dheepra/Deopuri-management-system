@@ -1,8 +1,5 @@
 package com.deopuri.service.service;
 
-import com.deopuri.api.dto.LoginRequest;
-import com.deopuri.api.dto.LoginResponse;
-import com.deopuri.api.dto.UserRegisterRequest;
 import com.deopuri.api.dto.UserResponse;
 import com.deopuri.api.dto.UserUpdateRequest;
 import com.deopuri.api.model.UserRole;
@@ -11,10 +8,7 @@ import java.util.List;
 
 public interface UserServices {
 
-    UserResponse register(UserRegisterRequest request);
-
-    LoginResponse login(LoginRequest request);
-
+    
    UserResponse approveUser(int userId);
    
 

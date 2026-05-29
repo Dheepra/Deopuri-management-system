@@ -1,5 +1,8 @@
 import EnterpriseAuthLayout from '../layouts/EnterpriseAuthLayout.jsx';
 import LoginForm from '../components/auth/LoginForm.jsx';
+import { useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 const BULLETS = [
   {
@@ -20,6 +23,15 @@ const BULLETS = [
 ];
 
 export default function Login() {
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.justRegistered) {
+      toast.success('Account created successfully. Please wait for admin approval.');
+    }
+  }, [location.state]);
+
   return (
     <EnterpriseAuthLayout
       title="Welcome back"

@@ -1,8 +1,5 @@
 package com.deopuri.service.service.impl;
 
-import com.deopuri.api.dto.LoginRequest;
-import com.deopuri.api.dto.LoginResponse;
-import com.deopuri.api.dto.UserRegisterRequest;
 import com.deopuri.api.dto.UserResponse;
 import com.deopuri.api.dto.UserUpdateRequest;
 import com.deopuri.api.model.UserRole;
@@ -11,6 +8,7 @@ import com.deopuri.api.model.Users;
 import com.deopuri.exception.EmailAlreadyRegisteredException;
 import com.deopuri.exception.ResourceNotFoundException;
 import com.deopuri.security.jwt.JwtUtil;
+
 import com.deopuri.service.dao.UsersDao;
 import com.deopuri.service.service.UserServices;
 import org.slf4j.Logger;
@@ -20,9 +18,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.deopuri.service.service.EmailService;
+import com.deopuri.service.service.NotificationService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import java.util.List;
 import java.util.Locale;
+
+
 
 @Service
 @Transactional
@@ -32,113 +34,30 @@ public class UserServicesImpl implements UserServices {
 
     private final UsersDao dao;
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    private final NotificationService notificationService;
+    
+
+    // private final JwtUtil jwtUtil;
 
     @Autowired
-    private EmailService emailService;
+    private EmailService emailService;  
 
-    public UserServicesImpl(UsersDao dao, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
-        this.dao = dao;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
-    }
+  public UserServicesImpl(
+        UsersDao dao,
+        PasswordEncoder passwordEncoder,
+        JwtUtil jwtUtil,
+        NotificationService notificationService) {
 
-    // Public registration is locked to these two roles. ADMIN (Company Admin)
-    // is intentionally excluded — that account is seeded directly in the DB.
-    private static final java.util.Set<UserRole> PUBLIC_ROLES = java.util.EnumSet.of(UserRole.HOSPITAL_ADMIN,
-            UserRole.MEDICAL_ADMIN);
-
-    @Override
-    public UserResponse register(UserRegisterRequest request) {
-
-        String email = normalizeEmail(request.email());
-
-        if (dao.existsByEmail(email)) {
-            throw new RuntimeException("Email already registered");
-        }
-
-        Users user = new Users();
-        user.setFirstName(request.firstName());
-        user.setLastName(request.lastName());
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(request.password()));
-        user.setMobileNo(request.mobileNo());
-        user.setAddress(request.address());
-        user.setShopName(request.shopName());
-
-        UserRole role = UserRole.valueOf(
-                request.role().trim().toUpperCase());
-
-        if (!PUBLIC_ROLES.contains(role)) {
-            throw new RuntimeException("Invalid role selected");
-        }
-
-        user.setRole(role);
-
-        user.setStatus(UserStatus.PENDING);
-
-        Users saved = dao.save(user);
-
-        // USER MAIL (REGISTRATION CONFIRMATION)
-        try {
-            emailService.sendEmail(
-                    saved.getEmail(),
-                    "Registration Received - Deopuri Herbal Drugs",
-                    """
-                            Hello %s,
-
-                            Your registration has been received successfully.
-
-                            Status: PENDING APPROVAL
-
-                            You will receive email after admin approval.
-
-                            Email: %s
-
-                            Thank You,
-                            Deopuri Team
-                            """.formatted(saved.getFirstName(), saved.getEmail()));
-        } catch (Exception e) {
-            log.error("User mail failed", e);
-        }
-
-        // ADMIN NOTIFICATION MAIL
-        List<Users> admins = dao.findByRole(UserRole.ADMIN);
-
-        String adminMsg = "New User Registration\n\n" +
-                "Name: " + saved.getFirstName() + " " + saved.getLastName() + "\n" +
-                "Email: " + saved.getEmail() + "\n" +
-                "Shop: " + saved.getShopName() + "\n\n" +
-                "Please approve from dashboard.";
-
-        for (Users admin : admins) {
-            emailService.sendEmail(
-                    admin.getEmail(),
-                    "New User Approval Request",
-                    adminMsg);
-        }
-
-        return UserMapper.toResponse(saved);
-    }
-
-    @Override
-    public LoginResponse login(LoginRequest request) {
-
-        Users user = dao.findByEmail(normalizeEmail(request.email()))
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
-
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
-        }
-
-        if (user.getStatus() != UserStatus.APPROVED) {
-            throw new RuntimeException("Account not approved by admin");
-        }
-
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
-
-        return LoginResponse.bearer(token, jwtUtil.getExpiration().toSeconds(), user.getRole());
-    }
+    this.dao = dao;
+    this.passwordEncoder = passwordEncoder;
+    this.notificationService = notificationService;
+}
+    
+    // // Public registration is locked to these two roles. ADMIN (Company Admin)
+    // // is intentionally excluded — that account is seeded directly in the DB.
+    // private static final java.util.Set<UserRole> PUBLIC_ROLES =
+    // java.util.EnumSet.of(UserRole.HOSPITAL_ADMIN,
+    // UserRole.MEDICAL_ADMIN);
 
     @Override
     public UserResponse approveUser(int id) {
@@ -149,6 +68,12 @@ public class UserServicesImpl implements UserServices {
         user.setStatus(UserStatus.APPROVED);
 
         Users updated = dao.save(user);
+      
+    notificationService.saveNotification(
+        "Account Approved",
+        "Your account approved successfully",
+        user.getId());
+    
 
         // USER APPROVAL MAIL
         try {
@@ -221,7 +146,7 @@ public class UserServicesImpl implements UserServices {
                             """.formatted(
                             updated.getFirstName(),
                             updated.getEmail(),
-                             updated.getRole().name()));
+                            updated.getRole().name()));
 
         } catch (Exception e) {
             log.error("Approve mail failed", e);
@@ -242,6 +167,12 @@ public class UserServicesImpl implements UserServices {
 
         Users updated = dao.save(user);
 
+     
+    // NEW rejection notification
+   notificationService.saveNotification(
+        "Account Rejected",
+        "Your account has been rejected",
+        user.getId());
         // USER REJECTION MAIL
         try {
             emailService.sendEmail(

@@ -1,12 +1,13 @@
 package com.deopuri.service.rest.impl;
 
-
 import com.deopuri.api.dto.RoleUpdateRequest;
 
 import com.deopuri.api.dto.UserResponse;
 import com.deopuri.api.dto.UserUpdateRequest;
+
 import com.deopuri.api.rest.UserController;
 import com.deopuri.security.SecurityUtils;
+
 import com.deopuri.service.dao.UsersDao;
 import com.deopuri.service.service.UserServices;
 

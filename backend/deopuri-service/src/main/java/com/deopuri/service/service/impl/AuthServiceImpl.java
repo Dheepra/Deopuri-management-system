@@ -10,6 +10,8 @@ import com.deopuri.api.model.UserStatus;
 import com.deopuri.service.service.AuthService;
 import com.deopuri.service.service.EmailService;
 import com.deopuri.service.dao.UsersDao;
+import com.deopuri.service.service.NotificationService;
+
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,9 @@ public class AuthServiceImpl implements AuthService {
 
         @Autowired
         private PasswordEncoder passwordEncoder;
+
+        @Autowired
+        private NotificationService notificationService; // ✅ ADDED
 
         @Transactional
         @Override
@@ -57,7 +62,13 @@ public class AuthServiceImpl implements AuthService {
                 System.out.println("EMAIL = " + dto.email());
 
                 Users savedUser = usersDao.save(user);
+
+                // GET ADMINS
+                List<Users> admins = usersDao.findByRole(UserRole.ADMIN);
+
                 try {
+
+                        // ================= USER EMAIL =================
 
                         String userBody = """
                                         <div style="max-width:650px;margin:auto;
@@ -121,7 +132,7 @@ public class AuthServiceImpl implements AuthService {
                                         "Registration Received - Deopuri Herbal Drugs",
                                         userBody);
 
-                        List<Users> admins = usersDao.findByRole(UserRole.ADMIN);
+                        // ================= ADMIN EMAIL =================
 
                         String adminBody = """
                                         <div style="max-width:650px;
@@ -173,18 +184,27 @@ public class AuthServiceImpl implements AuthService {
                                         savedUser.getAddress(),
                                         savedUser.getShopName());
 
+                        // ================= ADMIN LOOP =================
+
                         for (Users admin : admins) {
 
+                                // EMAIL TO ADMIN
                                 emailService.sendEmail(
                                                 admin.getEmail(),
                                                 "New User Approval Request",
                                                 adminBody);
+
+                                // 🔔 NOTIFICATION TO ADMIN
+                                notificationService.saveNotification(
+                                                "New Registration Request",
+                                                savedUser.getEmail()
+                                                                + " requested registration",
+                                                admin.getId());
                         }
 
                 } catch (Exception e) {
 
                         e.printStackTrace();
-
                         throw e;
                 }
 
@@ -192,28 +212,18 @@ public class AuthServiceImpl implements AuthService {
         }
 
         @Override
-        public LoginResponse login(
-                        LoginRequest dto) {
+        public LoginResponse login(LoginRequest dto) {
 
-                Users user = usersDao.findByEmail(
-                                dto.email())
-                                .orElseThrow(
-                                                () -> new RuntimeException(
-                                                                "User not found"));
+                Users user = usersDao.findByEmail(dto.email())
+                                .orElseThrow(() -> new RuntimeException("User not found"));
 
                 if (user.getRole() != UserRole.ADMIN
-                                &&
-                                user.getStatus() == UserStatus.PENDING) {
-
-                        throw new RuntimeException(
-                                        "Account not approved by admin");
+                                && user.getStatus() == UserStatus.PENDING) {
+                        throw new RuntimeException("Account not approved by admin");
                 }
 
-                if (!passwordEncoder.matches(
-                                dto.password(),
-                                user.getPassword())) {
-                        throw new RuntimeException(
-                                        "Invalid password");
+                if (!passwordEncoder.matches(dto.password(), user.getPassword())) {
+                        throw new RuntimeException("Invalid password");
                 }
 
                 String token = jwtUtil.generateToken(
@@ -223,6 +233,7 @@ public class AuthServiceImpl implements AuthService {
                 return LoginResponse.bearer(
                                 token,
                                 jwtUtil.getExpiration().getSeconds(),
-                                user.getRole());
+                                user.getRole(),
+                                user.getId());
         }
 }

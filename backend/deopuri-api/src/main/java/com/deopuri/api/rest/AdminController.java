@@ -16,4 +16,6 @@ public interface AdminController {
 
     @GetMapping("/pending-users")
     ResponseEntity<List<UserResponse>> getPendingUsers();
+
+     
 }

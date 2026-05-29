@@ -1,5 +1,8 @@
 import EnterpriseAuthLayout from '../layouts/EnterpriseAuthLayout.jsx';
 import SignupForm from '../components/auth/SignupForm.jsx';
+import { useNavigate } from 'react-router-dom';
+import { signUp } from '../services/auth.js';
+import toast from 'react-hot-toast';
 
 const BULLETS = [
   {
@@ -20,6 +23,18 @@ const BULLETS = [
 ];
 
 export default function Signup() {
+  const navigate = useNavigate(); // ✅ inside component
+
+  const handleSignup = async (formData) => {
+    try {
+      const res = await signUp(formData);
+      toast.success('Account created. Awaiting approval.');
+      navigate('/login');
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   return (
     <EnterpriseAuthLayout
       title="Create your account"

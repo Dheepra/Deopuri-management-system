@@ -92,49 +92,56 @@ export default function SignupForm() {
     setErrors((prev) => ({ ...prev, [name]: fieldErr }));
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    const next = validate(values);
-    setErrors(next);
-    if (Object.values(next).some(Boolean)) {
-      toast.error('Please fix the highlighted fields');
-      return;
-    }
-    setSubmitting(true);
-    const payload = {
-      ...Object.fromEntries(
-        Object.entries(values)
-          .filter(([k]) => FIELD_MAP[k])
-          .map(([k, v]) => [FIELD_MAP[k], typeof v === 'string' ? v.trim() : v]),
-      ),
-      role: toBackendRole(values.role),
-    };
-    try {
-      await signUp(payload);
-      toast.success('Account created. Awaiting approval.');
-      navigate('/login', { state: { justRegistered: true, email: values.email } });
-    } catch (err) {
-      if (err.type === 'api' && err.status === 409) {
-        toast.error('That email is already registered');
-        setErrors((prev) => ({ ...prev, email: 'Email already in use' }));
-      } else if (err.type === 'api' && err.status === 400 && err.fieldErrors?.length) {
-        toast.error('Some fields need attention');
-        const next = {};
-        for (const { field, message } of err.fieldErrors) {
-          const key = API_TO_FORM[field];
-          if (key) next[key] = message;
-        }
-        setErrors((prev) => ({ ...prev, ...next }));
-      } else if (err.type === 'network') {
-        toast.error(err.message);
-      } else {
-        toast.error(err.message ?? 'Could not create your account');
-      }
-    } finally {
-      setSubmitting(false);
-    }
+ const handleSubmit = async (event) => {
+  event.preventDefault();
+
+  const next = validate(values);
+  setErrors(next);
+
+  if (Object.values(next).some(Boolean)) {
+    toast.error('Please fix the highlighted fields');
+    return;
+  }
+
+  setSubmitting(true);
+
+  const payload = {
+    ...Object.fromEntries(
+      Object.entries(values)
+        .filter(([k]) => FIELD_MAP[k])
+        .map(([k, v]) => [FIELD_MAP[k], typeof v === 'string' ? v.trim() : v]),
+    ),
+    role: toBackendRole(values.role),
   };
 
+  try {
+    await signUp(payload);
+
+    // ✅ ONLY THIS CHANGE
+    toast.success('Registration successful! Await admin approval.');
+    navigate('/login');
+
+  } catch (err) {
+    if (err.type === 'api' && err.status === 409) {
+      toast.error('That email is already registered');
+      setErrors((prev) => ({ ...prev, email: 'Email already in use' }));
+    } else if (err.type === 'api' && err.status === 400 && err.fieldErrors?.length) {
+      toast.error('Some fields need attention');
+      const next = {};
+      for (const { field, message } of err.fieldErrors) {
+        const key = API_TO_FORM[field];
+        if (key) next[key] = message;
+      }
+      setErrors((prev) => ({ ...prev, ...next }));
+    } else if (err.type === 'network') {
+      toast.error(err.message);
+    } else {
+      toast.error(err.message ?? 'Could not create your account');
+    }
+  } finally {
+    setSubmitting(false);
+  }
+};
   // Tailor the organization label to the chosen role.
   const organizationLabel =
     values.role === ROLES.HOSPITAL_ADMIN

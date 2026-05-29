@@ -62,4 +62,6 @@ public interface UserController {
     @GetMapping("/admin/users/pending")
     @PreAuthorize("hasRole('ADMIN')")
     ResponseEntity<List<UserResponse>> getPendingUsers();
+
+   
 }
