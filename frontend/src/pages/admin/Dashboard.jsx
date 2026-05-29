@@ -84,13 +84,18 @@ export default function Dashboard() {
       {/* KPI */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {KPIS.map((kpi) => (
-          <article key={kpi.label} className="rounded-2xl border bg-white p-5">
-            <p className="text-xs uppercase text-ink-500">{kpi.label}</p>
+          <article
+            key={kpi.label}
+            className="rounded-2xl border border-ink-100 bg-white p-6 shadow-[var(--shadow-card)]"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-500">{kpi.label}</p>
 
-            <div className="mt-3 flex justify-between">
-              <p className="text-3xl font-bold">{kpi.value}</p>
+            <div className="mt-3 flex items-center justify-between">
+              <p className="font-display text-3xl font-bold text-ink-900">{kpi.value}</p>
 
-              <span className={`rounded-full px-2 py-1 text-xs ${TONE[kpi.tone]}`}>
+              <span
+                className={`rounded-full px-2 py-1 text-xs font-semibold ${TONE[kpi.tone]}`}
+              >
                 {kpi.delta}
               </span>
             </div>
@@ -100,45 +105,53 @@ export default function Dashboard() {
 
       {/* USERS */}
       <section className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-2xl border bg-white p-6">
-          <h2 className="text-lg font-semibold">
+        <div className="lg:col-span-2 rounded-2xl border border-ink-100 bg-white p-6 shadow-[var(--shadow-card)]">
+          <h2 className="font-display text-lg font-semibold text-ink-900">
             Pending User Approvals
           </h2>
 
           <div className="mt-5 space-y-3">
             {pendingUsers.length === 0 ? (
-              <p>No pending users</p>
+              <p className="text-sm text-ink-500">No pending users</p>
             ) : (
               pendingUsers.map((u) => (
                 <div
                   key={u.id}
-                  className="flex justify-between rounded-xl border p-4"
+                  className="flex items-start justify-between gap-3 rounded-xl border border-ink-100 p-4 transition-colors hover:border-brand-200 hover:bg-brand-50/40"
                 >
                   {/* USER INFO */}
                   <div>
-                    <p className="font-semibold">
+                    <p className="text-sm font-medium text-ink-900">
                       {u.firstName} {u.lastName}
                     </p>
 
-                    <p className="text-sm text-gray-500">
+                    <p className="mt-1 text-xs text-ink-500">
                       {u.email}
                     </p>
 
-                    <p className="text-xs">{u.role}</p>
+                    <p className="mt-2 text-[11px] uppercase tracking-wider text-ink-400">
+                      {u.role}
+                    </p>
                   </div>
 
                   {/* ACTION BUTTONS */}
-                  <div className="flex gap-2">
+                  <div className="flex shrink-0 gap-2">
                     <button
                       onClick={() => handleApprove(u.id)}
-                      className="rounded bg-green-600 px-4 py-2 text-white"
+                      className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-[var(--shadow-card)] transition-colors hover:bg-brand-700"
                     >
                       Approve
                     </button>
 
+                    {/*
+                     * Destructive reject button keeps Tailwind red-600 — the
+                     * design system in globals.css has no danger token. If a
+                     * --color-danger-* scale is added later, swap this and the
+                     * TONE.bad pill above to use it.
+                     */}
                     <button
                       onClick={() => handleReject(u.id)}
-                      className="rounded bg-red-600 px-4 py-2 text-white"
+                      className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700"
                     >
                       Reject
                     </button>
@@ -150,11 +163,18 @@ export default function Dashboard() {
         </div>
 
         {/* SIDEBAR */}
-        <aside className="rounded-2xl bg-gradient-to-br from-[var(--color-night-800)] to-[var(--color-night-700)] p-6 text-white">
-          <h3 className="text-lg font-semibold">Roadmap</h3>
+        <aside className="rounded-2xl border border-ink-100 bg-gradient-to-br from-[var(--color-night-800)] to-[var(--color-night-700)] p-6 text-white shadow-[var(--shadow-card)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
+            Roadmap
+          </p>
+
+          <h3 className="mt-2 font-display text-lg font-semibold">
+            Hospital & Medical admin tiers
+          </h3>
 
           <p className="mt-2 text-sm text-white/70">
-            Hospital & Medical admin tiers
+            Coming next: per-vertical inventory rules, role-scoped notifications, and exportable
+            approval logs.
           </p>
         </aside>
       </section>

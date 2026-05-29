@@ -63,7 +63,7 @@ public class UserServicesImpl implements UserServices {
     public UserResponse approveUser(int id) {
 
         Users user = dao.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
 
         user.setStatus(UserStatus.APPROVED);
 
@@ -149,10 +149,17 @@ public class UserServicesImpl implements UserServices {
                             updated.getRole().name()));
 
         } catch (Exception e) {
-            log.error("Approve mail failed", e);
+            log.error("Approve mail failed userId={}", updated.getId(), e);
         }
-        System.out.println("USER EMAIL = " + updated.getEmail());
-        System.out.println("USER STATUS = " + updated.getStatus());
+
+        // Replaces leftover System.out debug prints that were dumping the
+        // user's email to stdout on every approval. Log at DEBUG so the same
+        // information is available when troubleshooting without leaking PII
+        // into production stdout/log aggregators.
+        log.debug(
+                "User approved id={} status={}",
+                updated.getId(),
+                updated.getStatus());
 
         return UserMapper.toResponse(updated);
     }
@@ -161,7 +168,7 @@ public class UserServicesImpl implements UserServices {
     public UserResponse rejectUser(int id) {
 
         Users user = dao.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + id));
 
         user.setStatus(UserStatus.REJECTED);
 

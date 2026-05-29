@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -54,7 +54,7 @@ function Sidebar({ navItems, open, onClose }) {
 }
 
 function Topbar({ onMenu, search, onSearchChange }) {
-  const { user, role, signOut } = useAuth();
+  const { user, token, role, signOut } = useAuth();
 
   const navigate = useNavigate();
 
@@ -64,19 +64,20 @@ function Topbar({ onMenu, search, onSearchChange }) {
 
   const [notifications, setNotifications] = useState([]);
 
-  // SAFE USER ID
- const session = JSON.parse(localStorage.getItem('auth.session'));
+  const notificationRef = useRef(null);
 
-const userId = user?.id || session?.id;
-
-  const token =
-    JSON.parse(localStorage.getItem('auth.session'))?.token;
+  const userId = user?.id;
 
   const initial = (user?.email?.[0] || 'A').toUpperCase();
 
   // FETCH NOTIFICATIONS
-  useEffect(() => {
-  const loadNotifications = async () => {
+  //
+  // Hoisted out of the useEffect with useCallback so handleNotificationClick
+  // can re-trigger a fresh fetch after the PUT succeeds. Keeping it inside the
+  // effect was fine for the initial load but meant the click handler had to
+  // do its own optimistic state surgery — which is what drifted from the
+  // backend (the 18-stale-items bug).
+  const loadNotifications = useCallback(async () => {
     try {
       if (!userId || !token) return;
 
@@ -90,31 +91,47 @@ const userId = user?.id || session?.id;
         }
       );
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Notifications fetch failed (${response.status})`);
+      }
 
-      console.log("NOTIFICATIONS API RESPONSE:", data);
+      const data = await response.json();
 
       setNotifications(Array.isArray(data) ? data : []);
     } catch (err) {
       console.log(err);
     }
+  }, [userId, token]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  // Close the panel when clicking outside (bell stays the toggle).
+  useEffect(() => {
+    if (!notificationOpen) return undefined;
+
+    const onPointerDown = (event) => {
+      if (notificationRef.current?.contains(event.target)) return;
+      setNotificationOpen(false);
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [notificationOpen]);
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const handleBellClick = () => {
+    setNotificationOpen((open) => {
+      const next = !open;
+      if (next) loadNotifications();
+      return next;
+    });
   };
 
-  loadNotifications();
-}, [userId, token]);
-
-  // UNREAD COUNT
-  const unreadCount = notifications.filter(
-    (n) => !n.isRead
-  ).length;
-
-  // MARK ALL AS READ
-  const handleNotificationClick = async () => {
-    const newState = !notificationOpen;
-
-    setNotificationOpen(newState);
-
-    if (!newState || !userId || !token) return;
+  const handleMarkAllRead = async () => {
+    if (!userId || !token || unreadCount === 0) return;
 
     try {
       const response = await fetch(
@@ -131,14 +148,11 @@ const userId = user?.id || session?.id;
         throw new Error('Failed to mark notifications as read');
       }
 
-      setNotifications((prev) =>
-        prev.map((n) => ({
-          ...n,
-          isRead: true,
-        }))
-      );
+      await loadNotifications();
+      toast.success('All notifications marked as read');
     } catch (err) {
       console.log('Read Notification Error:', err);
+      toast.error('Could not mark notifications as read');
     }
   };
 
@@ -152,12 +166,13 @@ const userId = user?.id || session?.id;
   };
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b bg-white px-6">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-ink-100 bg-white/80 px-6 backdrop-blur">
 
       {/* MOBILE MENU */}
       <button
         onClick={onMenu}
-        className="h-10 w-10 rounded lg:hidden"
+        className="h-10 w-10 rounded-lg text-ink-600 transition-colors hover:bg-ink-100 lg:hidden"
+        aria-label="Open menu"
       >
         ☰
       </button>
@@ -174,45 +189,66 @@ const userId = user?.id || session?.id;
       <div className="ml-auto flex items-center gap-3">
 
         {/* NOTIFICATION */}
-        <div className="relative">
+        <div className="relative" ref={notificationRef}>
 
           <button
-            onClick={handleNotificationClick}
-            className="relative h-10 w-10 rounded hover:bg-gray-100"
+            type="button"
+            onClick={handleBellClick}
+            className="relative h-10 w-10 rounded-lg text-ink-600 transition-colors hover:bg-ink-100"
+            aria-label="Notifications"
+            aria-expanded={notificationOpen}
           >
             🔔
 
+            {/*
+             * Notification count badge — uses Tailwind red-500 by convention
+             * (the design tokens in globals.css have no danger scale yet).
+             */}
             {unreadCount > 0 && (
-              <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1.5 text-xs text-white">
+              <span className="absolute -right-1 -top-1 rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">
                 {unreadCount}
               </span>
             )}
           </button>
 
           {notificationOpen && (
-            <div className="absolute right-0 top-12 w-80 rounded-lg border bg-white shadow-lg">
+            <div className="absolute right-0 top-12 z-30 w-80 rounded-2xl border border-ink-100 bg-white shadow-[var(--shadow-card)]">
 
-              <div className="border-b p-3 font-semibold">
-                Notifications
+              <div className="flex items-center justify-between gap-2 border-b border-ink-100 p-3">
+                <span className="font-display text-sm font-semibold text-ink-900">
+                  Notifications
+                </span>
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleMarkAllRead}
+                    className="shrink-0 text-xs font-semibold text-brand-700 hover:text-brand-800"
+                  >
+                    Mark all read
+                  </button>
+                )}
               </div>
 
               <div className="max-h-72 overflow-auto">
 
                 {notifications.length === 0 ? (
-                  <p className="p-4 text-sm text-gray-500">
+                  <p className="p-4 text-sm text-ink-500">
                     No notifications
                   </p>
                 ) : (
                   notifications.map((n) => (
                     <div
                       key={n.id}
-                      className="border-b p-3"
+                      className={[
+                        'border-b border-ink-100 p-3 transition-colors last:border-b-0 hover:bg-brand-50/40',
+                        !n.isRead ? 'bg-brand-50/30' : '',
+                      ].join(' ')}
                     >
-                      <p className="font-medium">
+                      <p className="text-sm font-medium text-ink-900">
                         {n.title}
                       </p>
 
-                      <p className="text-sm text-gray-500">
+                      <p className="mt-1 text-xs text-ink-500">
                         {n.message}
                       </p>
                     </div>
@@ -228,29 +264,29 @@ const userId = user?.id || session?.id;
 
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-ink-100"
           >
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-blue-600 text-white">
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-600 text-sm font-semibold text-white">
               {initial}
             </span>
 
-            <div className="text-left">
-              <p className="text-sm font-medium">
+            <div className="hidden text-left sm:block">
+              <p className="text-sm font-medium text-ink-900">
                 {user?.email}
               </p>
 
-              <small className="text-gray-500">
+              <small className="text-xs text-ink-500">
                 {ROLE_LABELS[role]}
               </small>
             </div>
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-12 w-48 rounded border bg-white shadow">
+            <div className="absolute right-0 top-12 w-48 rounded-2xl border border-ink-100 bg-white shadow-[var(--shadow-card)]">
 
               <button
                 onClick={handleSignOut}
-                className="w-full p-3 text-left hover:bg-gray-100"
+                className="w-full rounded-2xl p-3 text-left text-sm font-medium text-ink-700 transition-colors hover:bg-ink-100"
               >
                 Sign out
               </button>
@@ -272,7 +308,7 @@ export default function DashboardLayout({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-ink-50">
 
       <Sidebar
         navItems={navItems}
@@ -288,7 +324,7 @@ export default function DashboardLayout({
           onSearchChange={onSearchChange}
         />
 
-        <main className="p-6">
+        <main className="p-6 sm:p-8">
           <Outlet />
         </main>
 

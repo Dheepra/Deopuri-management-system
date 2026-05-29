@@ -2,7 +2,19 @@ import Badge from '../ui/Badge.jsx';
 
 const TONE = { warning: 'warning', info: 'info', danger: 'danger', success: 'success' };
 
-export default function NotificationPanel({ items }) {
+export default function NotificationPanel({ items, onMarkAllRead }) {
+  // The button used to be a dead placeholder. We accept an optional callback
+  // so embedders can wire it to their real mark-all-read flow (the layout's
+  // bell-click handler, in the case of a future shared component). Callers
+  // that don't pass one — currently HospitalDashboard, which is on mock data
+  // — get a disabled-looking, no-op button so the UI doesn't lie about what
+  // clicking will do.
+  const handleClick = () => {
+    if (typeof onMarkAllRead === 'function') {
+      onMarkAllRead();
+    }
+  };
+
   return (
     <section className="rounded-2xl border border-ink-100 bg-white/80 p-6 shadow-[var(--shadow-card)] backdrop-blur">
       <header className="flex items-center justify-between">
@@ -12,7 +24,9 @@ export default function NotificationPanel({ items }) {
         </div>
         <button
           type="button"
-          className="text-xs font-semibold text-brand-700 hover:text-brand-800"
+          onClick={handleClick}
+          disabled={!onMarkAllRead}
+          className="text-xs font-semibold text-brand-700 hover:text-brand-800 disabled:cursor-not-allowed disabled:text-ink-300 disabled:hover:text-ink-300"
         >
           Mark all read
         </button>

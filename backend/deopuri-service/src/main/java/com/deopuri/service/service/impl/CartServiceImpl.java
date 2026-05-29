@@ -2,6 +2,8 @@ package com.deopuri.service.service.impl;
 
 import com.deopuri.api.dto.*;
 import com.deopuri.api.model.*;
+import com.deopuri.exception.BusinessException;
+import com.deopuri.exception.ResourceNotFoundException;
 import com.deopuri.service.dao.*;
 import com.deopuri.service.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,29 +34,36 @@ public class CartServiceImpl implements CartService {
     public List<CartResponse> addToCart(CartDto dto) {
 
         Users user = usersDao.findById(dto.userId())
-                .orElseThrow(() -> new RuntimeException("User Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not found with id " + dto.userId()));
 
         Product product = productDao.findById(dto.productId())
-                .orElseThrow(() -> new RuntimeException("Product Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Product not found with id " + dto.productId()));
 
         ProductVariant variant = variantDao.findById(dto.variantId())
-                .orElseThrow(() -> new RuntimeException("Variant Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Product variant not found with id " + dto.variantId()));
 
         if (user.getRole() == UserRole.ADMIN) {
-            throw new RuntimeException("Admin Cannot Add To Cart");
+            throw new BusinessException("cart_admin_forbidden",
+                    "Admin accounts cannot add items to a cart.");
         }
 
         if (dto.quantity() <= 0) {
-            throw new RuntimeException("Quantity Must Be Greater Than 0");
+            throw new BusinessException("cart_quantity_invalid",
+                    "Quantity must be greater than zero.");
         }
 
         if (dto.size() == null || dto.size().isEmpty()) {
-            throw new RuntimeException("Size Required");
+            throw new BusinessException("cart_size_required",
+                    "Please choose a size before adding to the cart.");
         }
 
         if (variant.getProduct() == null ||
                 !variant.getProduct().getId().equals(product.getId())) {
-            throw new RuntimeException("Variant Does Not Belong To Product");
+            throw new BusinessException("cart_variant_mismatch",
+                    "The selected variant does not belong to the chosen product.");
         }
 
         Orders existingOrder = ordersDao
@@ -96,10 +105,12 @@ public class CartServiceImpl implements CartService {
     public List<CartResponse> addBulk(BulkCartDto dto) {
 
         Users user = usersDao.findById(dto.userId())
-                .orElseThrow(() -> new RuntimeException("User Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "User not found with id " + dto.userId()));
 
         if (user.getRole() == UserRole.ADMIN) {
-            throw new RuntimeException("Admin Cannot Add To Cart");
+            throw new BusinessException("cart_admin_forbidden",
+                    "Admin accounts cannot add items to a cart.");
         }
 
         List<Orders> savedOrders = new ArrayList<>();
@@ -107,18 +118,22 @@ public class CartServiceImpl implements CartService {
         for (CartItemRequest item : dto.items()) {
 
             Product product = productDao.findById(item.productId())
-                    .orElseThrow(() -> new RuntimeException("Product Not Found"));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Product not found with id " + item.productId()));
 
             ProductVariant variant = variantDao.findById(item.variantId())
-                    .orElseThrow(() -> new RuntimeException("Variant Not Found"));
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Product variant not found with id " + item.variantId()));
 
             if (item.quantity() <= 0) {
-                throw new RuntimeException("Quantity Must Be Greater Than 0");
+                throw new BusinessException("cart_quantity_invalid",
+                        "Quantity must be greater than zero.");
             }
 
             if (variant.getProduct() == null ||
                     !variant.getProduct().getId().equals(product.getId())) {
-                throw new RuntimeException("Invalid Product-Variant Combination");
+                throw new BusinessException("cart_variant_mismatch",
+                        "The selected variant does not belong to the chosen product.");
             }
 
             Orders existingOrder = ordersDao

@@ -41,16 +41,35 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, "insufficient_stock", ex.getMessage(), request);
     }
 
+    /**
+     * Domain-rule violations. 422 Unprocessable Entity is the semantic match:
+     * the request was well-formed (so not 400) and the caller was authorised
+     * (so not 401/403), but the server can't process it because of a business
+     * rule. Logs at WARN — these are normal user-error paths, not faults.
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex,
+                                                        HttpServletRequest request) {
+        log.warn("Business rule [{}] on {}: {}",
+                ex.getErrorCode(), request.getRequestURI(), ex.getMessage());
+        return build(HttpStatus.UNPROCESSABLE_ENTITY,
+                ex.getErrorCode(), ex.getMessage(), request);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex,
                                                           HttpServletRequest request) {
         List<FieldError> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
                 .map(f -> new FieldError(f.getField(), f.getDefaultMessage()))
                 .toList();
+        log.info("Validation failed on {} fieldErrors={}",
+                request.getRequestURI(), fieldErrors.size());
         ErrorResponse body = ErrorResponse.withFieldErrors(
                 HttpStatus.BAD_REQUEST.value(),
                 "validation_failed",
-                "Request validation failed",
+                // User-facing message — generic by design. The fieldErrors
+                // array carries the per-field detail the UI can highlight.
+                "Invalid request data. Please check the highlighted fields.",
                 request.getRequestURI(),
                 fieldErrors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
@@ -71,7 +90,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex,
                                                             HttpServletRequest request) {
-        return build(HttpStatus.FORBIDDEN, "access_denied", "Access denied", request);
+        log.warn("Access denied on {}", request.getRequestURI());
+        return build(HttpStatus.FORBIDDEN, "access_denied",
+                "You do not have permission to perform this action.", request);
     }
 
     @ExceptionHandler(AuthenticationException.class)
@@ -93,11 +114,16 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "bad_request", ex.getMessage(), request);
     }
 
+    /**
+     * Catch-all for anything that didn't match a dedicated handler. Logged at
+     * ERROR with the full stack so engineers can diagnose; the response to the
+     * client is intentionally generic so we never leak internal details.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
         log.error("Unhandled exception on {}", request.getRequestURI(), ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "internal_error",
-                "An unexpected error occurred", request);
+                "Something went wrong. Please try again later.", request);
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String error, String message,

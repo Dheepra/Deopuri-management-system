@@ -7,6 +7,7 @@ import com.deopuri.api.model.Orders;
 import com.deopuri.api.model.Product;
 import com.deopuri.api.model.ProductVariant;
 import com.deopuri.api.model.Users;
+import com.deopuri.exception.BusinessException;
 import com.deopuri.exception.InsufficientStockException;
 import com.deopuri.exception.ResourceNotFoundException;
 import com.deopuri.security.SecurityUtils;
@@ -145,7 +146,8 @@ public class OrdersServiceImpl implements OrdersService {
         List<Orders> cartItems = dao.findByUserAndStatus(user, OrderStatus.PENDING);
 
         if (cartItems.isEmpty()) {
-            throw new RuntimeException("Cart Empty");
+            throw new BusinessException("cart_empty",
+                    "Your cart is empty. Add at least one item before checkout.");
         }
 
         double total = 0;

@@ -12,14 +12,21 @@ import com.deopuri.service.service.EmailService;
 import com.deopuri.service.dao.UsersDao;
 import com.deopuri.service.service.NotificationService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthServiceImpl implements AuthService {
+
+        private static final Logger log =
+                LoggerFactory.getLogger(AuthServiceImpl.class);
 
         @Autowired
         private UsersDao usersDao;
@@ -58,8 +65,12 @@ public class AuthServiceImpl implements AuthService {
 
                 user.setStatus(UserStatus.PENDING);
 
-                System.out.println("ROLE = " + dto.role());
-                System.out.println("EMAIL = " + dto.email());
+                // INFO at "registration started" — operators correlate this
+                // with the later "Email sent" / "Notification created" lines
+                // to confirm the full flow ran. Role is fine to log; the
+                // email is PII and intentionally not logged here (the old
+                // System.out.println leaked it on every signup).
+                log.info("Registration started role={}", dto.role());
 
                 Users savedUser = usersDao.save(user);
 
@@ -204,7 +215,18 @@ public class AuthServiceImpl implements AuthService {
 
                 } catch (Exception e) {
 
-                        e.printStackTrace();
+                        // Was e.printStackTrace() — that prints to stderr
+                        // with no logger context (timestamp, MDC, request
+                        // URI), and also gets duplicated by
+                        // GlobalExceptionHandler's catch-all. Use the logger
+                        // so the stack lands in the same stream as the rest
+                        // of the request's logs, then rethrow so the original
+                        // behaviour (transaction rollback + 500 to caller)
+                        // is preserved.
+                        log.error(
+                                "Registration follow-up failed userId={}",
+                                savedUser.getId(),
+                                e);
                         throw e;
                 }
 
@@ -215,15 +237,31 @@ public class AuthServiceImpl implements AuthService {
         public LoginResponse login(LoginRequest dto) {
 
                 Users user = usersDao.findByEmail(dto.email())
-                                .orElseThrow(() -> new RuntimeException("User not found"));
+                                // BadCredentialsException (rather than 404)
+                                // so we don't leak whether the email exists.
+                                // GlobalExceptionHandler maps it to 401 with
+                                // the generic "Invalid email or password"
+                                // message — single response for both
+                                // "wrong email" and "wrong password".
+                                .orElseThrow(() -> {
+                                        log.info("Login failed: unknown email");
+                                        return new BadCredentialsException(
+                                                        "Invalid email or password");
+                                });
 
                 if (user.getRole() != UserRole.ADMIN
                                 && user.getStatus() == UserStatus.PENDING) {
-                        throw new RuntimeException("Account not approved by admin");
+                        log.info("Login blocked userId={} status=PENDING",
+                                        user.getId());
+                        throw new DisabledException(
+                                        "Your account is awaiting admin approval.");
                 }
 
                 if (!passwordEncoder.matches(dto.password(), user.getPassword())) {
-                        throw new RuntimeException("Invalid password");
+                        log.info("Login failed: bad password userId={}",
+                                        user.getId());
+                        throw new BadCredentialsException(
+                                        "Invalid email or password");
                 }
 
                 String token = jwtUtil.generateToken(

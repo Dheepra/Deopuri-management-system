@@ -37,12 +37,11 @@ export async function signIn({ email, password }) {
       password,
     });
 
-    console.log("LOGIN RESPONSE=", data);
-
     return {
       token: data?.token,
       role: fromBackendRole(data?.role),
       user: {
+        id: data?.id,
         email,
         backendRole: data?.role,
       },
