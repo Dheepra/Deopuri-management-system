@@ -25,8 +25,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthServiceImpl implements AuthService {
 
-        private static final Logger log =
-                LoggerFactory.getLogger(AuthServiceImpl.class);
+        private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
         @Autowired
         private UsersDao usersDao;
@@ -224,9 +223,9 @@ public class AuthServiceImpl implements AuthService {
                         // behaviour (transaction rollback + 500 to caller)
                         // is preserved.
                         log.error(
-                                "Registration follow-up failed userId={}",
-                                savedUser.getId(),
-                                e);
+                                        "Registration follow-up failed userId={}",
+                                        savedUser.getId(),
+                                        e);
                         throw e;
                 }
 
@@ -236,38 +235,42 @@ public class AuthServiceImpl implements AuthService {
         @Override
         public LoginResponse login(LoginRequest dto) {
 
+                // 1. Find user
                 Users user = usersDao.findByEmail(dto.email())
-                                // BadCredentialsException (rather than 404)
-                                // so we don't leak whether the email exists.
-                                // GlobalExceptionHandler maps it to 401 with
-                                // the generic "Invalid email or password"
-                                // message — single response for both
-                                // "wrong email" and "wrong password".
                                 .orElseThrow(() -> {
                                         log.info("Login failed: unknown email");
-                                        return new BadCredentialsException(
-                                                        "Invalid email or password");
+                                        return new BadCredentialsException("Invalid email or password");
                                 });
 
-                if (user.getRole() != UserRole.ADMIN
-                                && user.getStatus() == UserStatus.PENDING) {
-                        log.info("Login blocked userId={} status=PENDING",
-                                        user.getId());
-                        throw new DisabledException(
-                                        "Your account is awaiting admin approval.");
-                }
-
+                // 2. Password check FIRST
                 if (!passwordEncoder.matches(dto.password(), user.getPassword())) {
-                        log.info("Login failed: bad password userId={}",
-                                        user.getId());
-                        throw new BadCredentialsException(
-                                        "Invalid email or password");
+                        log.info("Login failed: bad password userId={}", user.getId());
+                        throw new BadCredentialsException("Invalid email or password");
                 }
 
+                if (user.getRole() != UserRole.DOCTOR
+                                && user.getStatus() == UserStatus.PENDING) {
+
+                        throw new DisabledException("Your account is awaiting admin approval.");
+                }
+                if (user.getStatus() == UserStatus.REJECTED) {
+                        throw new DisabledException("Your account has been rejected.");
+                }
+
+                // 4. DOCTOR special check (ONLY here)
+                if (user.getRole() == UserRole.DOCTOR) {
+
+                        if (!Boolean.TRUE.equals(user.getPasswordCreated())) {
+                                throw new RuntimeException("Please create password first using invitation link.");
+                        }
+                }
+
+                // 5. Generate JWT token
                 String token = jwtUtil.generateToken(
                                 user.getEmail(),
                                 user.getRole().name());
 
+                // 6. Response
                 return LoginResponse.bearer(
                                 token,
                                 jwtUtil.getExpiration().getSeconds(),

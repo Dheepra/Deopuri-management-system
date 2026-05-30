@@ -27,6 +27,10 @@ public class PublicEndpoints {
                         HttpMethod.POST,
                         "/api/auth/register"),
 
+                builder.matcher(
+                        HttpMethod.POST,
+                        "/api/auth/create-password"),
+
                 // product public api
                 builder.matcher(
                         HttpMethod.GET,

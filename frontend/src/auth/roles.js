@@ -4,6 +4,7 @@ export const ROLES = Object.freeze({
   COMPANY_ADMIN: 'COMPANY_ADMIN',
   HOSPITAL_ADMIN: 'HOSPITAL_ADMIN',
   MEDICAL_ADMIN: 'MEDICAL_ADMIN',
+  DOCTOR: 'DOCTOR',
 });
 
 // Backend UserRole.name() → frontend role. Extend here when new roles ship.
@@ -11,6 +12,7 @@ const BACKEND_TO_FRONTEND = Object.freeze({
   ADMIN: ROLES.COMPANY_ADMIN,
   HOSPITAL_ADMIN: ROLES.HOSPITAL_ADMIN,
   MEDICAL_ADMIN: ROLES.MEDICAL_ADMIN,
+    DOCTOR: ROLES.DOCTOR,
 });
 
 // Frontend role → backend UserRole enum value sent in API bodies.
@@ -18,6 +20,7 @@ const FRONTEND_TO_BACKEND = Object.freeze({
   [ROLES.COMPANY_ADMIN]: 'ADMIN',
   [ROLES.HOSPITAL_ADMIN]: 'HOSPITAL_ADMIN',
   [ROLES.MEDICAL_ADMIN]: 'MEDICAL_ADMIN',
+  [ROLES.DOCTOR]: 'DOCTOR',
 });
 
 export function fromBackendRole(role) {
@@ -39,6 +42,7 @@ export const ROLE_LABELS = Object.freeze({
   [ROLES.COMPANY_ADMIN]: 'Company Admin',
   [ROLES.HOSPITAL_ADMIN]: 'Hospital Admin',
   [ROLES.MEDICAL_ADMIN]: 'Medical Admin',
+   [ROLES.DOCTOR]: 'Doctor',
 });
 
 // Each console exposes its landing path; LoginForm uses this to redirect by role.
@@ -46,4 +50,5 @@ export const ROLE_HOME = Object.freeze({
   [ROLES.COMPANY_ADMIN]: '/admin/dashboard',
   [ROLES.HOSPITAL_ADMIN]: '/hospital/dashboard',
   [ROLES.MEDICAL_ADMIN]: '/medical/dashboard',
+   [ROLES.DOCTOR]: '/doctor',
 });

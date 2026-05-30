@@ -1,10 +1,12 @@
 package com.deopuri.service.rest.impl;
 
+import com.deopuri.api.dto.CreatePasswordRequest;
 import com.deopuri.api.dto.LoginRequest;
 import com.deopuri.api.dto.LoginResponse;
 import com.deopuri.api.dto.UserDto;
 import com.deopuri.api.rest.AuthController;
 import com.deopuri.service.service.AuthService;
+import com.deopuri.service.service.DoctorService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,9 @@ public class AuthControllerImpl implements AuthController {
     @Autowired
     private AuthService authService;
 
+    @Autowired
+    private DoctorService doctorService;
+
     @Override
     public ResponseEntity<String> register(@RequestBody UserDto dto) {
         return ResponseEntity.ok(authService.register(dto));
@@ -28,5 +33,14 @@ public class AuthControllerImpl implements AuthController {
 
         return ResponseEntity.ok(
                 authService.login(dto));
+    }
+
+    @Override
+
+    public ResponseEntity<String> createPassword(
+            @RequestBody CreatePasswordRequest request) {
+
+        doctorService.createPassword(request);
+        return ResponseEntity.ok("Password created successfully");
     }
 }

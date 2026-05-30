@@ -4,6 +4,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.deopuri.api.dto.CreatePasswordRequest;
 import com.deopuri.api.dto.LoginRequest;
 import com.deopuri.api.dto.LoginResponse;
 import com.deopuri.api.dto.UserDto;
@@ -17,4 +19,8 @@ public interface AuthController {
     @PostMapping("/login")
     ResponseEntity<LoginResponse> login(
             @RequestBody LoginRequest dto);
+
+            @PostMapping("/create-password")
+    ResponseEntity<String> createPassword(
+            @RequestBody CreatePasswordRequest request);
 }

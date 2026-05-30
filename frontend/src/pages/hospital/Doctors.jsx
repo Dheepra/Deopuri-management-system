@@ -42,6 +42,65 @@ const COLUMNS = [
 export default function Doctors() {
   const { data, loading } = useAsyncData(() => getDoctors());
   const [search, setSearch] = useState('');
+  const [showDoctorModal, setShowDoctorModal] = useState(false);
+
+const [doctorForm, setDoctorForm] = useState({
+  firstName: '',
+  lastName: '',
+  email: '',
+  mobileNo: '',
+  qualification: '',
+  specialization: '',
+  experienceYears: '',
+  address: '',
+});
+
+const handleDoctorSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const session = JSON.parse(
+      localStorage.getItem('auth.session')
+    );
+
+    const hospitalAdminId = session.user.id;
+
+    const response = await fetch(
+      `http://localhost:8080/api/hospital-admin/doctors?hospitalAdminId=${hospitalAdminId}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.token}`,
+        },
+        body: JSON.stringify(doctorForm),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed');
+    }
+
+    alert('Doctor registered successfully. Invitation email sent.');
+
+    setShowDoctorModal(false);
+
+    setDoctorForm({
+      firstName: '',
+      lastName: '',
+      email: '',
+      mobileNo: '',
+      qualification: '',
+      specialization: '',
+      experienceYears: '',
+      address: '',
+    });
+
+  } catch (error) {
+    console.error(error);
+    alert('Failed to register doctor');
+  }
+};
 
   return (
     <section className="space-y-6">
@@ -64,7 +123,12 @@ export default function Doctors() {
             placeholder="Search by name or specialty"
             className="sm:w-72"
           />
-          <Button size="md">Add doctor</Button>
+          <Button
+  size="md"
+  onClick={() => setShowDoctorModal(true)}
+>
+   + Add doctor
+</Button>
         </div>
       </header>
 
@@ -93,6 +157,142 @@ export default function Doctors() {
           </button>
         )}
       />
+
+      {showDoctorModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
+
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-bold">
+          Register Doctor
+        </h2>
+
+        <button
+  type="button"
+  onClick={() => setShowDoctorModal(false)}
+  className="text-xl"
+>
+          ✕
+        </button>
+      </div>
+
+      <form
+        onSubmit={handleDoctorSubmit}
+        className="grid grid-cols-2 gap-4"
+      >
+        <input
+          className="rounded border p-2"
+          placeholder="First Name"
+          value={doctorForm.firstName}
+          onChange={(e) =>
+            setDoctorForm({
+              ...doctorForm,
+              firstName: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="rounded border p-2"
+          placeholder="Last Name"
+          value={doctorForm.lastName}
+          onChange={(e) =>
+            setDoctorForm({
+              ...doctorForm,
+              lastName: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="rounded border p-2"
+          placeholder="Email"
+          value={doctorForm.email}
+          onChange={(e) =>
+            setDoctorForm({
+              ...doctorForm,
+              email: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="rounded border p-2"
+          placeholder="Mobile No"
+          value={doctorForm.mobileNo}
+          onChange={(e) =>
+            setDoctorForm({
+              ...doctorForm,
+              mobileNo: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="rounded border p-2"
+          placeholder="Qualification"
+          value={doctorForm.qualification}
+          onChange={(e) =>
+            setDoctorForm({
+              ...doctorForm,
+              qualification: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="rounded border p-2"
+          placeholder="Specialization"
+          value={doctorForm.specialization}
+          onChange={(e) =>
+            setDoctorForm({
+              ...doctorForm,
+              specialization: e.target.value,
+            })
+          }
+        />
+
+        <input
+         type="number"
+          className="rounded border p-2"
+          placeholder="Experience Years"
+          value={doctorForm.experienceYears}
+          onChange={(e) =>
+            setDoctorForm({
+              ...doctorForm,
+              experienceYears: e.target.value,
+            })
+          }
+        />
+
+        <input
+          className="rounded border p-2"
+          placeholder="Address"
+          value={doctorForm.address}
+          onChange={(e) =>
+            setDoctorForm({
+              ...doctorForm,
+              address: e.target.value,
+            })
+          }
+        />
+
+        <div className="col-span-2 mt-2 flex justify-end gap-2">
+          <Button
+            type="button"
+            onClick={() => setShowDoctorModal(false)}
+          >
+            Cancel
+          </Button>
+
+          <Button type="submit">
+            Register Doctor
+          </Button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
     </section>
   );
 }

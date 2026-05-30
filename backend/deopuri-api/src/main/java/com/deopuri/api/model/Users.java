@@ -50,6 +50,12 @@ public class Users {
     @Column(name = "status", nullable = false)
     private UserStatus status;
 
+    @Column(name = "invitation_token")
+    private String invitationToken;
+
+    @Column(name = "password_created")
+    private Boolean passwordCreated;
+
     public Users() {
     }
 
@@ -68,32 +74,95 @@ public class Users {
         return "Users[id=" + id + ", role=" + role + ", status=" + status + "]";
     }
 
-    public int getId() { return id; }
+    public int getId() {
+        return id;
+    }
 
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public String getFirstName() {
+        return firstName;
+    }
 
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getLastName() {
+        return lastName;
+    }
 
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
 
-    public String getMobileNo() { return mobileNo; }
-    public void setMobileNo(String mobileNo) { this.mobileNo = mobileNo; }
+    public String getEmail() {
+        return email;
+    }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-    public String getShopName() { return shopName; }
-    public void setShopName(String shopName) { this.shopName = shopName; }
+    public String getPassword() {
+        return password;
+    }
 
-    public UserRole getRole() { return role; }
-    public void setRole(UserRole role) { this.role = role; }
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-    public UserStatus getStatus() { return status; }
-    public void setStatus(UserStatus status) { this.status = status; }
+    public String getMobileNo() {
+        return mobileNo;
+    }
+
+    public void setMobileNo(String mobileNo) {
+        this.mobileNo = mobileNo;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getShopName() {
+        return shopName;
+    }
+
+    public void setShopName(String shopName) {
+        this.shopName = shopName;
+    }
+
+    public UserRole getRole() {
+        return role;
+    }
+
+    public void setRole(UserRole role) {
+        this.role = role;
+    }
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(UserStatus status) {
+        this.status = status;
+    }
+
+    public String getInvitationToken() {
+    return invitationToken;
+}
+
+public void setInvitationToken(String invitationToken) {
+    this.invitationToken = invitationToken;
+}
+
+public Boolean getPasswordCreated() {
+    return passwordCreated;
+}
+
+public void setPasswordCreated(Boolean passwordCreated) {
+    this.passwordCreated = passwordCreated;
+}
 }
