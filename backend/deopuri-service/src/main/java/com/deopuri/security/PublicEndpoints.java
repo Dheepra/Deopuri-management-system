@@ -29,7 +29,7 @@ public class PublicEndpoints {
 
                 builder.matcher(
                         HttpMethod.POST,
-                        "/api/auth/create-password"),
+                         "/api/auth/create-password/**"),
 
                 // product public api
                 builder.matcher(

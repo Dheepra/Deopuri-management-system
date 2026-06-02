@@ -13,14 +13,13 @@ import com.deopuri.api.dto.UserDto;
 @RequestMapping("/api/auth")
 public interface AuthController {
 
-    @PostMapping("/register")
-    ResponseEntity<String> register(@RequestBody UserDto dto);
+        @PostMapping("/register")
+        ResponseEntity<String> register(@RequestBody UserDto dto);
 
-    @PostMapping("/login")
-    ResponseEntity<LoginResponse> login(
-            @RequestBody LoginRequest dto);
+        @PostMapping("/login")
+        ResponseEntity<LoginResponse> login(
+                        @RequestBody LoginRequest dto);
 
-            @PostMapping("/create-password")
-    ResponseEntity<String> createPassword(
-            @RequestBody CreatePasswordRequest request);
+        @PostMapping("/create-password/{userId}")
+        ResponseEntity<String> createPassword(Integer userId, CreatePasswordRequest request);
 }

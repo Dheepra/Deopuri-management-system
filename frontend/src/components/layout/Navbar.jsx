@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useScrollPosition } from '../../hooks/useScrollPosition.js';
 import Container from '../ui/Container.jsx';
 import Button from '../ui/Button.jsx';
+import logo from "../../assets/picture/logo.jpg";
 
 const NAV_LINKS = [
   { label: 'Home', to: '/' },
@@ -11,30 +12,22 @@ const NAV_LINKS = [
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },
 ];
-
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-2 group">
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white shadow-sm transition-transform duration-300 group-hover:scale-105">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-5 w-5"
-        >
-          <path d="M12 3v18M3 12h18" />
-        </svg>
-      </span>
+    <Link to="/" className="flex items-center gap-3 group">
+      <img
+        src={logo}
+        alt="Deopuri Logo"
+        className="h-12 w-12 object-contain"
+      />
+
       <span className="font-display text-lg font-bold tracking-tight text-ink-900">
         Deopuri
       </span>
     </Link>
   );
 }
+
 
 export default function Navbar() {
   const scrolled = useScrollPosition(8);

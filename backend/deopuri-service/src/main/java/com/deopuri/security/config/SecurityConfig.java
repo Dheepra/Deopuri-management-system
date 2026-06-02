@@ -22,109 +22,89 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-        private final JwtFilter jwtFilter;
-        private final PublicEndpoints publicEndpoints;
+    private final JwtFilter jwtFilter;
+    private final PublicEndpoints publicEndpoints;
 
-        public SecurityConfig(JwtFilter jwtFilter, PublicEndpoints publicEndpoints) {
-                this.jwtFilter = jwtFilter;
-                this.publicEndpoints = publicEndpoints;
-        }
+    public SecurityConfig(JwtFilter jwtFilter, PublicEndpoints publicEndpoints) {
+        this.jwtFilter = jwtFilter;
+        this.publicEndpoints = publicEndpoints;
+    }
 
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
-        }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-        @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-                http
-                                .cors(cors -> {
-                                }) // ✅ YE ADD KARO
-                                .csrf(csrf -> csrf.disable())
+        http
+            .cors(cors -> {})
+            .csrf(csrf -> csrf.disable())
 
-                                .authorizeHttpRequests(auth -> auth
+            .authorizeHttpRequests(auth -> auth
 
-                                                .requestMatchers(
-                                                                publicEndpoints.matcher())
-                                                .permitAll()
+                // ✅ FIX: PublicEndpoints properly applied
+                .requestMatchers(publicEndpoints.matcher())
+                .permitAll()
 
-                                                .requestMatchers(
-                                                                "/api/admin/approve-user/**")
-                                                .permitAll()
+                // 🔥 IMPORTANT FIX (fallback safety)
+                .requestMatchers("/api/auth/**")
+                .permitAll()
 
-                                                // USER NOTIFICATION
-                                                .requestMatchers(
-                                                                "/api/user/notifications")
-                                                .authenticated()
+                .requestMatchers("/api/admin/approve-user/**")
+                .permitAll()
 
-                                                // ADMIN NOTIFICATION
-                                                .requestMatchers(
-                                                                "/api/admin/notifications")
-                                                .hasRole("ADMIN")
+                // USER NOTIFICATIONS
+                .requestMatchers("/api/user/notifications")
+                .authenticated()
 
-                                                .requestMatchers(
-                                                                "/api/admin/**")
-                                                .hasRole("ADMIN")
+                // ADMIN NOTIFICATIONS
+                .requestMatchers("/api/admin/notifications")
+                .hasRole("ADMIN")
 
-                                                .requestMatchers(
-                                                                HttpMethod.POST,
-                                                                "/api/products/**")
-                                                .hasRole("ADMIN")
+                .requestMatchers("/api/admin/**")
+                .hasRole("ADMIN")
 
-                                                .requestMatchers(
-                                                                HttpMethod.PUT,
-                                                                "/api/products/**")
-                                                .hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/products/**")
+                .hasRole("ADMIN")
 
-                                                .requestMatchers(
-                                                                HttpMethod.DELETE,
-                                                                "/api/products/**")
-                                                .hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/products/**")
+                .hasRole("ADMIN")
 
-                                                .anyRequest()
-                                                .authenticated())
+                .requestMatchers(HttpMethod.DELETE, "/api/products/**")
+                .hasRole("ADMIN")
 
-                                .sessionManagement(
-                                                session -> session.sessionCreationPolicy(
-                                                                SessionCreationPolicy.STATELESS))
+                .anyRequest()
+                .authenticated()
+            )
 
-                                .addFilterBefore(
-                                                jwtFilter,
-                                                UsernamePasswordAuthenticationFilter.class);
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
 
-                return http.build();
-        }
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-        @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
+        return http.build();
+    }
 
-                CorsConfiguration config = new CorsConfiguration();
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
 
-                config.setAllowedOrigins(
-                                List.of(
-                                                "http://localhost:5173"));
+        CorsConfiguration config = new CorsConfiguration();
 
-                config.setAllowedMethods(
-                                List.of(
-                                                "GET",
-                                                "POST",
-                                                "PUT",
-                                                "DELETE",
-                                                "OPTIONS"));
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
 
-                config.setAllowedHeaders(
-                                List.of("*"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
-                config.setAllowCredentials(
-                                true);
+        config.setAllowedHeaders(List.of("*"));
 
-                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        config.setAllowCredentials(true);
 
-                source.registerCorsConfiguration(
-                                "/**",
-                                config);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
-                return source;
-        }
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
+    }
 }

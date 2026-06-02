@@ -9,5 +9,6 @@ public interface DoctorService {
     String createDoctor(
             CreateDoctorRequest request,
             int hospitalAdminId);
-             ResponseEntity<String> createPassword(CreatePasswordRequest request);
+             ResponseEntity<String> createPassword(Integer userId, CreatePasswordRequest request);
+
 }

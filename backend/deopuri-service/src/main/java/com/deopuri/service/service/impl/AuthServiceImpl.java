@@ -232,49 +232,45 @@ public class AuthServiceImpl implements AuthService {
                 return "User Registered Successfully. Waiting for Admin Approval.";
         }
 
-        @Override
-        public LoginResponse login(LoginRequest dto) {
+       @Override
+public LoginResponse login(LoginRequest dto) {
 
-                // 1. Find user
-                Users user = usersDao.findByEmail(dto.email())
-                                .orElseThrow(() -> {
-                                        log.info("Login failed: unknown email");
-                                        return new BadCredentialsException("Invalid email or password");
-                                });
+    Users user = usersDao.findByEmail(dto.email())
+            .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
-                // 2. Password check FIRST
-                if (!passwordEncoder.matches(dto.password(), user.getPassword())) {
-                        log.info("Login failed: bad password userId={}", user.getId());
-                        throw new BadCredentialsException("Invalid email or password");
-                }
+    // status check
+    if (user.getStatus() != UserStatus.APPROVED) {
+        throw new DisabledException("Account not active");
+    }
 
-                if (user.getRole() != UserRole.DOCTOR
-                                && user.getStatus() == UserStatus.PENDING) {
+    // 🔥 FIRST TIME LOGIN CHECK (FIXED)
+    if (user.getRole() == UserRole.DOCTOR
+            && !Boolean.TRUE.equals(user.getPasswordCreated())) {
 
-                        throw new DisabledException("Your account is awaiting admin approval.");
-                }
-                if (user.getStatus() == UserStatus.REJECTED) {
-                        throw new DisabledException("Your account has been rejected.");
-                }
+        boolean match = passwordEncoder.matches(dto.password(), user.getPassword());
 
-                // 4. DOCTOR special check (ONLY here)
-                if (user.getRole() == UserRole.DOCTOR) {
-
-                        if (!Boolean.TRUE.equals(user.getPasswordCreated())) {
-                                throw new RuntimeException("Please create password first using invitation link.");
-                        }
-                }
-
-                // 5. Generate JWT token
-                String token = jwtUtil.generateToken(
-                                user.getEmail(),
-                                user.getRole().name());
-
-                // 6. Response
-                return LoginResponse.bearer(
-                                token,
-                                jwtUtil.getExpiration().getSeconds(),
-                                user.getRole(),
-                                user.getId());
+        if (!match) {
+            throw new BadCredentialsException("Invalid temp password");
         }
+
+        log.info("First time login detected");
+
+        return LoginResponse.firstTimeLogin(user.getId());
+    }
+
+    // 🔥 NORMAL LOGIN
+    boolean passwordMatch = passwordEncoder.matches(dto.password(), user.getPassword());
+
+    if (!passwordMatch) {
+        throw new BadCredentialsException("Invalid email or password");
+    }
+
+    String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+
+    return LoginResponse.bearer(
+            token,
+            jwtUtil.getExpiration().getSeconds(),
+            user.getRole(),
+            user.getId());
+}
 }

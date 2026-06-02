@@ -1,16 +1,13 @@
 package com.deopuri.api.dto;
 
 import com.deopuri.api.model.UserRole;
-
 public record LoginResponse(
 
         String token,
-
         long expiresIn,
-
         UserRole role,
-
-        Integer id
+        Integer id,
+        String status
 
 ) {
 
@@ -20,12 +17,24 @@ public record LoginResponse(
             UserRole role,
             Integer id
     ) {
-
         return new LoginResponse(
                 token,
                 expiresInSeconds,
                 role,
-                id
+                id,
+                "SUCCESS"
+        );
+    }
+
+    public static LoginResponse firstTimeLogin(
+            Integer id
+    ) {
+        return new LoginResponse(
+                null,
+                0,
+                UserRole.DOCTOR,
+                id,
+                "FIRST_TIME_LOGIN"
         );
     }
 }

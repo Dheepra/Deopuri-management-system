@@ -25,4 +25,6 @@ public interface UsersDao extends JpaRepository<Users, Integer> {
     List<Users> findByStatus(UserStatus status);
 
     Optional<Users> findByInvitationToken(String invitationToken);
+
+    
 }

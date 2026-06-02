@@ -12,17 +12,20 @@ import com.deopuri.service.service.DoctorService;
 import com.deopuri.service.service.EmailService;
 import com.deopuri.exception.ResourceNotFoundException;
 import org.springframework.http.ResponseEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.UUID;
 
 @Service
 @Transactional
 public class DoctorServiceImpl implements DoctorService {
+
+    private static final Logger log = LoggerFactory.getLogger(DoctorServiceImpl.class);
 
     private final UsersDao usersDao;
     private final DoctorDao doctorDao;
@@ -59,11 +62,15 @@ public class DoctorServiceImpl implements DoctorService {
         doctorUser.setRole(UserRole.DOCTOR);
         doctorUser.setStatus(UserStatus.APPROVED);
 
-        doctorUser.setPassword("TEMP");
+        String tempPassword = "Temp@123";
 
-        // IMPORTANT
-        doctorUser.setInvitationToken(token);
+        doctorUser.setPassword(
+                passwordEncoder.encode(tempPassword));
+
         doctorUser.setPasswordCreated(false);
+
+        // token ki ab zarurat nahi
+        doctorUser.setInvitationToken(null);
 
         doctorUser.setAddress(request.address() != null ? request.address() : "N/A");
         doctorUser.setShopName("N/A");
@@ -84,72 +91,76 @@ public class DoctorServiceImpl implements DoctorService {
         String link = "http://localhost:5173/create-password?token=" + token;
 
         String body = """
-                <div style="text-align:center; font-family:Arial,sans-serif; padding:20px;">
+                <div style="font-family:Arial,sans-serif; padding:20px; text-align:center;">
 
-                    <img src='cid:logoImage'
-                         width='120'
-                         style="margin-bottom:15px;"/>
-
-                    <h2 style="color:#2e7d32;">
-                        Deopuri Herbal Drugs and Pharmaceuticals
-                    </h2>
-
-                    <hr style="width:60%%; margin:15px auto;"/>
-
-                    <h2>Welcome Doctor 👨‍⚕️</h2>
-
-                    <p>Hello Dr. <b>%s %s</b>,</p>
-
-                    <p>Your account has been created successfully by Hospital Admin.</p>
-
+                    <!-- OUTER CENTER WRAPPER -->
                     <div style="
-                        background:#f5f5f5;
-                        padding:15px;
-                        border-radius:8px;
-                        width:80%%;
-                        margin:20px auto;">
+                        max-width:600px;
+                        margin:0 auto;
+                        border:1px solid #ddd;
+                        border-radius:10px;
+                        padding:20px;
+                        text-align:center;
+                        background:#ffffff;
+                    ">
 
-                        <p><b>Login Email:</b> %s</p>
+                        <img src='cid:logoImage' width='120' style="margin-bottom:15px;"/>
 
-                        <p>
-                            Use the above email address to create your password
-                            and login to the system.
-                        </p>
+                        <h2 style="color:#2e7d32;">Deopuri Herbal Drugs and Pharmaceuticals</h2>
+
+                        <hr style="width:60%%; margin:15px auto;"/>
+
+                        <h2>Welcome Doctor 👨‍⚕️</h2>
+
+                        <p>Hello Dr. <b>%s %s</b>,</p>
+
+                        <p>Your account has been created successfully by Hospital Admin.</p>
+
+                        <!-- LOGIN BOX -->
+                        <div style="
+                            background:#f5f5f5;
+                            padding:15px;
+                            border-radius:8px;
+                            width:100%%;
+                            margin:20px auto;
+                            text-align:center;
+                        ">
+
+                            <p><b>Login Email:</b> %s</p>
+                            <p><b>Temporary Password:</b> %s</p>
+
+                        </div>
+
+                        <p>Click below to create your password:</p>
+
+                        <!-- CENTER BUTTON -->
+                        <a href="%s"
+                           style="
+                           display:inline-block;
+                           background:#2e7d32;
+                           color:white;
+                           padding:12px 24px;
+                           text-decoration:none;
+                           border-radius:5px;
+                           font-weight:bold;
+                           margin-top:10px;">
+                           Create Password
+                        </a>
+
+                        <br/><br/>
+
+                        <p>After creating your password, you can login using your registered email and password.</p>
+
+                        <p>Regards,<br/><b>Deopuri Team</b></p>
 
                     </div>
-
-                    <p>Click below to create your password:</p>
-
-                    <a href="%s"
-                       style="
-                       background:#2e7d32;
-                       color:white;
-                       padding:12px 24px;
-                       text-decoration:none;
-                       border-radius:5px;
-                       font-weight:bold;">
-                       Create Password
-                    </a>
-
-                    <br/><br/>
-
-                    <p>
-                        After creating your password, you can login using
-                        your registered email and password.
-                    </p>
-
-                    <br/>
-
-                    <p>
-                        Regards,<br/>
-                        <b>Deopuri Team</b>
-                    </p>
 
                 </div>
                 """.formatted(
                 doctorUser.getFirstName(),
                 doctorUser.getLastName(),
                 doctorUser.getEmail(),
+                tempPassword,
                 link);
         emailService.sendEmail(
                 doctorUser.getEmail(),
@@ -159,17 +170,31 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    public ResponseEntity<String> createPassword(
-            @RequestBody CreatePasswordRequest request) {
+    @Transactional
+    public ResponseEntity<String> createPassword(Integer userId, CreatePasswordRequest request) {
 
-        Users user = usersDao.findByInvitationToken(request.token())
-                .orElseThrow(() -> new RuntimeException("Invalid token"));
+        log.info("CREATE PASSWORD START userId={}", userId);
 
-        user.setPassword(passwordEncoder.encode(request.password()));
+        if (userId == null || request == null || request.password() == null || request.password().trim().isEmpty()) {
+            throw new RuntimeException("Password is required");
+        }
+
+        Users user = usersDao.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+
+        // 🔥 IMPORTANT CHECK
+        if (Boolean.TRUE.equals(user.getPasswordCreated())) {
+            throw new RuntimeException("Password already created");
+        }
+
+        String encodedPassword = passwordEncoder.encode(request.password().trim());
+
+        user.setPassword(encodedPassword);
         user.setPasswordCreated(true);
-        user.setInvitationToken(null);
 
         usersDao.save(user);
+
+        log.info("CREATE PASSWORD SUCCESS for userId={}", userId);
 
         return ResponseEntity.ok("Password created successfully");
     }

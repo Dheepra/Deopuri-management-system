@@ -15,35 +15,64 @@ export default function LoginForm() {
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useAuth();
+
   const [values, setValues] = useState({
     email: location.state?.email ?? '',
     password: '',
   });
+
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     const next = {
       email: runValidators(values.email, required('Email'), emailValidator),
       password: runValidators(values.password, required('Password')),
     };
+
     setErrors(next);
     if (Object.values(next).some(Boolean)) return;
 
     setSubmitting(true);
+
     try {
       const session = await signIn(values);
+
+      console.log("LOGIN RESPONSE =", session);
+
+      if (!session) {
+        toast.error("Login failed");
+        return;
+      }
+
+      // 🚨 FIRST TIME LOGIN
+      if (session.status === "FIRST_TIME_LOGIN") {
+        console.log("Redirecting to Create Password");
+        console.log("UserId =", session.userId || session.id);
+
+        navigate("/create-password", {
+          state: {
+            userId: session.userId || session.id
+          }
+        });
+
+        return;
+      }
+
+      // 🚀 FIX: SAVE TOKEN + USER (IMPORTANT)
+      localStorage.setItem("auth.session", JSON.stringify({
+  token: session.token,
+  user: session.user,
+  role: session.role,
+  userId: session.userId
+}));
+
       auth.signIn(session);
 
       const home = ROLE_HOME[session.role];
-      if (import.meta.env.DEV) {
-        console.info('[auth] signed in', {
-          backendRole: session.user?.backendRole,
-          frontendRole: session.role,
-          redirectTo: home,
-        });
-      }
+
       if (!home) {
         toast.error('Your account has no console assigned. Contact your administrator.');
         auth.signOut();
@@ -51,10 +80,13 @@ export default function LoginForm() {
       }
 
       toast.success('Welcome back');
+
       const redirectTo = location.state?.from ?? home;
       navigate(redirectTo, { replace: true });
+
     } catch (err) {
       if (import.meta.env.DEV) console.warn('[auth] sign-in failed', err);
+
       if (err.type === 'api' && err.status === 401) {
         toast.error('Invalid email or password');
       } else if (err.type === 'api' && err.status === 403) {
@@ -86,7 +118,6 @@ export default function LoginForm() {
         onSubmit={handleSubmit}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="space-y-4"
       >
         <Input
@@ -97,6 +128,7 @@ export default function LoginForm() {
           autoComplete="email"
           error={errors.email}
         />
+
         <PasswordInput
           label="Password"
           value={values.password}
@@ -108,7 +140,7 @@ export default function LoginForm() {
         <div className="flex items-center justify-end">
           <Link
             to="/forgot-password"
-            className="text-sm font-medium text-ink-600 transition-colors hover:text-brand-700"
+            className="text-sm font-medium text-ink-600 hover:text-brand-700"
           >
             Forgot password?
           </Link>

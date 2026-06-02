@@ -11,6 +11,8 @@ import com.deopuri.service.service.DoctorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
+
 import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
@@ -36,11 +38,10 @@ public class AuthControllerImpl implements AuthController {
     }
 
     @Override
-
     public ResponseEntity<String> createPassword(
+            @PathVariable Integer userId,
             @RequestBody CreatePasswordRequest request) {
 
-        doctorService.createPassword(request);
-        return ResponseEntity.ok("Password created successfully");
+        return doctorService.createPassword(userId, request);
     }
 }

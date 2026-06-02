@@ -54,7 +54,7 @@ public class Users {
     private String invitationToken;
 
     @Column(name = "password_created")
-    private Boolean passwordCreated;
+    private Boolean passwordCreated = false;
 
     public Users() {
     }
@@ -151,18 +151,18 @@ public class Users {
     }
 
     public String getInvitationToken() {
-    return invitationToken;
-}
+        return invitationToken;
+    }
 
-public void setInvitationToken(String invitationToken) {
-    this.invitationToken = invitationToken;
-}
+    public void setInvitationToken(String invitationToken) {
+        this.invitationToken = invitationToken;
+    }
 
-public Boolean getPasswordCreated() {
-    return passwordCreated;
-}
+    public Boolean getPasswordCreated() {
+        return passwordCreated;
+    }
 
-public void setPasswordCreated(Boolean passwordCreated) {
-    this.passwordCreated = passwordCreated;
-}
+    public void setPasswordCreated(Boolean passwordCreated) {
+        this.passwordCreated = passwordCreated;
+    }
 }

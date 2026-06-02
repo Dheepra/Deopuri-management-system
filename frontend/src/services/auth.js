@@ -1,11 +1,11 @@
 import { http } from './http.js';
 import { fromBackendRole } from '../auth/roles.js';
 
-
-// Backend ErrorResponse: { timestamp, status, error, message, path, fieldErrors[] }
+// -------------------- ERROR NORMALIZER --------------------
 function normalizeError(err) {
   if (err?.response) {
     const { status, data } = err.response;
+
     return {
       type: 'api',
       status,
@@ -14,22 +14,31 @@ function normalizeError(err) {
       fieldErrors: Array.isArray(data?.fieldErrors) ? data.fieldErrors : [],
     };
   }
+
   if (err?.request) {
-    return { type: 'network', message: 'Could not reach the server. Check your connection.' };
+    return {
+      type: 'network',
+      message: 'Could not reach the server. Check your connection.',
+    };
   }
-  return { type: 'unknown', message: err?.message ?? 'Unexpected error' };
+
+  return {
+    type: 'unknown',
+    message: err?.message ?? 'Unexpected error',
+  };
 }
 
+// -------------------- SIGN UP --------------------
 export async function signUp(payload) {
   try {
     const { data } = await http.post('/api/auth/register', payload);
-    return data; // UserResponse — no token; account is PENDING approval
+    return data;
   } catch (err) {
     throw normalizeError(err);
   }
 }
 
-// Returns a session shape that AuthContext consumes directly.
+// -------------------- SIGN IN (FIXED) --------------------
 export async function signIn({ email, password }) {
   try {
     const { data } = await http.post('/api/auth/login', {
@@ -37,71 +46,52 @@ export async function signIn({ email, password }) {
       password,
     });
 
+    console.log("LOGIN RESPONSE =", data);
+
     return {
       token: data?.token,
+
+      // IMPORTANT FIX (safe mapping)
+      status: data?.status,              // FIRST_TIME_LOGIN / SUCCESS
+      userId: data?.userId || data?.id,  // backend compatibility fix
+
       role: fromBackendRole(data?.role),
+
       user: {
-        id: data?.id,
-        email,
-        backendRole: data?.role,
+        id: data?.user?.id || data?.id,
+        email: data?.user?.email || email,
+        backendRole: data?.user?.backendRole || data?.role,
       },
     };
+
   } catch (err) {
     throw normalizeError(err);
   }
-
 }
+
+// -------------------- ADMIN FUNCTIONS --------------------
 export async function getPendingUsers() {
   try {
-    const { data } =
-      await http.get(
-        '/api/admin/users/pending'
-      );
-
+    const { data } = await http.get('/api/admin/users/pending');
     return data;
-
   } catch (err) {
-
-    throw normalizeError(
-      err
-    );
-
+    throw normalizeError(err);
   }
 }
 
-
-export async function approveUser(
-  id
-) {
-
+export async function approveUser(id) {
   try {
-
-    const { data } =
-      await http.put(
-        `/api/admin/users/${id}/approve`
-      );
-
+    const { data } = await http.put(`/api/admin/users/${id}/approve`);
     return data;
-
   } catch (err) {
-
-    throw normalizeError(
-      err
-    );
-
+    throw normalizeError(err);
   }
-
 }
 
 export async function rejectUser(id) {
   try {
-    const { data } =
-      await http.put(
-        `/api/admin/users/${id}/reject`
-      );
-
+    const { data } = await http.put(`/api/admin/users/${id}/reject`);
     return data;
-
   } catch (err) {
     throw normalizeError(err);
   }

@@ -7,7 +7,20 @@ import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { getDoctors } from '../../services/hospital.js';
 
 const STATUS_TONE = { active: 'success', 'on-leave': 'warning', inactive: 'neutral' };
+const QUALIFICATIONS = [
+  "MBBS","BDS","BAMS","BHMS","BUMS","MD","MS","DM","MCh","DNB",
+  "MDS","BPT","MPT","PharmD","DGO","DCH","DA",
+  "Diploma in Orthopedics","Diploma in Cardiology","Fellowship"
+];
 
+const SPECIALIZATIONS = [
+  "General Physician","General Medicine","Internal Medicine","Pediatrics",
+  "Gynecology","Obstetrics","Orthopedics","Cardiology","Neurology",
+  "Neurosurgery","Dermatology","ENT","Ophthalmology","Psychiatry",
+  "Pulmonology","Gastroenterology","Nephrology","Urology","Oncology",
+  "Endocrinology","Rheumatology","Anesthesiology","Radiology","Pathology",
+  "Emergency Medicine","Family Medicine","Dentistry","Physiotherapy","Surgery"
+];
 const COLUMNS = [
   {
     key: 'name',
@@ -24,7 +37,7 @@ const COLUMNS = [
       </div>
     ),
   },
-  { key: 'specialty', header: 'Specialty' },
+  { key: 'specialization', header: 'Specialty' },
   {
     key: 'status',
     header: 'Status',
@@ -57,6 +70,12 @@ const [doctorForm, setDoctorForm] = useState({
 
 const handleDoctorSubmit = async (e) => {
   e.preventDefault();
+
+   // ✅ VALIDATION HERE (IMPORTANT)
+  if (!doctorForm.qualification || !doctorForm.specialization) {
+    alert("Please select Qualification and Specialization");
+    return; // ⛔ stop form submission
+  }
 
   try {
     const session = JSON.parse(
@@ -95,6 +114,7 @@ const handleDoctorSubmit = async (e) => {
       experienceYears: '',
       address: '',
     });
+    refetch();
 
   } catch (error) {
     console.error(error);
@@ -159,8 +179,8 @@ const handleDoctorSubmit = async (e) => {
       />
 
       {showDoctorModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-    <div className="w-full max-w-2xl rounded-xl bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-20 overflow-y-auto">
+  <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white p-8 shadow-xl">
 
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-bold">
@@ -228,29 +248,38 @@ const handleDoctorSubmit = async (e) => {
           }
         />
 
-        <input
-          className="rounded border p-2"
-          placeholder="Qualification"
-          value={doctorForm.qualification}
-          onChange={(e) =>
-            setDoctorForm({
-              ...doctorForm,
-              qualification: e.target.value,
-            })
-          }
-        />
+        <select
+  className="rounded border p-2"
+  value={doctorForm.qualification}
+  onChange={(e) =>
+    setDoctorForm({ ...doctorForm, qualification: e.target.value })
+  }
+  required
+>
+  <option value="">Select Qualification</option>
 
-        <input
-          className="rounded border p-2"
-          placeholder="Specialization"
-          value={doctorForm.specialization}
-          onChange={(e) =>
-            setDoctorForm({
-              ...doctorForm,
-              specialization: e.target.value,
-            })
-          }
-        />
+  {QUALIFICATIONS.map((q) => (
+    <option key={q} value={q}>
+      {q}
+    </option>
+  ))}
+</select>
+<select
+  className="rounded border p-2"
+  value={doctorForm.specialization}
+  onChange={(e) =>
+    setDoctorForm({ ...doctorForm, specialization: e.target.value })
+  }
+  required
+>
+  <option value="">Select Specialization</option>
+
+  {SPECIALIZATIONS.map((s) => (
+    <option key={s} value={s}>
+      {s}
+    </option>
+  ))}
+</select>
 
         <input
          type="number"

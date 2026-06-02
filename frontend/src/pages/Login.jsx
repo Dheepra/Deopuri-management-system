@@ -1,6 +1,6 @@
 import EnterpriseAuthLayout from '../layouts/EnterpriseAuthLayout.jsx';
 import LoginForm from '../components/auth/LoginForm.jsx';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 
@@ -25,12 +25,39 @@ const BULLETS = [
 export default function Login() {
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (location.state?.justRegistered) {
       toast.success('Account created successfully. Please wait for admin approval.');
     }
   }, [location.state]);
+
+  // 🔥 LOGIN HANDLER (NOW CORRECT)
+  const handleLoginSuccess = (res) => {
+
+    // 👇 FIRST TIME LOGIN (DOCTOR ONLY)
+    if (session.status === "FIRST_TIME_LOGIN") {
+  navigate("/create-password", {
+    state: { userId: session.id }
+  });
+  return;
+}
+
+    // 👇 NORMAL LOGIN SUCCESS
+    if (res.token) {
+
+      localStorage.setItem("token", res.token);
+
+      if (res.role === "DOCTOR") {
+        navigate("/doctor/dashboard");
+      } else if (res.role === "ADMIN") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
+    }
+  };
 
   return (
     <EnterpriseAuthLayout
@@ -40,7 +67,8 @@ export default function Login() {
       tagline="One quiet dashboard. Built for your role."
       bullets={BULLETS}
     >
-      <LoginForm />
+      {/* 🔥 IMPORTANT: callback pass karo */}
+      <LoginForm onLoginSuccess={handleLoginSuccess} />
     </EnterpriseAuthLayout>
   );
 }

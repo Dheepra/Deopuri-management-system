@@ -1,6 +1,10 @@
 package com.deopuri.api.dto;
 
-public record CreatePasswordRequest( String token,
-        String password) {
-    
+public record CreatePasswordRequest(
+
+        Integer userId,
+           String password
+      
+
+) {
 }
