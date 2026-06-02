@@ -1,11 +1,13 @@
 package com.deopuri.service.rest.impl;
 
 import com.deopuri.api.dto.CreateDoctorRequest;
-
+import com.deopuri.api.dto.DoctorResponse;
+import com.deopuri.api.model.Doctor;
 import com.deopuri.service.service.DoctorService;
 import com.deopuri.api.rest.DoctorController;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 public class DoctorControllerImpl implements DoctorController {
@@ -26,4 +28,20 @@ public class DoctorControllerImpl implements DoctorController {
         return ResponseEntity.ok(
                 doctorService.createDoctor(request, hospitalAdminId));
     }
+
+    @Override
+public ResponseEntity<List<DoctorResponse>> getAllDoctors() {
+
+    List<Doctor> doctors = doctorService.getAllDoctors();
+
+    List<DoctorResponse> response = doctors.stream()
+        .map(doc -> new DoctorResponse(
+                doc.getId(),
+                doc.getUser().getFirstName(),
+                doc.getUser().getLastName(),
+                doc.getSpecialization()
+        ))
+        .toList();
+    return ResponseEntity.ok(response);
+}
 }

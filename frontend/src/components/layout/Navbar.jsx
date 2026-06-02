@@ -3,7 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useScrollPosition } from '../../hooks/useScrollPosition.js';
 import Container from '../ui/Container.jsx';
 import Button from '../ui/Button.jsx';
-import logo from "../../assets/picture/logo.jpg";
+import logo2 from "../../assets/picture/logo2.png";
 
 const NAV_LINKS = [
   { label: 'Home', to: '/' },
@@ -14,17 +14,13 @@ const NAV_LINKS = [
 ];
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-3 group">
-      <img
-        src={logo}
-        alt="Deopuri Logo"
-        className="h-12 w-12 object-contain"
-      />
-
-      <span className="font-display text-lg font-bold tracking-tight text-ink-900">
-        Deopuri
-      </span>
-    </Link>
+    <Link to="/" className="flex items-center hover:opacity-80 transition mt-2">
+  <img
+    src={logo2}
+    alt="Deopuri Logo"
+    className="h-16 w-20 object-contain"
+  />
+</Link>
   );
 }
 

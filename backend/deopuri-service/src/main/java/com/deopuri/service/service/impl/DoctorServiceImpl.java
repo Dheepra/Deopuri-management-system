@@ -14,7 +14,7 @@ import com.deopuri.exception.ResourceNotFoundException;
 import org.springframework.http.ResponseEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import java.util.List;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -198,4 +198,9 @@ public class DoctorServiceImpl implements DoctorService {
 
         return ResponseEntity.ok("Password created successfully");
     }
+
+    @Override
+public List<Doctor> getAllDoctors() {
+    return doctorDao.findAll();
+}
 }

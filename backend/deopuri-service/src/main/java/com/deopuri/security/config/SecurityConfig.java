@@ -39,51 +39,55 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-            .cors(cors -> {})
-            .csrf(csrf -> csrf.disable())
+                .cors(cors -> {
+                })
+                .csrf(csrf -> csrf.disable())
 
-            .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> auth
 
-                // ✅ FIX: PublicEndpoints properly applied
-                .requestMatchers(publicEndpoints.matcher())
-                .permitAll()
+                        // ✅ FIX: PublicEndpoints properly applied
+                        .requestMatchers(publicEndpoints.matcher())
+                        .permitAll()
 
-                // 🔥 IMPORTANT FIX (fallback safety)
-                .requestMatchers("/api/auth/**")
-                .permitAll()
+                        // 🔥 IMPORTANT FIX (fallback safety)
+                        .requestMatchers("/api/auth/**")
+                        .permitAll()
+                        .requestMatchers("/api/hospital-admin/**").permitAll()
+                        .requestMatchers("/api/doctors/**").permitAll()
 
-                .requestMatchers("/api/admin/approve-user/**")
-                .permitAll()
+                        .requestMatchers(
+                                "/api/appointments/**")
+                        .permitAll()
 
-                // USER NOTIFICATIONS
-                .requestMatchers("/api/user/notifications")
-                .authenticated()
+                        .requestMatchers("/api/admin/approve-user/**")
+                        .permitAll()
 
-                // ADMIN NOTIFICATIONS
-                .requestMatchers("/api/admin/notifications")
-                .hasRole("ADMIN")
+                        // USER NOTIFICATIONS
+                        .requestMatchers("/api/user/notifications")
+                        .authenticated()
 
-                .requestMatchers("/api/admin/**")
-                .hasRole("ADMIN")
+                        // ADMIN NOTIFICATIONS
+                        .requestMatchers("/api/admin/notifications")
+                        .hasRole("ADMIN")
 
-                .requestMatchers(HttpMethod.POST, "/api/products/**")
-                .hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**")
+                        .hasRole("ADMIN")
 
-                .requestMatchers(HttpMethod.PUT, "/api/products/**")
-                .hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/products/**")
+                        .hasRole("ADMIN")
 
-                .requestMatchers(HttpMethod.DELETE, "/api/products/**")
-                .hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/products/**")
+                        .hasRole("ADMIN")
 
-                .anyRequest()
-                .authenticated()
-            )
+                        .requestMatchers(HttpMethod.DELETE, "/api/products/**")
+                        .hasRole("ADMIN")
 
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                        .anyRequest()
+                        .authenticated())
 
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
