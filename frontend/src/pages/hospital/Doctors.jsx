@@ -6,6 +6,7 @@ import Button from '../../components/ui/Button.jsx';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { getDoctors } from '../../services/hospital.js';
 
+
 const STATUS_TONE = { active: 'success', 'on-leave': 'warning', inactive: 'neutral' };
 const QUALIFICATIONS = [
   "MBBS","BDS","BAMS","BHMS","BUMS","MD","MS","DM","MCh","DNB",
@@ -25,35 +26,47 @@ const COLUMNS = [
   {
     key: 'name',
     header: 'Doctor',
-    render: (row) => (
-      <div className="flex items-center gap-3">
-        <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-100 text-xs font-semibold text-brand-800">
-          {row.name.split(' ').slice(-1)[0][0]}
-        </span>
+    render: (row) => {
+      const fullName =
+        row?.name ||
+        `${row?.firstName || ''} ${row?.lastName || ''}`.trim();
+
+      return (
         <div>
-          <p className="font-medium text-ink-900">{row.name}</p>
-          <p className="text-xs text-ink-500">{row.id}</p>
+          <div style={{ fontWeight: 'bold' }}>
+            {fullName?.charAt(0) || 'D'}
+          </div>
+
+          <div>{fullName || 'Unknown Doctor'}</div>
+          <div>{row?.id || '-'}</div>
         </div>
-      </div>
-    ),
+      );
+    },
   },
+
   { key: 'specialization', header: 'Specialty' },
+
   {
     key: 'status',
     header: 'Status',
-    render: (row) => <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>,
+    render: (row) => row?.status,
   },
+
   {
     key: 'patientsToday',
     header: "Today's patients",
     align: 'right',
-    render: (row) => <span className="font-semibold text-ink-900">{row.patientsToday}</span>,
+    render: (row) => row?.patientsToday,
   },
+
   { key: 'joinedAt', header: 'Joined' },
 ];
 
 export default function Doctors() {
-  const { data, loading } = useAsyncData(() => getDoctors());
+  const [loading, setLoading] = useState(false);
+
+  const { data, loading: dataLoading, refetch } = useAsyncData(() => getDoctors());
+
   const [search, setSearch] = useState('');
   const [showDoctorModal, setShowDoctorModal] = useState(false);
 
@@ -71,16 +84,20 @@ const [doctorForm, setDoctorForm] = useState({
 const handleDoctorSubmit = async (e) => {
   e.preventDefault();
 
-   // ✅ VALIDATION HERE (IMPORTANT)
   if (!doctorForm.qualification || !doctorForm.specialization) {
     alert("Please select Qualification and Specialization");
-    return; // ⛔ stop form submission
+    return;
   }
 
+  if (doctorForm.mobileNo.length !== 10) {
+    alert("Mobile number must be exactly 10 digits");
+    return;
+  }
+
+  setLoading(true);
+
   try {
-    const session = JSON.parse(
-      localStorage.getItem('auth.session')
-    );
+    const session = JSON.parse(localStorage.getItem('auth.session'));
 
     const hospitalAdminId = session.user.id;
 
@@ -97,10 +114,12 @@ const handleDoctorSubmit = async (e) => {
     );
 
     if (!response.ok) {
-      throw new Error('Failed');
-    }
+  const errorText = await response.text();
+  console.log("Backend Error:", errorText);
+  throw new Error(errorText || 'Failed');
+}
 
-    alert('Doctor registered successfully. Invitation email sent.');
+    alert('Doctor registered successfully');
 
     setShowDoctorModal(false);
 
@@ -114,11 +133,14 @@ const handleDoctorSubmit = async (e) => {
       experienceYears: '',
       address: '',
     });
-    refetch();
+
+    if (refetch) refetch(); // better version
 
   } catch (error) {
     console.error(error);
     alert('Failed to register doctor');
+  } finally {
+    setLoading(false);
   }
 };
 
@@ -236,17 +258,23 @@ const handleDoctorSubmit = async (e) => {
           }
         />
 
-        <input
-          className="rounded border p-2"
-          placeholder="Mobile No"
-          value={doctorForm.mobileNo}
-          onChange={(e) =>
-            setDoctorForm({
-              ...doctorForm,
-              mobileNo: e.target.value,
-            })
-          }
-        />
+       <input
+  type="text"
+  className="rounded border p-2"
+  placeholder="Mobile No"
+  value={doctorForm.mobileNo}
+  maxLength={10}
+  onChange={(e) => {
+    const value = e.target.value.replace(/\D/g, "");
+
+    if (value.length <= 10) {
+      setDoctorForm({
+        ...doctorForm,
+        mobileNo: value,
+      });
+    }
+  }}
+/>
 
         <select
   className="rounded border p-2"
@@ -314,9 +342,9 @@ const handleDoctorSubmit = async (e) => {
             Cancel
           </Button>
 
-          <Button type="submit">
-            Register Doctor
-          </Button>
+          <Button type="submit" disabled={loading}>
+  {loading ? "Registering..." : "Register Doctor"}
+</Button>
         </div>
       </form>
     </div>

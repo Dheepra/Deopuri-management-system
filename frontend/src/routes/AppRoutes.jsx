@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router-dom';
 import Layout from '../components/layout/Layout.jsx';
 import Home from '../pages/Home.jsx';
+import  AppointmentBooking from "../pages/Appointments.jsx";
 import NotFound from '../pages/NotFound.jsx';
 import Unauthorized from '../pages/Unauthorized.jsx';
 import ForgotPassword from '../pages/ForgotPassword.jsx';
@@ -23,8 +24,8 @@ import HospitalSettings from '../pages/hospital/Settings.jsx';
 
 import DoctorDashboardLayout from '../layouts/DoctorDashboardLayout.jsx';
 import DoctorDashboard from '../pages/doctor/DoctorDashboard.jsx';
+import DoctorAppointments from '../pages/doctor/DoctorAppointments.jsx';
 import MyPatients from '../pages/doctor/MyPatients.jsx';
-import DoctorAppointments from '../pages/doctor/Appointments.jsx';
 import Prescriptions from '../pages/doctor/Prescriptions.jsx';
 import DoctorReports from '../pages/doctor/Reports.jsx';
 import Profile from '../pages/doctor/Profile.jsx';
@@ -50,6 +51,7 @@ export default function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/create-password" element={<CreatePassword />} />
       <Route path="/unauthorized"    element={<Unauthorized />} />
+      <Route path="/appointment" element={<AppointmentBooking />} />
 
       {/* COMPANY_ADMIN */}
       <Route
@@ -111,8 +113,9 @@ export default function AppRoutes() {
         >
           <Route index element={<DoctorDashboard />} />
           <Route path="dashboard" element={<DoctorDashboard />} />
+           <Route path="appointments" element={<DoctorAppointments />} />
           <Route path="patients" element={<MyPatients />} />
-          <Route path="appointments" element={<DoctorAppointments />} />
+          
           <Route path="prescriptions" element={<Prescriptions />} />
           <Route path="reports" element={<DoctorReports />} />
           <Route path="profile" element={<Profile />} />

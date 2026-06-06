@@ -9,100 +9,150 @@ import com.deopuri.service.dao.AppointmentDao;
 import com.deopuri.service.dao.DoctorDao;
 import com.deopuri.service.service.AppointmentService;
 import org.springframework.stereotype.Service;
-
+import java.util.List;
 import java.time.LocalDate;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AppointmentServiceImpl implements AppointmentService {
 
-    private final AppointmentDao appointmentDao;
-    private final DoctorDao doctorDao;
+        private final AppointmentDao appointmentDao;
+        private final DoctorDao doctorDao;
 
-    public AppointmentServiceImpl(
-            AppointmentDao appointmentDao,
-            DoctorDao doctorDao) {
+        public AppointmentServiceImpl(
+                        AppointmentDao appointmentDao,
+                        DoctorDao doctorDao) {
 
-        this.appointmentDao = appointmentDao;
-        this.doctorDao = doctorDao;
-    }
-
-    @Override
-    public AppointmentResponse createAppointment(
-            CreateAppointmentRequest request) {
-
-        Doctor doctor = doctorDao.findById(
-                request.doctorId())
-                .orElseThrow(() -> new RuntimeException("Doctor not found"));
-
-        if (request.appointmentDate()
-                .isBefore(LocalDate.now())) {
-
-            throw new RuntimeException(
-                    "Appointment date cannot be in past");
+                this.appointmentDao = appointmentDao;
+                this.doctorDao = doctorDao;
         }
 
-        boolean slotExists = appointmentDao
-                .existsByDoctorAndAppointmentDateAndAppointmentTime(
-                        doctor,
-                        request.appointmentDate(),
-                        request.appointmentTime());
+        @Override
+        public AppointmentResponse createAppointment(
+                        CreateAppointmentRequest request) {
 
-        if (slotExists) {
+                Doctor doctor = doctorDao.findById(
+                                request.doctorId())
+                                .orElseThrow(() -> new RuntimeException("Doctor not found"));
 
-            throw new RuntimeException(
-                    "This slot is already booked");
+                if (request.appointmentDate()
+                                .isBefore(LocalDate.now())) {
+
+                        throw new RuntimeException(
+                                        "Appointment date cannot be in past");
+                }
+
+                boolean slotExists = appointmentDao
+                                .existsByDoctorAndAppointmentDateAndAppointmentTime(
+                                                doctor,
+                                                request.appointmentDate(),
+                                                request.appointmentTime());
+
+                if (slotExists) {
+
+                        throw new RuntimeException(
+                                        "This slot is already booked");
+                }
+
+                Appointment appointment = new Appointment();
+
+                appointment.setAppointmentNumber(
+                                "APT-" + System.currentTimeMillis());
+
+                appointment.setPatientName(
+                                request.patientName());
+
+                appointment.setPatientMobile(
+                                request.patientMobile());
+
+                appointment.setPatientEmail(
+                                request.patientEmail());
+
+                appointment.setPatientAge(
+                                request.patientAge());
+
+                appointment.setPatientGender(
+                                request.patientGender());
+
+                appointment.setAppointmentDate(
+                                request.appointmentDate());
+
+                appointment.setAppointmentTime(
+                                request.appointmentTime());
+
+                appointment.setNotes(
+                                request.notes());
+
+                appointment.setDoctor(doctor);
+
+                appointment.setHospitalAdmin(
+                                doctor.getHospitalAdmin());
+
+                appointment.setStatus(
+                                AppointmentStatus.BOOKED);
+
+                Appointment saved = appointmentDao.save(appointment);
+
+                return AppointmentResponse.from(saved);
         }
 
-        Appointment appointment = new Appointment();
+        @Override
+        public AppointmentResponse getAppointmentById(Long id) {
 
-        appointment.setAppointmentNumber(
-                "APT-" + System.currentTimeMillis());
+                Appointment appointment = appointmentDao.findById(id)
+                                .orElseThrow(() -> new RuntimeException(
+                                                "Appointment not found"));
 
-        appointment.setPatientName(
-                request.patientName());
+                return AppointmentResponse.from(appointment);
+        }
 
-        appointment.setPatientMobile(
-                request.patientMobile());
+        @Transactional(readOnly = true)
+        @Override
+        public List<AppointmentResponse> getAppointmentsByDoctor(
+                        Long doctorId) {
 
-        appointment.setPatientEmail(
-                request.patientEmail());
+                return appointmentDao.findByDoctorId(doctorId)
+                                .stream()
+                                .map(AppointmentResponse::from)
+                                .toList();
+        }
 
-        appointment.setPatientAge(
-                request.patientAge());
+        @Transactional(readOnly = true)
+        @Override
+        public List<AppointmentResponse> getAppointmentsByAdmin(
+                        Integer adminId) {
 
-        appointment.setPatientGender(
-                request.patientGender());
+                return appointmentDao.findByHospitalAdminId(adminId)
+                                .stream()
+                                .map(AppointmentResponse::from)
+                                .toList();
+        }
 
-        appointment.setAppointmentDate(
-                request.appointmentDate());
+        @Transactional
+        @Override
+        public AppointmentResponse updateStatus(Long id, AppointmentStatus status) {
 
-        appointment.setAppointmentTime(
-                request.appointmentTime());
+                Appointment appointment = appointmentDao.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Appointment not found"));
 
-        appointment.setNotes(
-                request.notes());
+                appointment.setStatus(status);
 
-        appointment.setDoctor(doctor);
+                Appointment saved = appointmentDao.save(appointment);
 
-        appointment.setHospitalAdmin(
-                doctor.getHospitalAdmin());
+                return AppointmentResponse.from(saved);
+        }
 
-        appointment.setStatus(
-                AppointmentStatus.BOOKED);
+        @Transactional
+        @Override
+        public AppointmentResponse cancelAppointment(Long id) {
 
-       Appointment saved = appointmentDao.save(appointment);
+                Appointment appointment = appointmentDao.findById(id)
+                                .orElseThrow(() -> new RuntimeException("Appointment not found"));
 
-        return AppointmentResponse.from(saved);
-    }
+                appointment.setStatus(AppointmentStatus.CANCELLED);
 
-    @Override
-    public AppointmentResponse getAppointmentById(Long id) {
+                Appointment saved = appointmentDao.save(appointment);
 
-    Appointment appointment = appointmentDao.findById(id)
-            .orElseThrow(() ->
-                    new RuntimeException(
-                            "Appointment not found"));
-
-    return AppointmentResponse.from(appointment);
-}
+                return AppointmentResponse.from(saved);
+        }
 }

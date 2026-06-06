@@ -44,4 +44,20 @@ public ResponseEntity<List<DoctorResponse>> getAllDoctors() {
         .toList();
     return ResponseEntity.ok(response);
 }
+@Override
+public ResponseEntity<List<DoctorResponse>> getDoctorsByHospital(
+        Integer hospitalAdminId) {
+
+    return ResponseEntity.ok(
+            doctorService.getDoctorsByHospital(hospitalAdminId)
+    );
+}
+@Override
+public ResponseEntity<DoctorResponse> getDoctorByUserId(
+        @RequestParam Integer userId) {
+
+    return ResponseEntity.ok(
+            doctorService.getDoctorByUserId(userId)
+    );
+}
 }

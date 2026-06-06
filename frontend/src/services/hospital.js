@@ -11,18 +11,6 @@ export async function getInventoryFromBackend({ signal } = {}) {
 // endpoint later is a one-line change.
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const DOCTORS = [
-  { id: 'D-101', name: 'Dr. Aanya Sharma',  specialty: 'Cardiology',     status: 'active',    patientsToday: 12, joinedAt: '2022-04-12' },
-  { id: 'D-102', name: 'Dr. Rohan Mehta',   specialty: 'Orthopedics',    status: 'active',    patientsToday: 8,  joinedAt: '2021-09-03' },
-  { id: 'D-103', name: 'Dr. Priya Iyer',    specialty: 'Pediatrics',     status: 'on-leave',  patientsToday: 0,  joinedAt: '2023-01-22' },
-  { id: 'D-104', name: 'Dr. Vihaan Gupta',  specialty: 'Neurology',      status: 'active',    patientsToday: 6,  joinedAt: '2020-11-30' },
-  { id: 'D-105', name: 'Dr. Meera Nair',    specialty: 'Dermatology',    status: 'active',    patientsToday: 10, joinedAt: '2024-02-08' },
-  { id: 'D-106', name: 'Dr. Arjun Khanna',  specialty: 'General Surgery',status: 'active',    patientsToday: 7,  joinedAt: '2019-07-14' },
-  { id: 'D-107', name: 'Dr. Saanvi Joshi',  specialty: 'Oncology',       status: 'active',    patientsToday: 5,  joinedAt: '2022-08-19' },
-  { id: 'D-108', name: 'Dr. Kabir Bose',    specialty: 'Radiology',      status: 'inactive',  patientsToday: 0,  joinedAt: '2018-03-11' },
-  { id: 'D-109', name: 'Dr. Tara Sethi',    specialty: 'Endocrinology',  status: 'active',    patientsToday: 9,  joinedAt: '2024-09-01' },
-  { id: 'D-110', name: 'Dr. Ishaan Verma',  specialty: 'Psychiatry',     status: 'active',    patientsToday: 4,  joinedAt: '2021-05-25' },
-];
 
 const STAFF = [
   { id: 'S-201', name: 'Nurse Tara Pillai',     role: 'Senior Nurse',  department: 'ICU',        shift: 'Day',   status: 'active' },
@@ -84,10 +72,27 @@ const ADMISSIONS_7D = [
   { day: 'Sun', count: 7 },
 ];
 
-export async function getDoctors()      { await delay(120); return DOCTORS; }
+export async function getDoctors() {
+  const session = JSON.parse(localStorage.getItem('auth.session'));
+
+  const { data } = await http.get('/api/hospital-admin/doctors', {
+    headers: {
+      Authorization: `Bearer ${session?.token}`,
+    },
+  });
+
+  return data;
+}
 export async function getStaff()        { await delay(120); return STAFF; }
 export async function getPatients()     { await delay(140); return PATIENTS; }
-export async function getAppointments() { await delay(120); return APPOINTMENTS; }
+export async function getAppointments(adminId, { signal } = {}) {
+  const { data } = await http.get(
+    `/api/appointments/admin/${adminId}`,
+    { signal }
+  );
+
+  return data;
+}
 export async function getActivity()     { await delay(80);  return ACTIVITY; }
 export async function getNotifications(){ await delay(80);  return NOTIFICATIONS; }
 export async function getAdmissions7d() { await delay(80);  return ADMISSIONS_7D; }

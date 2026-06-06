@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Badge from '../../components/ui/Badge.jsx';
 import SearchInput from '../../components/ui/SearchInput.jsx';
 import Table from '../../components/ui/Table.jsx';
@@ -6,63 +6,138 @@ import Button from '../../components/ui/Button.jsx';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { getAppointments } from '../../services/hospital.js';
 
+/* ================= STATUS COLORS ================= */
 const STATUS_TONE = {
-  Scheduled: 'info',
-  Completed: 'success',
-  'No-show': 'warning',
-  Cancelled: 'danger',
+  BOOKED: 'info',
+  CONFIRMED: 'warning',
+  COMPLETED: 'success',
+  CANCELLED: 'danger',
 };
 
+/* ================= FILTER OPTIONS ================= */
+const FILTERS = ['All', 'BOOKED', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+
+/* ================= COLUMNS ================= */
 const COLUMNS = [
-  { key: 'time',     header: 'Time' },
-  { key: 'duration', header: 'Duration' },
-  { key: 'patient',  header: 'Patient' },
-  { key: 'doctor',   header: 'Doctor' },
-  { key: 'department', header: 'Department' },
+  {
+    key: 'appointmentTime',
+    header: 'Time',
+  },
+  {
+    key: 'appointmentDate',
+    header: 'Date',
+  },
+  {
+    key: 'patientName',
+    header: 'Patient',
+  },
+  {
+    key: 'doctorName',
+    header: 'Doctor',
+  },
   {
     key: 'status',
     header: 'Status',
-    render: (row) => <Badge tone={STATUS_TONE[row.status]}>{row.status}</Badge>,
+    render: (row) => (
+      <Badge tone={STATUS_TONE[row.status] || 'info'}>
+        {row.status}
+      </Badge>
+    ),
   },
 ];
 
-const FILTERS = ['All', 'Scheduled', 'Completed', 'No-show', 'Cancelled'];
-
+/* ================= MAIN COMPONENT ================= */
 export default function Appointments() {
-  const { data, loading } = useAsyncData(() => getAppointments());
+
+  const session = JSON.parse(
+  localStorage.getItem('auth.session') || '{}'
+);
+
+const adminId = session.userId;
+console.log("Admin ID:", adminId);
+
+const { data, loading, refresh } =
+  useAsyncData(() => getAppointments(adminId));
+
+  
+console.log("Appointments:", data);
+
+ useEffect(() => {
+  const interval = setInterval(refresh, 5000);
+
+  return () => clearInterval(interval);
+}, []);
+
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
 
-  const rows = useMemo(() => {
-    const base = data ?? [];
-    return filter === 'All' ? base : base.filter((a) => a.status === filter);
-  }, [data, filter]);
+  console.log("Appointments Data:", data);
+  /* -------- FILTER LOGIC -------- */
+  //const filteredRows = useMemo(() => {
+  //   const base = data ?? [];
+
+  //   let result =
+  //     filter === 'All'
+  //       ? base
+  //       : base.filter((a) => a.status === filter);
+
+  //   if (search) {
+  //     result = result.filter(
+  //       (a) =>
+  //         a.patientName?.toLowerCase().includes(search.toLowerCase()) ||
+  //         a.doctorName?.toLowerCase().includes(search.toLowerCase())
+  //     );
+  //   }
+
+  //   return result;
+  // }, [data, filter, search]);
+
+ const filteredRows = useMemo(() => {
+  const base = data ?? [];
+
+  console.log("Current Filter:", filter);
+  console.log("Base Data:", base);
+
+  let result =
+    filter === 'All'
+      ? base
+      : base.filter((a) => a.status === filter);
+
+  if (search) {
+    result = result.filter(
+      (a) =>
+        a.patientName?.toLowerCase().includes(search.toLowerCase()) ||
+        a.doctorName?.toLowerCase().includes(search.toLowerCase())
+    );
+  }
+
+  console.log("Result:", result);
+
+  return result;
+}, [data, filter, search]);
 
   return (
-    <section className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-            Appointments
-          </p>
-          <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink-900">
-            Today’s schedule
-          </h1>
-          <p className="mt-1 text-sm text-ink-600">
-            Filter by status or search by patient, doctor, or department.
-          </p>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search…"
-            className="sm:w-72"
-          />
-          <Button size="md">Book appointment</Button>
-        </div>
-      </header>
+    <section className="p-4 space-y-4">
 
+      {/* HEADER */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold">
+          Appointments
+        </h2>
+
+        <Button>
+          Book Appointment
+        </Button>
+      </div>
+
+      {/* SEARCH */}
+      <SearchInput
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search patient or doctor..."
+      />
+
+      {/* FILTERS */}
       <div className="flex flex-wrap items-center gap-2">
         {FILTERS.map((f) => (
           <button
@@ -81,10 +156,10 @@ export default function Appointments() {
         ))}
       </div>
 
+      {/* TABLE */}
       <Table
         columns={COLUMNS}
-        rows={rows}
-        search={search}
+        rows={filteredRows}
         loading={loading}
         pageSize={8}
       />

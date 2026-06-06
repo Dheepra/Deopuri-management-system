@@ -59,6 +59,10 @@ public class SecurityConfig {
                                 "/api/appointments/**")
                         .permitAll()
 
+                        .requestMatchers(
+                                "/api/hospitals")
+                        .permitAll()
+
                         .requestMatchers("/api/admin/approve-user/**")
                         .permitAll()
 

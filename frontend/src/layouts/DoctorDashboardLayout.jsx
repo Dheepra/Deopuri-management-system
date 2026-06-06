@@ -26,20 +26,20 @@ export default function DoctorDashboardLayout() {
         <h2 style={{ marginBottom: "40px" }}>Deopuri</h2>
 
         <NavLink to="/doctor/dashboard" style={menuStyle}>
-          Dashboard
-        </NavLink>
+  Dashboard
+</NavLink>
 
-        <NavLink to="/doctor/patients" style={menuStyle}>
-          My Patients
-        </NavLink>
+<NavLink to="/doctor/appointments" style={menuStyle}>
+  Appointments
+</NavLink>
 
-        <NavLink to="/doctor/appointments" style={menuStyle}>
-          Appointments
-        </NavLink>
+<NavLink to="/doctor/patients" style={menuStyle}>
+  My Patients
+</NavLink>
 
-        <NavLink to="/doctor/prescriptions" style={menuStyle}>
-          Prescriptions
-        </NavLink>
+<NavLink to="/doctor/prescriptions" style={menuStyle}>
+  Prescriptions
+</NavLink>
 
         <NavLink to="/doctor/reports" style={menuStyle}>
           Reports

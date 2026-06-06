@@ -84,4 +84,8 @@ public class UserControllerImpl implements UserController {
                 .map(u -> u.getId())
                 .orElseThrow(() -> new AccessDeniedException("Authenticated user no longer exists"));
     }
+    @Override
+public ResponseEntity<List<UserResponse>> getHospitals() {
+    return ResponseEntity.ok(service.getHospitals());
+}
 }

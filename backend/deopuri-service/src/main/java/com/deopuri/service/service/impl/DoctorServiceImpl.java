@@ -2,6 +2,7 @@ package com.deopuri.service.service.impl;
 
 import com.deopuri.api.dto.CreateDoctorRequest;
 import com.deopuri.api.dto.CreatePasswordRequest;
+import com.deopuri.api.dto.DoctorResponse;
 import com.deopuri.api.model.Doctor;
 import com.deopuri.api.model.UserRole;
 import com.deopuri.api.model.UserStatus;
@@ -202,5 +203,33 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
 public List<Doctor> getAllDoctors() {
     return doctorDao.findAll();
+}
+@Override
+public List<DoctorResponse> getDoctorsByHospital(Integer hospitalAdminId) {
+
+    return doctorDao.findByHospitalAdminId(hospitalAdminId)
+            .stream()
+            .map(doctor -> new DoctorResponse(
+                    doctor.getId(),
+                    doctor.getUser().getFirstName(),
+                    doctor.getUser().getLastName(),
+                    doctor.getSpecialization()
+            ))
+            .toList();
+}
+
+@Override
+public DoctorResponse getDoctorByUserId(Integer userId) {
+
+    Doctor doctor = doctorDao.findByUserId(userId)
+            .orElseThrow(() ->
+                    new RuntimeException("Doctor not found"));
+
+    return new DoctorResponse(
+            doctor.getId(),
+            doctor.getUser().getFirstName(),
+            doctor.getUser().getLastName(),
+            doctor.getSpecialization()
+    );
 }
 }

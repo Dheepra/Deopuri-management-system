@@ -1,3 +1,5 @@
+import DoctorAppointments from "./DoctorAppointments";
+
 export default function DoctorDashboard() {
   return (
     <>
@@ -79,10 +81,7 @@ export default function DoctorDashboard() {
             desc="Check patient records"
           />
 
-          <ActionCard
-            title="Appointments"
-            desc="Manage appointments"
-          />
+          
 
           <ActionCard
             title="Upload Report"

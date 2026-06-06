@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface DoctorDao extends JpaRepository<Doctor, Long> {
@@ -16,5 +17,9 @@ public interface DoctorDao extends JpaRepository<Doctor, Long> {
 
     List<Doctor> findByQualification(String qualification);
 
+    List<Doctor> findByHospitalAdminId(Integer hospitalAdminId);
+
     boolean existsByUser_Email(String email);
+
+   Optional<Doctor> findByUserId(Integer userId);
 }

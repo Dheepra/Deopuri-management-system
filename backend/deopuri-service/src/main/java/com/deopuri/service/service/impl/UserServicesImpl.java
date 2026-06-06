@@ -281,4 +281,23 @@ public class UserServicesImpl implements UserServices {
     private static String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
     }
+
+    @Override
+public List<UserResponse> getHospitals() {
+
+    return dao.findByRole(UserRole.HOSPITAL_ADMIN)
+            .stream()
+            .map(user -> new UserResponse(
+                    user.getId(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    user.getEmail(),
+                    user.getMobileNo(),
+                    user.getAddress(),
+                    user.getShopName(),
+                    user.getRole(),
+                    user.getStatus()
+            ))
+            .toList();
+}
 }

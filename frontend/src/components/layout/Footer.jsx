@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import Container from '../ui/Container.jsx';
-
+import logo2 from "../../assets/picture/logo2.png";
 const COLUMNS = [
   {
     title: 'Product',
@@ -37,22 +37,13 @@ export default function Footer() {
       <Container className="py-14">
         <div className="grid gap-10 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Link to="/" className="flex items-center gap-2">
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-600 text-white">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5"
-                >
-                  <path d="M12 3v18M3 12h18" />
-                </svg>
-              </span>
-              <span className="font-display text-lg font-bold text-ink-900">Deopuri</span>
+            <Link to="/" className="flex items-center ">
+             <img
+                 src={logo2}
+                 alt="Deopuri Logo"
+                 className="h-18 w-22 object-contain"
+               />
+         
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-6 text-ink-600">
               Modern management for medical shops. Catalog, sales, and orders in one calm

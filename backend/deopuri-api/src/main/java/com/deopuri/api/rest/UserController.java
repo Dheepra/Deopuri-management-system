@@ -63,5 +63,6 @@ public interface UserController {
     @PreAuthorize("hasRole('ADMIN')")
     ResponseEntity<List<UserResponse>> getPendingUsers();
 
-   
+    @GetMapping("/hospitals")
+   ResponseEntity<List<UserResponse>> getHospitals();
 }

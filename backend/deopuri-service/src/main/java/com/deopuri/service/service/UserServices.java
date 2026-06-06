@@ -27,4 +27,5 @@ public interface UserServices {
     UserResponse updateRole(int id, UserRole role);
 
     void deleteUser(int id);
+    List<UserResponse> getHospitals();
 }
