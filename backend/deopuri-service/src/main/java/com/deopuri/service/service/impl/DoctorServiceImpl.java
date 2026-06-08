@@ -89,7 +89,7 @@ public class DoctorServiceImpl implements DoctorService {
         doctorDao.save(doctor);
 
         // 4. Email
-        String link = "http://localhost:5173/create-password?token=" + token;
+        String link = "http://localhost:5173/login?userId=" + doctorUser.getId();
 
         String body = """
                 <div style="font-family:Arial,sans-serif; padding:20px; text-align:center;">

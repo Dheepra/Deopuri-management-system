@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import logo from "../assets/picture/logo.jpg";
 
 import { useAuth } from '../auth/useAuth.js';
 import { ROLE_LABELS } from '../auth/roles.js';
@@ -28,9 +29,13 @@ function Sidebar({ navItems, open, onClose }) {
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         ].join(' ')}
       >
-        <div className="flex h-16 items-center px-6">
-          <h2 className="font-semibold text-lg">Deopuri</h2>
-        </div>
+        <div className="flex h-16 items-center justify-center px-4 mt-2">
+  <img
+    src={logo}
+    alt="Deopuri"
+    className="h-12 w-auto"
+  />
+</div>
 
         <nav className="space-y-1 px-3 py-5">
           {navItems.map((item) => (
@@ -244,6 +249,7 @@ function Topbar({ onMenu, search, onSearchChange }) {
                         !n.isRead ? 'bg-brand-50/30' : '',
                       ].join(' ')}
                     >
+                      
                       <p className="text-sm font-medium text-ink-900">
                         {n.title}
                       </p>

@@ -1,22 +1,19 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-export default function AppointmentBooking() {
+
+
+export default function AppointmentBooking({
+  formData,
+  setFormData,
+  setReviewData,
+  setStep
+}){
+
 
   const [doctors, setDoctors] = useState([]);
 const [hospitals, setHospitals] = useState([]);
-  const [formData, setFormData] = useState({
-  patientName: "",
-  patientMobile: "",
-  patientEmail: "",
-  patientAge: "",
-  patientGender: "",
-  hospitalAdminId: "",
-  doctorId: "",
-  appointmentDate: "",
-  appointmentTime: "",
-  notes: ""
-});
+  
 
 useEffect(() => {
   axios.get("http://localhost:8080/api/hospitals")
@@ -25,7 +22,26 @@ useEffect(() => {
     })
     .catch(err => console.log(err));
 }, []);
+
+
     
+useEffect(() => {
+  const loadDoctors = async () => {
+    if (!formData.hospitalAdminId) return;
+
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/hospital-admin/doctors/hospital/${formData.hospitalAdminId}`
+      );
+
+      setDoctors(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  loadDoctors();
+}, [formData.hospitalAdminId]);
 
 const handleHospitalChange = async (e) => {
 
@@ -69,31 +85,20 @@ const handleChange = (e) => {
   });
 };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = (e) => {
+  e.preventDefault();
 
-    try {
-      await axios.post("http://localhost:8080/api/appointments", formData);
-      alert("Appointment Booked Successfully!");
-       setFormData({
-  patientName: "",
-  patientMobile: "",
-  patientEmail: "",
-  patientAge: "",
-  patientGender: "",
-  hospitalAdminId: "",
-  doctorId: "",
-  appointmentDate: "",
-  appointmentTime: "",
-  notes: ""
-});
+  setReviewData({
+    formData,
+    doctors,
+    hospitals
+  });
 
-setDoctors([]);
-    } catch (error) {
-      console.log(error);
-      alert("Error booking appointment");
-    }
-  };
+  setStep("review");
+};
+
+
+
 
   return (
     <div style={styles.page}>
@@ -216,7 +221,7 @@ setDoctors([]);
   onChange={handleChange}
 />
           <button style={styles.button} type="submit">
-            Book Appointment
+             Review Appointment
           </button>
 
         </form>

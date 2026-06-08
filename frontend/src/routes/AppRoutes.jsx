@@ -1,7 +1,8 @@
 import { Route, Routes } from 'react-router-dom';
 import Layout from '../components/layout/Layout.jsx';
 import Home from '../pages/Home.jsx';
-import  AppointmentBooking from "../pages/Appointments.jsx";
+
+
 import NotFound from '../pages/NotFound.jsx';
 import Unauthorized from '../pages/Unauthorized.jsx';
 import ForgotPassword from '../pages/ForgotPassword.jsx';
@@ -51,7 +52,7 @@ export default function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/create-password" element={<CreatePassword />} />
       <Route path="/unauthorized"    element={<Unauthorized />} />
-      <Route path="/appointment" element={<AppointmentBooking />} />
+      
 
       {/* COMPANY_ADMIN */}
       <Route

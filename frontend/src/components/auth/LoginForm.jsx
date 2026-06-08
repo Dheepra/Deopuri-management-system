@@ -11,7 +11,7 @@ import { useAuth } from '../../auth/useAuth.js';
 import { ROLE_HOME } from '../../auth/roles.js';
 import { email as emailValidator, required, runValidators } from '../../utils/validators.js';
 
-export default function LoginForm() {
+export default function LoginForm({ onFirstTimeLogin }) {
   const navigate = useNavigate();
   const location = useLocation();
   const auth = useAuth();
@@ -49,17 +49,10 @@ export default function LoginForm() {
 
       // 🚨 FIRST TIME LOGIN
       if (session.status === "FIRST_TIME_LOGIN") {
-        console.log("Redirecting to Create Password");
-        console.log("UserId =", session.userId || session.id);
-
-        navigate("/create-password", {
-          state: {
-            userId: session.userId || session.id
-          }
-        });
-
-        return;
-      }
+  console.log("Opening Create Password Form");
+  onFirstTimeLogin(session.userId || session.id);
+  return;
+}
 
       // 🚀 FIX: SAVE TOKEN + USER (IMPORTANT)
       localStorage.setItem("auth.session", JSON.stringify({

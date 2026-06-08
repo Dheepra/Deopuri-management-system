@@ -1,8 +1,10 @@
 import EnterpriseAuthLayout from '../layouts/EnterpriseAuthLayout.jsx';
 import LoginForm from '../components/auth/LoginForm.jsx';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useSearchParams } from "react-router-dom";
 import toast from 'react-hot-toast';
+import { useEffect, useState } from 'react';
+import CreatePassword from './CreatePassword';
 
 const BULLETS = [
   {
@@ -24,8 +26,14 @@ const BULLETS = [
 
 export default function Login() {
 
+  const [searchParams] = useSearchParams();
+
+const userId = searchParams.get("userId");
   const location = useLocation();
   const navigate = useNavigate();
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+const [doctorUserId, setDoctorUserId] = useState(null);
+
 
   useEffect(() => {
     if (location.state?.justRegistered) {
@@ -43,6 +51,12 @@ export default function Login() {
   });
   return;
 }
+useEffect(() => {
+  if (userId) {
+    setDoctorUserId(Number(userId));
+    setShowCreatePassword(true);
+  }
+}, [userId]);
 
     // 👇 NORMAL LOGIN SUCCESS
     if (res.token) {
@@ -60,15 +74,29 @@ export default function Login() {
   };
 
   return (
-    <EnterpriseAuthLayout
-      title="Welcome back"
-      subtitle="Sign in to your admin console. You will be redirected based on your role."
-      formEyebrow="Sign in"
-      tagline="One quiet dashboard. Built for your role."
-      bullets={BULLETS}
-    >
-      {/* 🔥 IMPORTANT: callback pass karo */}
-      <LoginForm onLoginSuccess={handleLoginSuccess} />
-    </EnterpriseAuthLayout>
-  );
+  <EnterpriseAuthLayout
+    title="Welcome back"
+    subtitle="Sign in to your admin console. You will be redirected based on your role."
+    formEyebrow="Sign in"
+    tagline="One quiet dashboard. Built for your role."
+    bullets={BULLETS}
+  >
+    {showCreatePassword ? (
+      <CreatePassword
+        userId={doctorUserId}
+        onSuccess={() => {
+          setShowCreatePassword(false);
+          toast.success("Password created successfully. Please login.");
+        }}
+      />
+    ) : (
+      <LoginForm
+        onFirstTimeLogin={(userId) => {
+          setDoctorUserId(userId);
+          setShowCreatePassword(true);
+        }}
+      />
+    )}
+  </EnterpriseAuthLayout>
+);
 }

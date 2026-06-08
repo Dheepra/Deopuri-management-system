@@ -1,4 +1,5 @@
 import { Outlet, NavLink } from "react-router-dom";
+import logo from "../assets/picture/logo.jpg";
 
 export default function DoctorDashboardLayout() {
   const menuStyle = ({ isActive }) => ({
@@ -23,7 +24,17 @@ export default function DoctorDashboardLayout() {
           padding: "24px 14px",
         }}
       >
-        <h2 style={{ marginBottom: "40px" }}>Deopuri</h2>
+    <div style={{ textAlign: "center", marginBottom: "40px" }}>
+  <img
+    src={logo}
+    alt="Deopuri"
+    style={{
+      width: "100px",
+      height: "auto",
+      margin:"auto"
+    }}
+  />
+</div>
 
         <NavLink to="/doctor/dashboard" style={menuStyle}>
   Dashboard

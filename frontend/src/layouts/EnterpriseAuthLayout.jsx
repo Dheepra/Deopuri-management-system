@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import logo from "../assets/picture/logo.jpg";
 
 /**
  * Two-column auth shell used by every admin auth page (Company today,
@@ -46,15 +47,15 @@ export default function EnterpriseAuthLayout({
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="relative z-10 flex w-full flex-col justify-between p-10 text-white xl:p-14"
           >
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 backdrop-blur transition-transform duration-300 group-hover:scale-105">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                  <path d="M12 3v18M3 12h18" />
-                </svg>
-              </span>
-              <span className="font-display text-lg font-semibold tracking-tight">Deopuri</span>
-            </Link>
+            <Link to="/" className="flex items-center gap-3 group">
+  <img
+    src={logo}
+    alt="Deopuri"
+    className="h-14 m-auto w-auto transition-transform duration-300 group-hover:scale-105"
+  />
 
+  
+</Link>
             <div className="max-w-lg">
               <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/80 backdrop-blur">
                 <span className="h-1.5 w-1.5 rounded-full bg-brand-400" />

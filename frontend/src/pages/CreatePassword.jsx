@@ -1,11 +1,8 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 
-export default function CreatePassword() {
-  const navigate = useNavigate();
-  const location = useLocation();
 
-  const userId = location.state?.userId;
+export default function CreatePassword({ userId, onSuccess }) {
+  
 
   console.log("LOCATION STATE =", location.state);
   console.log("USER ID =", userId);
@@ -26,12 +23,10 @@ export default function CreatePassword() {
       alert("Passwords do not match");
       return;
     }
-
-    if (!userId) {
-      alert("Invalid access. Please login again.");
-      navigate("/login");
-      return;
-    }
+if (!userId) {
+  alert("Invalid access. Please login again.");
+  return;
+}
 
     try {
       setLoading(true);
@@ -61,8 +56,12 @@ export default function CreatePassword() {
       console.log("RESPONSE BODY =", text);
 
       if (response.ok) {
-        alert("Password created successfully");
-        navigate("/login");
+  alert("Password created successfully");
+
+  if (onSuccess) {
+    onSuccess();
+  }
+
       } else {
         alert(text || "Failed to create password");
       }
