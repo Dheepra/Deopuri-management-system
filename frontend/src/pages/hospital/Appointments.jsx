@@ -5,7 +5,7 @@ import Table from '../../components/ui/Table.jsx';
 import Button from '../../components/ui/Button.jsx';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { getAppointments } from '../../services/hospital.js';
-
+import axios from 'axios';
 /* ================= STATUS COLORS ================= */
 const STATUS_TONE = {
   BOOKED: 'info',
@@ -17,8 +17,36 @@ const STATUS_TONE = {
 /* ================= FILTER OPTIONS ================= */
 const FILTERS = ['All', 'BOOKED', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
 
-/* ================= COLUMNS ================= */
-const COLUMNS = [
+
+/* ================= MAIN COMPONENT ================= */
+export default function Appointments() {
+
+  const session = JSON.parse(
+    localStorage.getItem('auth.session') || '{}'
+  );
+
+  const adminId = session.userId;
+
+  const { data, loading, refresh } =
+    useAsyncData(() => getAppointments(adminId));
+
+  const handleConfirm = async (appointmentId) => {
+      console.log("CLICKED ID =", appointmentId);
+    try {
+      await axios.patch(
+        `http://localhost:8080/api/appointments/${appointmentId}/status?status=CONFIRMED`
+      );
+         console.log("SUCCESS =", response.data);
+
+console.log(response);
+      refresh();
+    } catch (error) {
+      console.error('Confirm failed', error);
+    }
+  };
+
+
+const columns = [
   {
     key: 'appointmentTime',
     header: 'Time',
@@ -44,24 +72,25 @@ const COLUMNS = [
       </Badge>
     ),
   },
+  {
+  key: 'actions',
+  header: 'Actions',
+ render: (row) =>
+  row.status === 'BOOKED' ? (
+    <Button
+      onClick={() => {
+        console.log("ROW =", row);
+        handleConfirm(row.id);
+      }}
+    >
+      Confirm
+    </Button>
+  ) : (
+    <span>Confirmed</span>
+  )
+}
 ];
-
-/* ================= MAIN COMPONENT ================= */
-export default function Appointments() {
-
-  const session = JSON.parse(
-  localStorage.getItem('auth.session') || '{}'
-);
-
-const adminId = session.userId;
-console.log("Admin ID:", adminId);
-
-const { data, loading, refresh } =
-  useAsyncData(() => getAppointments(adminId));
-
   
-console.log("Appointments:", data);
-
  useEffect(() => {
   const interval = setInterval(refresh, 5000);
 
@@ -158,11 +187,11 @@ console.log("Appointments:", data);
 
       {/* TABLE */}
       <Table
-        columns={COLUMNS}
-        rows={filteredRows}
-        loading={loading}
-        pageSize={8}
-      />
+  columns={columns}
+  rows={filteredRows}
+  loading={loading}
+  pageSize={8}
+/>
     </section>
   );
 }

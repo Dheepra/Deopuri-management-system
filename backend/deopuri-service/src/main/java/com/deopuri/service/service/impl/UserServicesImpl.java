@@ -84,7 +84,7 @@ public class UserServicesImpl implements UserServices {
 
                             <div style="text-align:center; font-family:Arial,sans-serif; padding:20px;">
 
-                            ```
+                            
                             <img src='cid:logoImage'
                                  width='120'
                                  style="margin-bottom:10px;"/>

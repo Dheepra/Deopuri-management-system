@@ -20,7 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+
 
 @Service
 @Transactional
@@ -51,7 +51,7 @@ public class DoctorServiceImpl implements DoctorService {
                 .orElseThrow(() -> new ResourceNotFoundException("Hospital Admin not found"));
 
         // 1. Generate ONE token
-        String token = UUID.randomUUID().toString();
+        //String token = UUID.randomUUID().toString();
 
         // 2. Create User
         Users doctorUser = new Users();
