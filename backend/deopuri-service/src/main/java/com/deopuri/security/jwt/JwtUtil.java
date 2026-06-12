@@ -21,7 +21,7 @@ public class JwtUtil {
     private final Duration expiration;
 
     public JwtUtil(@Value("${jwt.secret:}") String secret,
-                   @Value("${jwt.expiration-ms:3600000}") long expirationMs) {
+                   @Value("${jwt.expiration-ms:86400000}") long expirationMs) {
         if (secret == null || secret.length() < MIN_SECRET_LENGTH) {
             throw new IllegalStateException(
                     "jwt.secret must be configured with at least " + MIN_SECRET_LENGTH + " characters");

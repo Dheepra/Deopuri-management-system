@@ -20,12 +20,16 @@ const FILTERS = ['All', 'BOOKED', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
 
 /* ================= MAIN COMPONENT ================= */
 export default function Appointments() {
+  
+const session = JSON.parse(
+  localStorage.getItem('auth.session') || '{}'
+);
 
-  const session = JSON.parse(
-    localStorage.getItem('auth.session') || '{}'
-  );
+console.log("SESSION =", session);
 
-  const adminId = session.userId;
+const adminId = session?.userId;
+
+console.log("ADMIN ID =", adminId);
 
   const { data, loading, refresh } =
     useAsyncData(() => getAppointments(adminId));
@@ -45,6 +49,7 @@ console.log(response);
     }
   };
 
+  
 
 const columns = [
   {

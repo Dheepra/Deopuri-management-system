@@ -85,6 +85,7 @@ export async function getDoctors() {
 }
 export async function getStaff()        { await delay(120); return STAFF; }
 export async function getPatients()     { await delay(140); return PATIENTS; }
+
 export async function getAppointments(adminId, { signal } = {}) {
   const { data } = await http.get(
     `/api/appointments/admin/${adminId}`,

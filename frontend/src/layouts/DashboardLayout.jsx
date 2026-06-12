@@ -194,7 +194,13 @@ function Topbar({ onMenu, search, onSearchChange }) {
       <div className="ml-auto flex items-center gap-3">
 
         {/* NOTIFICATION */}
-        <div className="relative" ref={notificationRef}>
+        {/* NOTIFICATION */}
+{[
+  "COMPANY_ADMIN",
+  "HOSPITAL_ADMIN",
+  "MEDICAL_ADMIN"
+].includes(role) && (
+  <div className="relative" ref={notificationRef}>
 
           <button
             type="button"
@@ -264,7 +270,7 @@ function Topbar({ onMenu, search, onSearchChange }) {
             </div>
           )}
         </div>
-
+)}
         {/* PROFILE */}
         <div className="relative">
 
