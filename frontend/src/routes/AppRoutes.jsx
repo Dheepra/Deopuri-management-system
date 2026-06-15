@@ -12,10 +12,12 @@ import Login from '../pages/Login.jsx';
 
 import CompanyDashboard from '../pages/admin/Dashboard.jsx';
 import CompanyDashboardLayout from '../layouts/CompanyDashboardLayout.jsx';
+import Product from "../pages/admin/Products.jsx";
 
 import HospitalDashboardLayout from '../layouts/HospitalDashboardLayout.jsx';
 import HospitalDashboard from '../pages/hospital/HospitalDashboard.jsx';
 import Doctors from '../pages/hospital/Doctors.jsx';
+import Orders from '../pages/hospital/Orders.jsx';
 import Staff from '../pages/hospital/Staff.jsx';
 import Patients from '../pages/hospital/Patients.jsx';
 import Inventory from '../pages/hospital/Inventory.jsx';
@@ -34,7 +36,7 @@ import Profile from '../pages/doctor/Profile.jsx';
 import MedicalDashboardLayout from '../layouts/MedicalDashboardLayout.jsx';
 import MedicalDashboard from '../pages/medical/MedicalDashboard.jsx';
 import Catalog from '../pages/medical/Catalog.jsx';
-import Orders from '../pages/medical/Orders.jsx';
+
 import MedicalSettings from '../pages/medical/Settings.jsx';
 import CreatePassword from '../pages/CreatePassword.jsx';
 
@@ -63,8 +65,10 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
+        
         <Route index             element={<CompanyDashboard />} />
         <Route path="dashboard"  element={<CompanyDashboard />} />
+          <Route path="products" element={<Product />} />
       </Route>
 
       {/* HOSPITAL_ADMIN */}
@@ -78,6 +82,7 @@ export default function AppRoutes() {
       >
         <Route index               element={<HospitalDashboard />} />
         <Route path="dashboard"    element={<HospitalDashboard />} />
+        <Route path="orders"       element={<Orders />} />
         <Route path="doctors"      element={<Doctors />} />
         <Route path="staff"        element={<Staff />} />
         <Route path="patients"     element={<Patients />} />

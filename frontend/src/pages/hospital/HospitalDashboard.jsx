@@ -25,6 +25,7 @@
     { label: 'Add doctor',      hint: 'Onboard a clinician',  to: '/hospital/doctors',      icon: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0M19 16v4M21 18h-4' },
     { label: 'Schedule',        hint: 'Book an appointment',  to: '/hospital/appointments', icon: 'M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zM16 2v4M8 2v4M3 10h18' },
     { label: 'Reorder stock',   hint: 'Replenish medicines',  to: '/hospital/inventory',    icon: 'M3 7h18M5 7v13h14V7M9 11h6' },
+    
   ];
 
   export default function HospitalDashboard() {

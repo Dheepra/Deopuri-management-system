@@ -2,6 +2,7 @@ import DashboardLayout from './DashboardLayout.jsx';
 
 const NAV = [
   { label: 'Overview',  to: '/admin/dashboard', icon: 'M3 12 12 3l9 9M5 10v10h14V10', end: true },
+    { label: 'Products',  to: '/admin/products', icon: 'M20 7H4V5h16v2zm0 4H4v2h16v-2zm0 4H4v2h16v-2z' },
   { label: 'Inventory', to: '/admin/inventory', icon: 'M3 7h18M5 7v13h14V7M9 11h6' },
   { label: 'Orders',    to: '/admin/orders',    icon: 'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11' },
   { label: 'Team',      to: '/admin/team',      icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
