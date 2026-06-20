@@ -15,18 +15,21 @@ import java.util.Optional;
 @Repository
 public interface OrdersDao extends JpaRepository<Orders, Long> {
 
-    List<Orders> findByUser_Id(int userId);
+        List<Orders> findByUser_Id(int userId);
 
-    List<Orders> findByStatus(OrderStatus status);
+        List<Orders> findByStatus(OrderStatus status);
 
-    List<Orders> findByUserAndStatus(
-            Users user,
-            OrderStatus status);
+        List<Orders> findByUserAndStatus(
+                        Users user,
+                        OrderStatus status);
 
-   Optional<Orders> findByUserAndProductAndVariantAndStatus(
-        Users user,
-        Product product,
-        ProductVariant variant,
-        OrderStatus status
-);
+        List<Orders> findByUserAndContext(Users user, String context);
+
+        List<Orders> findByContext(String context);
+
+        Optional<Orders> findByUserAndProductAndVariantAndStatus(
+                        Users user,
+                        Product product,
+                        ProductVariant variant,
+                        OrderStatus status);
 }

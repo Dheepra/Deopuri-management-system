@@ -16,4 +16,15 @@ public final class SecurityUtils {
         }
         return auth.getName();
     }
+
+    // 🔥 NEW METHOD (ADD THIS)
+    public static String currentUserRole() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        return auth.getAuthorities()
+                .stream()
+                .map(grantedAuthority -> grantedAuthority.getAuthority())
+                .findFirst()
+                .orElse("UNKNOWN");
+    }
 }

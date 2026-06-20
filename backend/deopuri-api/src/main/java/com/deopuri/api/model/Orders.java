@@ -15,8 +15,6 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
-
-
 @Entity
 @Table(name = "orders")
 public class Orders {
@@ -47,7 +45,11 @@ public class Orders {
     private Product product;
 
     @Column(name = "delivery_address", length = 500)
-private String deliveryAddress;
+    private String deliveryAddress;
+
+    @Column(name = "order_context", nullable = false)
+    private String context;
+    // values: "HOSPITAL" or "MEDICAL"
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "variant_id", nullable = false)
@@ -123,12 +125,20 @@ private String deliveryAddress;
     }
 
     public String getDeliveryAddress() {
-    return deliveryAddress;
-}
+        return deliveryAddress;
+    }
 
-public void setDeliveryAddress(String deliveryAddress) {
-    this.deliveryAddress = deliveryAddress;
-}
+    public void setDeliveryAddress(String deliveryAddress) {
+        this.deliveryAddress = deliveryAddress;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
+    }
 
     public ProductVariant getVariant() {
         return variant;

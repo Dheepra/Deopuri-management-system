@@ -74,10 +74,29 @@ public class OrdersServiceImpl implements OrdersService {
                 order.setUser(user);
                 order.setProduct(product);
                 order.setVariant(variant);
-                order.setQuantity(request.quantity()); 
+                order.setQuantity(request.quantity());
                 order.setStatus(OrderStatus.PENDING);
                 order.setDeliveryAddress(user.getAddress());
+
+                String role = SecurityUtils.currentUserRole();
+
+                String context = "MEDICAL";
+
+                if ("ROLE_HOSPITAL_ADMIN".equals(role)) {
+                        context = "HOSPITAL";
+                }
+
+                order.setContext(context);
+
                 order.setTotalAmount(0.0);
+
+              
+
+                if (role.contains("HOSPITAL")) {
+                        order.setContext("HOSPITAL");
+                } else {
+                        order.setContext("MEDICAL");
+                }
                 // update order quantity first
                 int finalQuantity = order.getQuantity() + request.quantity();
 
@@ -92,6 +111,8 @@ public class OrdersServiceImpl implements OrdersService {
 
                 order.setQuantity(finalQuantity);
                 order.setTotalAmount(finalQuantity * product.getPrice());
+
+                
 
                 Orders saved = dao.save(order);
 
@@ -164,7 +185,19 @@ public class OrdersServiceImpl implements OrdersService {
         @Override
         @Transactional(readOnly = true)
         public List<OrderResponse> getCurrentUserOrders() {
-                return getUserOrders(currentUser().getId());
+
+                Users user = currentUser();
+
+                String role = SecurityUtils.currentUserRole();
+
+                String context = role.contains("HOSPITAL")
+                                ? "HOSPITAL"
+                                : "MEDICAL";
+
+                return dao.findByUserAndContext(user, context)
+                                .stream()
+                                .map(OrdersServiceImpl::toResponse)
+                                .toList();
         }
 
         @Override

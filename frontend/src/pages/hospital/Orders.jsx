@@ -13,15 +13,21 @@ export default function Orders() {
   const [showOrders, setShowOrders] = useState(false);
 
   const [selectedVariants, setSelectedVariants] = useState({});
-  const [cart, setCart] = useState(() => {
-    const saved = localStorage.getItem("cart");
-    return saved ? JSON.parse(saved) : [];
-  });
 
   const [orders, setOrders] = useState([]);
 
   // 👇 replace with real auth later
- const userId = getAuthUser()?.id;
+const user = getAuthUser();
+const userId = user?.id;
+const role = user?.role;
+
+const CART_KEY = `cart_${role}_${userId}`;
+
+// NOW SAFE TO USE
+const [cart, setCart] = useState(() => {
+  const saved = localStorage.getItem(CART_KEY);
+  return saved ? JSON.parse(saved) : [];
+});
 
   // PRODUCTS
   const { data: products, loading } = useAsyncData(() => fetchProducts());
@@ -37,8 +43,8 @@ export default function Orders() {
 
   // SAVE CART/.
   useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+}, [cart, CART_KEY]);
 
   // LOAD ORDERS
   const loadOrders = async () => {
@@ -59,14 +65,32 @@ useEffect(() => {
 
   // ADD TO CART
   const addToCart = (product, variantId) => {
-    if (!variantId) {
-      alert("Please select size");
-      return;
+  if (!variantId) {
+    alert("Please select size");
+    return;
+  }
+
+  const variant = product.variants.find(v => v.id === variantId);
+
+  setCart((prev) => {
+    const existingItem = prev.find(
+      (item) =>
+        item.productId === product.id &&
+        item.variantId === variant.id
+    );
+
+    // ✅ IF SAME PRODUCT + SAME SIZE → INCREASE QTY
+    if (existingItem) {
+      return prev.map((item) =>
+        item.productId === product.id &&
+        item.variantId === variant.id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      );
     }
 
-    const variant = product.variants.find(v => v.id === variantId);
-
-    setCart((prev) => [
+    // ❗ OTHERWISE NEW CART ITEM
+    return [
       ...prev,
       {
         cartId: `${product.id}-${variant.id}`,
@@ -77,9 +101,9 @@ useEffect(() => {
         size: variant.size,
         quantity: 1
       }
-    ]);
-  };
-
+    ];
+  });
+};
   // UPDATE QTY
   const updateQuantity = (cartId, qty) => {
     setCart((prev) =>
@@ -117,13 +141,13 @@ useEffect(() => {
             quantity: Number(item.quantity)
           }
         );
-        loadOrders();
+       
       }
 
       alert("Order placed successfully");
 
       setCart([]);
-      localStorage.removeItem("cart");
+localStorage.removeItem(CART_KEY);
 
       loadOrders();
 
@@ -139,155 +163,213 @@ useEffect(() => {
   if (loading) return <div>Loading...</div>;
 
   return (
-    <div className="p-4">
+  <div className="p-6 bg-gray-50 min-h-screen">
 
-      {/* TOP CARDS */}
-      <div className="flex items-center mb-6 gap-4">
+    {/* HEADER */}
+    <h1 className="text-2xl font-bold mb-6 text-gray-800">
+      Orders Management
+    </h1>
 
-        <div
-          onClick={() => {
-            setShowProducts(true);
-            setShowCart(false);
-            setShowOrders(false);
-          }}
-          className="w-56 cursor-pointer rounded-xl border p-4 shadow-sm"
-        >
-          <h2 className="text-xl font-semibold">Products</h2>
-        </div>
+    {/* TOP CARDS */}
+    <div className="grid grid-cols-3 gap-4 mb-6">
 
-        <div
-          onClick={() => {
-            setShowProducts(false);
-            setShowCart(true);
-            setShowOrders(false);
-          }}
-          className="w-56 cursor-pointer rounded-xl border p-4 shadow-sm"
-        >
-          <h2 className="text-xl font-semibold">Cart ({cart.length})</h2>
-        </div>
-
-        <div
-          onClick={() => {
-            setShowProducts(false);
-            setShowCart(false);
-            setShowOrders(true);
-          }}
-          className="w-56 cursor-pointer rounded-xl border p-4 shadow-sm"
-        >
-          <h2 className="text-xl font-semibold">Orders ({orders.length})</h2>
-        </div>
-
+      <div
+        onClick={() => {
+          setShowProducts(true);
+          setShowCart(false);
+          setShowOrders(false);
+        }}
+        className="cursor-pointer bg-white shadow rounded-xl p-4 hover:shadow-md transition"
+      >
+        <h2 className="text-lg font-semibold">Products</h2>
+        <p className="text-sm text-gray-500">Browse medicines</p>
       </div>
 
-      {/* PRODUCTS */}
-      {showProducts && (
-        <>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search..."
-            className="border p-2 w-full mb-4"
-          />
+      <div
+        onClick={() => {
+          setShowProducts(false);
+          setShowCart(true);
+          setShowOrders(false);
+        }}
+        className="cursor-pointer bg-white shadow rounded-xl p-4 hover:shadow-md transition"
+      >
+        <h2 className="text-lg font-semibold">
+          Cart ({cart.length})
+        </h2>
+        <p className="text-sm text-gray-500">Pending items</p>
+      </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            {filteredProducts.map((p) => (
-              <div key={p.id} className="border p-3 rounded">
+      <div
+        onClick={() => {
+          setShowProducts(false);
+          setShowCart(false);
+          setShowOrders(true);
+        }}
+        className="cursor-pointer bg-white shadow rounded-xl p-4 hover:shadow-md transition"
+      >
+        <h2 className="text-lg font-semibold">
+          Orders ({orders.length})
+        </h2>
+        <p className="text-sm text-gray-500">Order history</p>
+      </div>
 
-                <h3>{p.name}</h3>
+    </div>
 
-                <select
-                  onChange={(e) =>
-                    setSelectedVariants({
-                      ...selectedVariants,
-                      [p.id]: Number(e.target.value)
-                    })
-                  }
-                  className="border w-full"
-                >
-                  <option value="">Select size</option>
-                  {p.variants?.map(v => (
-                    <option key={v.id} value={v.id}>
-                      {v.size}
-                    </option>
-                  ))}
-                </select>
+    {/* PRODUCTS */}
+    {showProducts && (
+      <div className="bg-white p-4 rounded-xl shadow">
 
-                <button
-                  onClick={() =>
-                    addToCart(p, selectedVariants[p.id])
-                  }
-                  className="bg-blue-500 text-white px-2 py-1 mt-2"
-                >
-                  Add to Cart
-                </button>
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search medicines..."
+          className="border p-2 w-full mb-4 rounded"
+        />
 
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+        <div className="grid grid-cols-4 gap-4">
+          {filteredProducts.map((p) => (
+            <div key={p.id} className="border rounded-lg p-3 hover:shadow">
+              <img
+    src={p.imageUrl || "/placeholder.png"}
+    alt={p.name}
+    className="w-full h-32 object-cover rounded mb-2"
+  />
+              <h3 className="font-semibold">{p.name}</h3>
 
-      {/* CART */}
-      {showCart && (
-        <div className="mt-4 border p-4">
-          <h2 className="text-xl font-bold mb-2">Cart</h2>
-
-          {cart.map(item => (
-            <div key={item.cartId} className="border p-2 mb-2">
-
-              <p>{item.name} ({item.size})</p>
-
-              <input
-                type="number"
-                min="1"
-                value={item.quantity}
+              <select
                 onChange={(e) =>
-                  updateQuantity(item.cartId, e.target.value)
+                  setSelectedVariants({
+                    ...selectedVariants,
+                    [p.id]: Number(e.target.value)
+                  })
                 }
-                className="border w-20"
-              />
+                className="border w-full mt-2 p-1 rounded"
+              >
+                <option value="">Select size</option>
+                {p.variants?.map(v => (
+                  <option key={v.id} value={v.id}>
+                    {v.size}
+                  </option>
+                ))}
+              </select>
+
+              <button
+  onClick={() => addToCart(p, selectedVariants[p.id])}
+  className="w-full mt-2 text-white py-2 rounded-lg font-medium transition hover:opacity-90"
+  style={{ backgroundColor: "#157d58" }}
+>
+  Add to Cart
+</button>
+
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* CART */}
+    {showCart && (
+      <div className="bg-white p-4 rounded-xl shadow">
+
+        <h2 className="text-xl font-semibold mb-4">Cart Items</h2>
+
+        {cart.length === 0 ? (
+          <p className="text-gray-500">Cart is empty</p>
+        ) : (
+          cart.map(item => (
+            <div
+              key={item.cartId}
+              className="flex justify-between items-center border-b py-2"
+            >
+
+              <div>
+                <p className="font-medium">
+                  {item.name} ({item.size})
+                </p>
+
+                <input
+                  type="number"
+                  min="1"
+                  value={item.quantity}
+                  onChange={(e) =>
+                    updateQuantity(item.cartId, e.target.value)
+                  }
+                  className="border w-20 mt-1 p-1 rounded"
+                />
+              </div>
 
               <button
                 onClick={() => removeFromCart(item.cartId)}
-                className="text-red-500 ml-2"
+                className="text-red-500 hover:text-red-700"
               >
                 Remove
               </button>
 
             </div>
-          ))}
+          ))
+        )}
 
-          {cart.length > 0 && (
-            <Button onClick={handlePlaceOrder}>
-              Place Order
-            </Button>
-          )}
-        </div>
-      )}
+        {cart.length > 0 && (
+          <Button
+            onClick={handlePlaceOrder}
+            className="mt-4 w-full"
+          >
+            Place Order
+          </Button>
+        )}
+      </div>
+    )}
 
-      {/* ORDERS */}
-      {showOrders && (
-        <div className="mt-4 border p-4">
-          <h2 className="text-xl font-bold mb-2">Orders</h2>
+    {/* ORDERS */}
+    {showOrders && (
+      <div className="bg-white p-4 rounded-xl shadow">
 
-          {orders.length === 0 ? (
-            <p>No orders found</p>
-          ) : (
-            orders.map(o => (
-              <div key={o.id} className="border p-2 mb-2">
+        <h2 className="text-xl font-semibold mb-4">Order History</h2>
 
-                <p>#{o.id} - {o.productName}</p>
-                <p>Qty: {o.quantity}</p>
-                <p>Size: {o.size}</p>
-                <p>Status: {o.status}</p>
-                <p>₹{o.totalAmount}</p>
+        {orders.length === 0 ? (
+          <p className="text-gray-500">No orders found</p>
+        ) : (
+          <div className="space-y-3">
+
+            {orders.map(o => (
+              <div
+                key={o.id}
+                className="border rounded-lg p-3 flex justify-between items-center hover:bg-gray-50"
+              >
+
+                <div>
+                  <p className="font-semibold">
+                    #{o.id} {o.productName}
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    Size: {o.size} | Qty: {o.quantity}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="font-bold">₹{o.totalAmount}</p>
+
+                  <span className={`text-xs px-2 py-1 rounded
+                    ${o.status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
+                      o.status === "CONFIRMED" ? "bg-blue-100 text-blue-700" :
+                      o.status === "SHIPPED" ? "bg-purple-100 text-purple-700" :
+                      "bg-green-100 text-green-700"
+                    }`}
+                  >
+                    {o.status}
+                  </span>
+                </div>
 
               </div>
-            ))
-          )}
-        </div>
-      )}
+            ))}
 
-    </div>
-  );
+          </div>
+        )}
+
+      </div>
+    )}
+
+  </div>
+);
 }
