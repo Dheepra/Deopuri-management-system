@@ -28,204 +28,182 @@ import java.util.List;
 @Transactional
 public class OrdersServiceImpl implements OrdersService {
 
-    private static final Logger log = LoggerFactory.getLogger(OrdersServiceImpl.class);
+        private static final Logger log = LoggerFactory.getLogger(OrdersServiceImpl.class);
 
-    private final OrdersDao dao;
-    private final ProductRepository productRepository;
-    private final ProductVariantDao variantDao;
-    private final UsersDao usersDao;
+        private final OrdersDao dao;
+        private final ProductRepository productRepository;
+        private final ProductVariantDao variantDao;
+        private final UsersDao usersDao;
 
-    public OrdersServiceImpl(OrdersDao dao,
-            ProductRepository productRepository,
-            ProductVariantDao variantDao,
-            UsersDao usersDao) {
-        this.dao = dao;
-        this.productRepository = productRepository;
-        this.variantDao = variantDao;
-        this.usersDao = usersDao;
-    }
-
-    @Override
-    public OrderResponse placeOrder(OrderRequest request) {
-
-        Users user = currentUser();
-
-        Product product = productRepository
-                .findById(request.productId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Product not found with id "
-                                + request.productId()));
-
-        ProductVariant variant = variantDao
-                .findById(request.variantId())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Variant not found with id "
-                                + request.variantId()));
-
-        if (variant.getProduct() == null
-                || !variant.getProduct()
-                        .getId()
-                        .equals(product.getId())) {
-
-            throw new IllegalArgumentException(
-                    "Variant does not belong to the given product");
+        public OrdersServiceImpl(OrdersDao dao,
+                        ProductRepository productRepository,
+                        ProductVariantDao variantDao,
+                        UsersDao usersDao) {
+                this.dao = dao;
+                this.productRepository = productRepository;
+                this.variantDao = variantDao;
+                this.usersDao = usersDao;
         }
 
-        Orders order = dao.findByUserAndProductAndVariantAndStatus(
-                user,
-                product,
-                variant,
-                OrderStatus.PENDING)
+        @Override
+        public OrderResponse placeOrder(OrderRequest request) {
 
-                .orElse(new Orders());
+                Users user = currentUser();
 
-        if (order.getId() == null) {
+                Product product = productRepository
+                                .findById(request.productId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Product not found with id "
+                                                                + request.productId()));
 
-            if (variant.getStock() < request.quantity()) {
+                ProductVariant variant = variantDao
+                                .findById(request.variantId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Variant not found with id "
+                                                                + request.variantId()));
 
-                throw new InsufficientStockException(
-                        "Insufficient stock: available "
-                                + variant.getStock()
-                                + ", requested "
-                                + request.quantity());
-            }
+                if (variant.getProduct() == null
+                                || !variant.getProduct()
+                                                .getId()
+                                                .equals(product.getId())) {
 
-            order.setUser(user);
+                        throw new IllegalArgumentException(
+                                        "Variant does not belong to the given product");
+                }
+                Orders order = new Orders();
+                order.setUser(user);
+                order.setProduct(product);
+                order.setVariant(variant);
+                order.setQuantity(request.quantity()); 
+                order.setStatus(OrderStatus.PENDING);
+                order.setDeliveryAddress(user.getAddress());
+                order.setTotalAmount(0.0);
+                // update order quantity first
+                int finalQuantity = order.getQuantity() + request.quantity();
 
-            order.setProduct(product);
+                // FIXED STOCK CHECK
+                if (variant.getStock() < request.quantity()) {
+                        throw new InsufficientStockException("Insufficient stock");
+                }
 
-            order.setVariant(variant);
+                // update stock
+                variant.setStock(variant.getStock() - request.quantity());
+                variantDao.save(variant); // ⭐ IMPORTANT FIX
 
-            order.setQuantity(0);
+                order.setQuantity(finalQuantity);
+                order.setTotalAmount(finalQuantity * product.getPrice());
 
-            order.setTotalAmount(0.0);
+                Orders saved = dao.save(order);
 
-            order.setStatus(
-                    OrderStatus.PENDING);
+                log.info(
+                                "Order placed id={} userId={} productId={} quantity={}",
+                                saved.getId(),
+                                user.getId(),
+                                product.getId(),
+                                finalQuantity);
 
+                return toResponse(saved);
         }
 
-        int finalQuantity = order.getQuantity()
-                + request.quantity();
+        @Override
+        public String confirmOrder(int userId) {
 
-        if (variant.getStock() < request.quantity()) {
+                Users user = usersDao.findById(userId)
+                                .orElseThrow(() -> new RuntimeException("User Not Found"));
 
-            throw new InsufficientStockException(
-                    "Insufficient stock");
+                List<Orders> cartItems = dao.findByUserAndStatus(user, OrderStatus.PENDING);
+
+                if (cartItems.isEmpty()) {
+                        throw new BusinessException("cart_empty",
+                                        "Your cart is empty. Add at least one item before checkout.");
+                }
+
+                double total = 0;
+
+                for (Orders order : cartItems) {
+                        order.setStatus(OrderStatus.CONFIRMED);
+                        total += order.getTotalAmount();
+                }
+
+                dao.saveAll(cartItems);
+
+                return "Order Confirmed. Total = " + total;
         }
 
-        variant.setStock(
-                variant.getStock()
-                        - request.quantity());
-
-        order.setQuantity(
-                finalQuantity);
-
-        order.setTotalAmount(
-                finalQuantity
-                        * product.getPrice());
-
-        Orders saved = dao.save(order);
-
-        log.info(
-                "Order placed id={} userId={} productId={} quantity={}",
-                saved.getId(),
-                user.getId(),
-                product.getId(),
-                finalQuantity);
-
-        return toResponse(saved);
-    }
-
-    @Override
-    public String confirmOrder(int userId) {
-
-        Users user = usersDao.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User Not Found"));
-
-        List<Orders> cartItems = dao.findByUserAndStatus(user, OrderStatus.PENDING);
-
-        if (cartItems.isEmpty()) {
-            throw new BusinessException("cart_empty",
-                    "Your cart is empty. Add at least one item before checkout.");
+        @Override
+        public OrderResponse updateOrderStatus(Long id, OrderStatus status) {
+                Orders order = loadOrder(id);
+                order.setStatus(status);
+                log.info("Order status updated id={} status={}", id, status);
+                return toResponse(order);
         }
 
-        double total = 0;
-
-        for (Orders order : cartItems) {
-            order.setStatus(OrderStatus.CONFIRMED);
-            total += order.getTotalAmount();
+        @Override
+        public OrderResponse updateTotalAmount(Long id, Double amount) {
+                if (amount == null || amount < 0) {
+                        throw new IllegalArgumentException("Amount must be non-negative");
+                }
+                Orders order = loadOrder(id);
+                order.setTotalAmount(amount);
+                log.info("Order total updated id={} amount={}", id, amount);
+                return toResponse(order);
         }
 
-        dao.saveAll(cartItems);
-
-        return "Order Confirmed. Total = " + total;
-    }
-
-    @Override
-    public OrderResponse updateOrderStatus(Long id, OrderStatus status) {
-        Orders order = loadOrder(id);
-        order.setStatus(status);
-        log.info("Order status updated id={} status={}", id, status);
-        return toResponse(order);
-    }
-
-    @Override
-    public OrderResponse updateTotalAmount(Long id, Double amount) {
-        if (amount == null || amount < 0) {
-            throw new IllegalArgumentException("Amount must be non-negative");
+        @Override
+        @Transactional(readOnly = true)
+        public List<OrderResponse> getAllOrders() {
+                return dao.findAll().stream().map(OrdersServiceImpl::toResponse).toList();
         }
-        Orders order = loadOrder(id);
-        order.setTotalAmount(amount);
-        log.info("Order total updated id={} amount={}", id, amount);
-        return toResponse(order);
-    }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<OrderResponse> getAllOrders() {
-        return dao.findAll().stream().map(OrdersServiceImpl::toResponse).toList();
-    }
+        @Override
+        @Transactional(readOnly = true)
+        public List<OrderResponse> getUserOrders(int userId) {
+                return dao.findByUser_Id(userId).stream().map(OrdersServiceImpl::toResponse).toList();
+        }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<OrderResponse> getUserOrders(int userId) {
-        return dao.findByUser_Id(userId).stream().map(OrdersServiceImpl::toResponse).toList();
-    }
+        @Override
+        @Transactional(readOnly = true)
+        public List<OrderResponse> getCurrentUserOrders() {
+                return getUserOrders(currentUser().getId());
+        }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<OrderResponse> getCurrentUserOrders() {
-        return getUserOrders(currentUser().getId());
-    }
+        @Override
+        public void deleteOrder(Long id) {
+                Orders order = loadOrder(id);
+                dao.delete(order);
+                log.info("Order deleted id={}", id);
+        }
 
-    @Override
-    public void deleteOrder(Long id) {
-        Orders order = loadOrder(id);
-        dao.delete(order);
-        log.info("Order deleted id={}", id);
-    }
+        private Orders loadOrder(Long id) {
+                return dao.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
+        }
 
-    private Orders loadOrder(Long id) {
-        return dao.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id " + id));
-    }
+        private Users currentUser() {
+                String email = SecurityUtils.currentUserEmail();
+                return usersDao.findByEmail(email)
+                                .orElseThrow(() -> new AccessDeniedException("Authenticated user no longer exists"));
+        }
 
-    private Users currentUser() {
-        String email = SecurityUtils.currentUserEmail();
-        return usersDao.findByEmail(email)
-                .orElseThrow(() -> new AccessDeniedException("Authenticated user no longer exists"));
-    }
+        private static OrderResponse toResponse(Orders o) {
+                return new OrderResponse(
+                                o.getId(),
 
-    private static OrderResponse toResponse(Orders o) {
-        return new OrderResponse(
-                o.getId(),
-                o.getUser().getId(),
-                o.getProduct().getId(),
-                o.getVariant().getId(),
-                o.getQuantity(),
-                o.getTotalAmount(),
-                o.getStatus(),
-                o.getOrderDate());
-    }
+                                o.getUser().getId(),
+                                o.getUser().getFirstName() + " " + o.getUser().getLastName(),
+
+                                o.getProduct().getId(),
+                                o.getProduct().getName(),
+
+                                o.getVariant().getId(),
+                                o.getVariant().getSize(),
+
+                                o.getQuantity(),
+
+                                o.getDeliveryAddress(),
+
+                                o.getTotalAmount(),
+                                o.getStatus(),
+                                o.getOrderDate());
+        }
 }

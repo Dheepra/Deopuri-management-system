@@ -1,270 +1,293 @@
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { fetchProducts } from '../../services/products.js';
 import Button from '../../components/ui/Button.jsx';
-import { useMemo, useState } from 'react';
-import { Trash2 } from 'lucide-react';
-import { useEffect } from "react";
-
+import { useMemo, useState, useEffect } from 'react';
+import { getAuthUser } from "../../services/auth.js";
+import { placeOrder, fetchMyOrders } from '../../services/orders.js';
 
 export default function Orders() {
-      const [search, setSearch] = useState('');
-        const [showProducts, setShowProducts] = useState(false);
-        const [showCart, setShowCart] = useState(false);
- const {
-  data: products,
-  loading,
-  refresh
-} = useAsyncData(() => fetchProducts());
 
-const filteredProducts = useMemo(() => {
-  const items = products ?? [];
+  const [search, setSearch] = useState('');
+  const [showProducts, setShowProducts] = useState(false);
+  const [showCart, setShowCart] = useState(false);
+  const [showOrders, setShowOrders] = useState(false);
 
-  if (!search) return items;
+  const [selectedVariants, setSelectedVariants] = useState({});
+  const [cart, setCart] = useState(() => {
+    const saved = localStorage.getItem("cart");
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  return items.filter((product) =>
-    product.name?.toLowerCase()
-      .includes(search.toLowerCase())
-  );
-}, [products, search]);
+  const [orders, setOrders] = useState([]);
 
-const [cart, setCart] = useState(() => {
-  const savedCart = localStorage.getItem("cart");
-  return savedCart ? JSON.parse(savedCart) : [];
-});
+  // 👇 replace with real auth later
+ const userId = getAuthUser()?.id;
+
+  // PRODUCTS
+  const { data: products, loading } = useAsyncData(() => fetchProducts());
+
+  const filteredProducts = useMemo(() => {
+    const items = products ?? [];
+    if (!search) return items;
+
+    return items.filter((p) =>
+      p.name?.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [products, search]);
+
+  // SAVE CART/.
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
+
+  // LOAD ORDERS
+  const loadOrders = async () => {
+  try {
+    const data = await fetchMyOrders(); // or fetchOrdersByUser(userId)
+    setOrders(data);
+  } catch (err) {
+    console.log(err);
+  }
+};
 
 useEffect(() => {
-  localStorage.setItem("cart", JSON.stringify(cart));
-}, [cart]);
+  if (showOrders) {
+    loadOrders();
+  }
+}, [showOrders]);
+  
 
-
-const addToCart = (product) => {
-  setCart((prev) => {
-    const existing = prev.find(
-      (item) => item.id === product.id
-    );
-
-    if (existing) {
-      return prev.map((item) =>
-        item.id === product.id
-          ? {
-              ...item,
-              quantity: item.quantity + 1
-            }
-          : item
-      );
+  // ADD TO CART
+  const addToCart = (product, variantId) => {
+    if (!variantId) {
+      alert("Please select size");
+      return;
     }
 
-    return [
+    const variant = product.variants.find(v => v.id === variantId);
+
+    setCart((prev) => [
       ...prev,
       {
-        ...product,
+        cartId: `${product.id}-${variant.id}`,
+        productId: product.id,
+        variantId: variant.id,
+        name: product.name,
+        imageUrl: product.imageUrl,
+        size: variant.size,
         quantity: 1
       }
-    ];
-  });
-};
+    ]);
+  };
 
-const increaseQty = (id) => {
-  setCart((prev) =>
-    prev.map((item) =>
-      item.id === id
-        ? { ...item, quantity: item.quantity + 1 }
-        : item
-    )
-  );
-};
-
-const decreaseQty = (id) => {
-  setCart((prev) =>
-    prev
-      .map((item) =>
-        item.id === id
-          ? { ...item, quantity: item.quantity - 1 }
+  // UPDATE QTY
+  const updateQuantity = (cartId, qty) => {
+    setCart((prev) =>
+      prev.map((item) =>
+        item.cartId === cartId
+          ? { ...item, quantity: qty === "" ? "" : Number(qty) }
           : item
       )
-      .filter((item) => item.quantity > 0)
-  );
-};
+    );
+  };
 
-const removeFromCart = (id) => {
-  setCart((prev) =>
-    prev.filter((item) => item.id !== id)
-  );
-};
+  // REMOVE
+  const removeFromCart = (cartId) => {
+    setCart((prev) => prev.filter((i) => i.cartId !== cartId));
+  };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  // PLACE ORDER
+  const handlePlaceOrder = async () => {
 
-return (
-  <div>
+    const validItems = cart.filter(
+      i => i.quantity !== "" && Number(i.quantity) > 0
+    );
 
-    {/* TOP ROW: Products ---- space ---- Cart */}
-    <div className="flex items-center mb-6">
+    if (validItems.length === 0) {
+      alert("Please enter quantity");
+      return;
+    }
 
-      {/* Products Card */}
-      <div
-        onClick={() => setShowProducts(!showProducts)}
-        className="w-56 cursor-pointer rounded-xl border bg-white p-4 shadow-sm"
-      >
-        <h2 className="text-xl font-semibold">Products</h2>
+    try {
+      for (const item of validItems) {
+        await placeOrder(
+          {
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: Number(item.quantity)
+          }
+        );
+        loadOrders();
+      }
 
-        <p className="text-sm text-gray-500">
-          View available medicines
-        </p>
-      </div>
+      alert("Order placed successfully");
 
-      {/* SPACE BETWEEN */}
-      <div className="flex-1"></div>
+      setCart([]);
+      localStorage.removeItem("cart");
 
-      {/* Cart Card */}
-      <div
-        onClick={() => setShowCart(!showCart)}
-        className="w-56 cursor-pointer rounded-xl border bg-white p-4 shadow-sm"
-      >
-        <h2 className="text-xl font-semibold">
-          Cart ({cart.length})
-        </h2>
+      loadOrders();
 
-        <p className="text-sm text-gray-500">
-          View selected products
-        </p>
-      </div>
+    } catch (err) {
+  console.log("Order Error =", err);
+  console.log("Response =", err.response);
+  console.log("Data =", err.response?.data);
 
-    </div>
+  alert("Failed to place order");
+}
+  };
 
-    {/* PRODUCTS SECTION */}
-    {showProducts && (
-      <>
-        <input
-          type="text"
-          placeholder="Search medicines..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="mb-4 w-full rounded-lg border p-3"
-        />
+  if (loading) return <div>Loading...</div>;
 
-        <div className="flex gap-4 mb-6">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="rounded-xl border bg-white p-4 shadow-sm"
-            >
-              <img
-                src={product.imageUrl}
-                alt={product.name}
-                className="h-40 w-full rounded-lg object-cover"
-              />
+  return (
+    <div className="p-4">
 
-              <h3 className="mt-3 text-center font-semibold">
-                {product.name}
-              </h3>
+      {/* TOP CARDS */}
+      <div className="flex items-center mb-6 gap-4">
 
-              <Button
-                className="mt-3 w-full"
-                onClick={() => addToCart(product)}
-              >
-                Add To Cart
-              </Button>
-            </div>
-          ))}
+        <div
+          onClick={() => {
+            setShowProducts(true);
+            setShowCart(false);
+            setShowOrders(false);
+          }}
+          className="w-56 cursor-pointer rounded-xl border p-4 shadow-sm"
+        >
+          <h2 className="text-xl font-semibold">Products</h2>
         </div>
-      </>
-    )}
 
-    {/* CART SECTION */}
-    {showCart && (
-      <div className="mt-6 rounded-xl border bg-white p-4 shadow-sm">
+        <div
+          onClick={() => {
+            setShowProducts(false);
+            setShowCart(true);
+            setShowOrders(false);
+          }}
+          className="w-56 cursor-pointer rounded-xl border p-4 shadow-sm"
+        >
+          <h2 className="text-xl font-semibold">Cart ({cart.length})</h2>
+        </div>
 
-        <h2 className="text-xl font-semibold mb-4">
-          Cart ({cart.length})
-        </h2>
+        <div
+          onClick={() => {
+            setShowProducts(false);
+            setShowCart(false);
+            setShowOrders(true);
+          }}
+          className="w-56 cursor-pointer rounded-xl border p-4 shadow-sm"
+        >
+          <h2 className="text-xl font-semibold">Orders ({orders.length})</h2>
+        </div>
 
-        {cart.length === 0 ? (
-          <p className="text-gray-500">
-            No products added yet
-          </p>
-        ) : (
-          cart.map((item) => (
-            <div
-              key={item.id}
-              className="mb-4 rounded-lg border p-3"
-            >
-              <div className="flex gap-3">
+      </div>
 
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="h-16 w-16 rounded object-cover"
-                />
+      {/* PRODUCTS */}
+      {showProducts && (
+        <>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search..."
+            className="border p-2 w-full mb-4"
+          />
 
-                <div className="flex-1">
-                  <h4 className="font-semibold">
-                    {item.name}
-                  </h4>
+          <div className="grid grid-cols-3 gap-4">
+            {filteredProducts.map((p) => (
+              <div key={p.id} className="border p-3 rounded">
 
-                  <p className="text-xs text-gray-500">
-                    {item.description}
-                  </p>
+                <h3>{p.name}</h3>
 
-                  <div className="mt-2">
-                    <label className="mb-1 block text-sm">
-                      Quantity
-                    </label>
+                <select
+                  onChange={(e) =>
+                    setSelectedVariants({
+                      ...selectedVariants,
+                      [p.id]: Number(e.target.value)
+                    })
+                  }
+                  className="border w-full"
+                >
+                  <option value="">Select size</option>
+                  {p.variants?.map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.size}
+                    </option>
+                  ))}
+                </select>
 
-                    <select
-                      value={item.quantity}
-                      onChange={(e) =>
-                        updateQuantity(item.id, Number(e.target.value))
-                      }
-                      className="rounded-lg border p-2"
-                    >
-                      {[...Array(20)].map((_, i) => (
-                        <option key={i + 1} value={i + 1}>
-                          {i + 1}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="mt-3 flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-1 text-sm text-black hover:bg-red-50"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 text-red-600"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7L18.133 19.142A2 2 0 0116.138 21H7.862A2 2 0 015.867 19.142L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-7 0h8"
-                      />
-                    </svg>
-
-                    Remove
-                  </button>
-
-                </div>
+                <button
+                  onClick={() =>
+                    addToCart(p, selectedVariants[p.id])
+                  }
+                  className="bg-blue-500 text-white px-2 py-1 mt-2"
+                >
+                  Add to Cart
+                </button>
 
               </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* CART */}
+      {showCart && (
+        <div className="mt-4 border p-4">
+          <h2 className="text-xl font-bold mb-2">Cart</h2>
+
+          {cart.map(item => (
+            <div key={item.cartId} className="border p-2 mb-2">
+
+              <p>{item.name} ({item.size})</p>
+
+              <input
+                type="number"
+                min="1"
+                value={item.quantity}
+                onChange={(e) =>
+                  updateQuantity(item.cartId, e.target.value)
+                }
+                className="border w-20"
+              />
+
+              <button
+                onClick={() => removeFromCart(item.cartId)}
+                className="text-red-500 ml-2"
+              >
+                Remove
+              </button>
+
             </div>
-          ))
-        )}
+          ))}
 
-        {cart.length > 0 && (
-          <Button className="mt-4 w-full">
-            Place Order
-          </Button>
-        )}
+          {cart.length > 0 && (
+            <Button onClick={handlePlaceOrder}>
+              Place Order
+            </Button>
+          )}
+        </div>
+      )}
 
-      </div>
-    )}
+      {/* ORDERS */}
+      {showOrders && (
+        <div className="mt-4 border p-4">
+          <h2 className="text-xl font-bold mb-2">Orders</h2>
 
-  </div>
-);
+          {orders.length === 0 ? (
+            <p>No orders found</p>
+          ) : (
+            orders.map(o => (
+              <div key={o.id} className="border p-2 mb-2">
+
+                <p>#{o.id} - {o.productName}</p>
+                <p>Qty: {o.quantity}</p>
+                <p>Size: {o.size}</p>
+                <p>Status: {o.status}</p>
+                <p>₹{o.totalAmount}</p>
+
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+    </div>
+  );
 }

@@ -28,6 +28,8 @@ export function getFeaturedProducts() {
     return data;
   }
   
+  
+
 export async function updateProduct(id, payload) {
   const { data } = await http.put(`/api/products/${id}`, payload);
   return data;
@@ -35,5 +37,14 @@ export async function updateProduct(id, payload) {
 
 export async function deleteProduct(id) {
   const { data } = await http.delete(`/api/products/${id}`);
+  return data;
+}
+
+export async function addVariant(productId, payload) {
+  const { data } = await http.post(
+    `/api/products/${productId}/variants`,
+    payload
+  );
+
   return data;
 }

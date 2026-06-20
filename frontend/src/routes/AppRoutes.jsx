@@ -13,6 +13,7 @@ import Login from '../pages/Login.jsx';
 import CompanyDashboard from '../pages/admin/Dashboard.jsx';
 import CompanyDashboardLayout from '../layouts/CompanyDashboardLayout.jsx';
 import Product from "../pages/admin/Products.jsx";
+import AdminOrders from "../pages/admin/AdminOrders.jsx";
 
 import HospitalDashboardLayout from '../layouts/HospitalDashboardLayout.jsx';
 import HospitalDashboard from '../pages/hospital/HospitalDashboard.jsx';
@@ -69,6 +70,7 @@ export default function AppRoutes() {
         <Route index             element={<CompanyDashboard />} />
         <Route path="dashboard"  element={<CompanyDashboard />} />
           <Route path="products" element={<Product />} />
+          <Route path="orders" element={<AdminOrders />} />
       </Route>
 
       {/* HOSPITAL_ADMIN */}

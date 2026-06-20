@@ -66,6 +66,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/approve-user/**")
                         .permitAll()
 
+                        .requestMatchers("/api/orders/**")
+                        .authenticated()
+
                         // USER NOTIFICATIONS
                         .requestMatchers("/api/user/notifications")
                         .authenticated()

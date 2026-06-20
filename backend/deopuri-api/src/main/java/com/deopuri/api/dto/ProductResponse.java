@@ -1,6 +1,7 @@
 package com.deopuri.api.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public record ProductResponse(
         Long id,
@@ -9,5 +10,6 @@ public record ProductResponse(
         Double price,
         Integer quantity,
         LocalDate manufacturingDate,
-        String imageUrl) {
+        String imageUrl,
+        List<ProductVariantResponse> variants) {
 }

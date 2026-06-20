@@ -95,4 +95,14 @@ export async function rejectUser(id) {
   } catch (err) {
     throw normalizeError(err);
   }
+
+}
+
+export function getAuthUser() {
+  try {
+    const raw = localStorage.getItem("auth.session");
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
 }

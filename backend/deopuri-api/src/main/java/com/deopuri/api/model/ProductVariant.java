@@ -14,7 +14,7 @@ import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 
 @Entity
-@Table(name = "product_variants", uniqueConstraints = @UniqueConstraint(columnNames = {"product_id", "size"}))
+@Table(name = "product_variants", uniqueConstraints = @UniqueConstraint(columnNames = { "product_id", "size" }))
 public class ProductVariant {
 
     @Id
@@ -27,6 +27,9 @@ public class ProductVariant {
     @Column(nullable = false)
     private Integer stock;
 
+    @Column(nullable = false)
+    private Double price;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_id", nullable = false)
     @JsonIgnore
@@ -38,17 +41,47 @@ public class ProductVariant {
     public ProductVariant() {
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public int getId() {
+        return id;
+    }
 
-    public String getSize() { return size; }
-    public void setSize(String size) { this.size = size; }
+    public void setId(int id) {
+        this.id = id;
+    }
 
-    public Integer getStock() { return stock; }
-    public void setStock(Integer stock) { this.stock = stock; }
+    public String getSize() {
+        return size;
+    }
 
-    public Product getProduct() { return product; }
-    public void setProduct(Product product) { this.product = product; }
+    public void setSize(String size) {
+        this.size = size;
+    }
 
-    public Long getVersion() { return version; }
+    public Integer getStock() {
+        return stock;
+    }
+
+    public void setStock(Integer stock) {
+        this.stock = stock;
+    }
+
+    public Product getProduct() {
+        return product;
+    }
+
+    public void setProduct(Product product) {
+        this.product = product;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
+    }
 }

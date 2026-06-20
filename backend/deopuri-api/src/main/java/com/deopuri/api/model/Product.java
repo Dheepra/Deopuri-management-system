@@ -1,13 +1,17 @@
 package com.deopuri.api.model;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "products")
@@ -31,6 +35,11 @@ public class Product {
     private LocalDate manufacturingDate;
 
     private String imageUrl;
+    
+
+   @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+private List<ProductVariant> variants = new ArrayList<>();
+
 
     public Product() {
     }
@@ -55,4 +64,12 @@ public class Product {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public List<ProductVariant> getVariants() {
+    return variants;
+}
+
+public void setVariants(List<ProductVariant> variants) {
+    this.variants = variants;
+}
 }

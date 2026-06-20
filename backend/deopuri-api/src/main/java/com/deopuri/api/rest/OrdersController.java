@@ -20,35 +20,37 @@ import java.util.List;
 @RequestMapping("/api/orders")
 public interface OrdersController {
 
-    @PostMapping
-    ResponseEntity<OrderResponse> placeOrder(@Valid @RequestBody OrderRequest request);
+        @PostMapping
+        @PreAuthorize("hasAnyRole('HOSPITAL_ADMIN','MEDICAL_ADMIN')")
+        ResponseEntity<OrderResponse> placeOrder(@Valid @RequestBody OrderRequest request);
 
-    @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<List<OrderResponse>> getAllOrders();
-    // CONFIRM CART ORDER
+        @GetMapping
+        @PreAuthorize("hasRole('ADMIN')")
+        ResponseEntity<List<OrderResponse>> getAllOrders();
+        // CONFIRM CART ORDER
 
-    @PostMapping("/confirm/{userId}")
-    ResponseEntity<String> confirmOrder(
-            @PathVariable int userId);
+        @PostMapping("/confirm/{userId}")
+        ResponseEntity<String> confirmOrder(
+                        @PathVariable int userId);
 
-    @GetMapping("/user/{userId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<List<OrderResponse>> getUserOrders(@PathVariable int userId);
+        @GetMapping("/user/{userId}")
+        @PreAuthorize("hasAnyRole('HOSPITAL_ADMIN','MEDICAL_ADMIN')")
+        ResponseEntity<List<OrderResponse>> getUserOrders(@PathVariable int userId);
 
-    @GetMapping("/me")
-    ResponseEntity<List<OrderResponse>> getMyOrders();
+        @GetMapping("/me")
+        @PreAuthorize("isAuthenticated()")
+        ResponseEntity<List<OrderResponse>> getMyOrders();
 
-    @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<OrderResponse> updateOrderStatus(@PathVariable Long id,
-            @Valid @RequestBody OrderStatusUpdateRequest request);
+        @PutMapping("/{id}/status")
+        @PreAuthorize("hasRole('ADMIN')")
+        ResponseEntity<OrderResponse> updateOrderStatus(@PathVariable Long id,
+                        @Valid @RequestBody OrderStatusUpdateRequest request);
 
-    @PutMapping("/{id}/amount")
-    @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<OrderResponse> updateAmount(@PathVariable Long id, @RequestParam Double amount);
+        @PutMapping("/{id}/amount")
+        @PreAuthorize("hasRole('ADMIN')")
+        ResponseEntity<OrderResponse> updateAmount(@PathVariable Long id, @RequestParam Double amount);
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    ResponseEntity<Void> deleteOrder(@PathVariable Long id);
+        @DeleteMapping("/{id}")
+        @PreAuthorize("hasRole('ADMIN')")
+        ResponseEntity<Void> deleteOrder(@PathVariable Long id);
 }

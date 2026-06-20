@@ -11,21 +11,27 @@ final class ProductMapper {
     }
 
     static ProductResponse toResponse(Product p) {
-        return new ProductResponse(
-                p.getId(),
-                p.getName(),
-                p.getDescription(),
-                p.getPrice(),
-                p.getQuantity(),
-                p.getManufacturingDate(),
-                p.getImageUrl());
-    }
+    return new ProductResponse(
+            p.getId(),
+            p.getName(),
+            p.getDescription(),
+            p.getPrice(),
+            p.getQuantity(),
+            p.getManufacturingDate(),
+            p.getImageUrl(),
+            p.getVariants()
+                    .stream()
+                    .map(ProductMapper::toResponse)
+                    .toList()
+    );
+}
 
     static ProductVariantResponse toResponse(ProductVariant v) {
         return new ProductVariantResponse(
                 v.getId(),
                 v.getSize(),
                 v.getStock(),
+                  v.getPrice(),
                 v.getProduct() == null ? null : v.getProduct().getId());
     }
 }

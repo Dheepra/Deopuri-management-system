@@ -1,25 +1,42 @@
-import axios from 'axios';
+import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
+const baseURL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
 export const http = axios.create({
   baseURL,
   timeout: 15000,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
-// Reads the persisted session (auth.session) so refreshes and new tabs keep
-// the bearer token attached without any explicit wiring from callers.
+// 🔥 AUTO TOKEN ATTACH (FIX FOR 403)
 http.interceptors.request.use((config) => {
   try {
-    const raw = localStorage.getItem('auth.session');
-    if (raw) {
-      const { token } = JSON.parse(raw);
-      if (token) config.headers.Authorization = `Bearer ${token}`;
+    // 1️⃣ FIRST TRY: auth.session (your current system)
+    const session = localStorage.getItem("auth.session");
+
+    let token = null;
+
+    if (session) {
+      const parsed = JSON.parse(session);
+      token = parsed?.token;
     }
-  } catch {
-    /* ignore malformed storage */
+
+    // 2️⃣ FALLBACK: direct token storage
+    if (!token) {
+      token = localStorage.getItem("token");
+    }
+
+    // 3️⃣ ATTACH TOKEN
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+  } catch (err) {
+    console.log("Auth interceptor error:", err);
   }
+
   return config;
 });
-  

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import java.util.List;
 
 @Service
@@ -57,28 +58,92 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse findById(Long id) {
         return ProductMapper.toResponse(loadProduct(id));
     }
+@Override
+@Transactional
+public ProductResponse update(Long id, ProductRequest request) {
 
-    @Override
-    public ProductResponse update(Long id, ProductRequest request) {
-        Product product = loadProduct(id);
+    log.info("🔵 UPDATE PRODUCT START - id={}", id);
 
-        if (request.name() != null) product.setName(request.name());
-        if (request.description() != null) product.setDescription(request.description());
-        if (request.price() != null) product.setPrice(request.price());
-        if (request.quantity() != null) product.setQuantity(request.quantity());
-        if (request.manufacturingDate() != null) product.setManufacturingDate(request.manufacturingDate());
-        if (request.imageUrl() != null) product.setImageUrl(request.imageUrl());
+    Product product = loadProduct(id);
 
-        log.info("Product updated id={}", id);
-        return ProductMapper.toResponse(product);
+    log.info("🟢 Product loaded - id={}, name={}", product.getId(), product.getName());
+
+    // ================= PRODUCT FIELDS UPDATE =================
+    if (request.name() != null)
+        product.setName(request.name());
+
+    if (request.description() != null)
+        product.setDescription(request.description());
+
+    if (request.price() != null)
+        product.setPrice(request.price());
+
+    if (request.quantity() != null)
+        product.setQuantity(request.quantity());
+
+    if (request.manufacturingDate() != null)
+        product.setManufacturingDate(request.manufacturingDate());
+
+    if (request.imageUrl() != null)
+        product.setImageUrl(request.imageUrl());
+
+    // ================= VARIANT UPDATE ONLY =================
+    if (request.variants() != null && !request.variants().isEmpty()) {
+
+        if (product.getVariants() == null) {
+            product.setVariants(new java.util.ArrayList<>());
+        }
+
+        for (ProductVariantRequest v : request.variants()) {
+
+            product.getVariants()
+                    .stream()
+                    .filter(existing -> existing.getSize().equals(v.size()))
+                    .findFirst()
+                    .ifPresentOrElse(existing -> {
+
+                        // ✅ UPDATE ONLY
+                        log.info("♻️ Updating variant size={}", v.size());
+
+                        existing.setStock(v.stock());
+                        existing.setPrice(v.price());
+
+                    }, () -> {
+
+                        // ❌ NO ADD (your requirement)
+                        log.warn("⚠️ Variant not found for size={}, skipping", v.size());
+                    });
+        }
+
+        log.info("✅ Variant update completed. Total variants={}",
+                product.getVariants().size());
+
+    } else {
+        log.warn("⚠️ No variants provided in request");
     }
 
+    // ================= SAVE =================
+    Product saved = productRepository.save(product);
+
+    log.info("💾 Product saved successfully id={}", saved.getId());
+
+    return ProductMapper.toResponse(saved);
+}
+
     @Override
-    public void delete(Long id) {
-        Product product = loadProduct(id);
-        productRepository.delete(product);
-        log.info("Product deleted id={}", id);
+public void delete(Long id) {
+
+    Product product = loadProduct(id);
+
+    if (!product.getVariants().isEmpty()) {
+        log.warn("⚠️ Deleting product with variants first");
+        product.getVariants().clear();
     }
+
+    productRepository.delete(product);
+
+    log.info("🗑️ Product deleted id={}", id);
+}
 
     @Override
     public ProductVariantResponse addVariant(Long productId, ProductVariantRequest request) {
@@ -87,6 +152,7 @@ public class ProductServiceImpl implements ProductService {
         ProductVariant variant = new ProductVariant();
         variant.setSize(request.size());
         variant.setStock(request.stock());
+        variant.setPrice(request.price()); // 👈 NEW
         variant.setProduct(product);
 
         ProductVariant saved = variantDao.save(variant);

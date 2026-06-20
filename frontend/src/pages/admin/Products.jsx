@@ -7,9 +7,9 @@ import {
   fetchProducts,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  addVariant
 } from '../../services/products.js';
-
 
 
 export default function Product() {
@@ -20,48 +20,94 @@ const [editId, setEditId] = useState(null);
 
   const [search, setSearch] = useState('');
 const [showModal, setShowModal] = useState(false);
-
 const [formData, setFormData] = useState({
   name: '',
   description: '',
   price: '',
   quantity: '',
   manufacturingDate: '',
-  imageUrl: ''
+  imageUrl: '',
+  variants: []
 });
+
  const handleEdit = (product) => {
-  setFormData(product);   // modal me data fill
+ setFormData({
+  ...product,
+  variants: product.variants || []
+}); // modal me data fill
+
+
   setEditId(product.id);
   setShowModal(true);
 };
 
+console.log("FORM DATA", formData);
 
 const handleSave = async () => {
   try {
+
     if (editId) {
-      await updateProduct(editId, formData); // EDIT
+
+     await updateProduct(editId, {
+  name: formData.name,
+  description: formData.description,
+  price: Number(formData.price),
+  quantity: Number(formData.quantity),
+  manufacturingDate: formData.manufacturingDate,
+  imageUrl: formData.imageUrl,
+  variants: formData.variants.map(v => ({
+    size: v.size,
+    stock: Number(v.stock),
+    price: Number(v.price)
+  }))
+});
+
     } else {
-      await createProduct(formData); // ADD
+
+      const product = await createProduct({
+        name: formData.name,
+        description: formData.description,
+        price: Number(formData.price),
+        quantity: Number(formData.quantity),
+        manufacturingDate: formData.manufacturingDate,
+        imageUrl: formData.imageUrl
+      });
+
+      console.log("CREATED PRODUCT", product);
+
+      for (const variant of formData.variants) {
+
+        console.log("VARIANT", variant);
+
+        const response = await addVariant(product.id, {
+          size: variant.size,
+          stock: Number(variant.stock),
+          price: Number(variant.price)
+        });
+
+        console.log("VARIANT SAVED", response);
+      }
     }
 
-  
     refresh();
-setShowModal(false);
-setEditId(null);
 
-setFormData({
-  name: '',
-  description: '',
-  price: '',
-  quantity: '',
-  manufacturingDate: '',
-  imageUrl: ''
-});
+    setShowModal(false);
+    setEditId(null);
+
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      quantity: '',
+      manufacturingDate: '',
+      imageUrl: '',
+      variants: []
+    });
+
   } catch (error) {
     console.error(error);
   }
 };
-
 
 
 async function handleDelete(id) {
@@ -89,15 +135,7 @@ refresh();
       ? row.description.slice(0, 50) + '...'
       : row.description,
 },
-    {
-      key: 'price',
-      header: 'Price',
-      render: (row) => `₹${row.price}`,
-    },
-    {
-       key: 'quantity',
-  header: 'Stock',
-    },
+  
     {
   key: 'imageUrl',
   header: 'Image',
@@ -108,6 +146,17 @@ refresh();
       style={{ width: 50, height: 50, objectFit: 'cover' }}
     />
   ),
+},
+
+{
+  key: 'variants',
+  header: 'Variants',
+  render: (row) =>
+    row.variants?.length
+      ? row.variants.map(
+          (v) => `${v.size} | Stock: ${v.stock} | ₹${v.price}`
+        ).join(' , ')
+      : 'No Variants'
 },
     {
   key: 'actions',
@@ -158,15 +207,15 @@ return (
   <Button
   onClick={() => {
     setEditId(null);
-
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      quantity: '',
-      manufacturingDate: '',
-      imageUrl: ''
-    });
+setFormData({
+  name: '',
+  description: '',
+  price: '',
+  quantity: '',
+  manufacturingDate: '',
+  imageUrl: '',
+  variants: []
+});
 
     setShowModal(true);
   }}
@@ -214,32 +263,7 @@ return (
         }
       />
 
-      <input
-        type="number"
-        className="mb-3 w-full rounded border p-2"
-        placeholder="Price"
-        value={formData.price}
-        onChange={(e) =>
-          setFormData({
-            ...formData,
-            price: e.target.value,
-          })
-        }
-      />
-
-      <input
-        type="number"
-        className="mb-3 w-full rounded border p-2"
-        placeholder="Quantity"
-        value={formData.quantity}
-        onChange={(e) =>
-          setFormData({
-            ...formData,
-            quantity: e.target.value,
-          })
-        }
-      />
-
+ 
       <input
         type="date"
         className="mb-3 w-full rounded border p-2"
@@ -264,20 +288,95 @@ return (
         }
       />
 
+<h3 className="mb-2 font-semibold">
+  Variants
+</h3>
+{formData.variants.map((variant, index) => (
+  <div key={index} className="flex gap-2 mb-2">
+
+    <input
+      className="border p-2"
+      placeholder="Size"
+      value={variant.size}
+      onChange={(e) => {
+        const updated = [...formData.variants];
+        updated[index].size = e.target.value;
+
+        setFormData({
+          ...formData,
+          variants: updated
+        });
+      }}
+    />
+
+    <input
+      type="number"
+      className="border p-2"
+      placeholder="Stock"
+      value={variant.stock}
+      onChange={(e) => {
+        const updated = [...formData.variants];
+        updated[index].stock = Number(e.target.value);
+
+        setFormData({
+          ...formData,
+          variants: updated
+        });
+      }}
+    />
+
+    <input
+      type="number"
+      className="border p-2"
+      placeholder="Price"
+      value={variant.price}
+      onChange={(e) => {
+        const updated = [...formData.variants];
+        updated[index].price = Number(e.target.value);
+
+        setFormData({
+          ...formData,
+          variants: updated
+        });
+      }}
+    />
+
+  </div>
+))}
+
+<Button
+  onClick={() =>
+    setFormData({
+      ...formData,
+      variants: [
+        ...formData.variants,
+        {
+          size: '',
+          stock: '',
+          price: ''
+        }
+      ]
+    })
+  }
+>
+  + Add Variant
+</Button>
+
       <div className="flex justify-end gap-2">
         <Button
   onClick={() => {
     setShowModal(false);
     setEditId(null);
 
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      quantity: '',
-      manufacturingDate: '',
-      imageUrl: ''
-    });
+   setFormData({
+  name: '',
+  description: '',
+  price: '',
+  quantity: '',
+  manufacturingDate: '',
+  imageUrl: '',
+  variants: []
+});
   }}
 >
   Cancel

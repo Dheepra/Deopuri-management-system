@@ -46,6 +46,9 @@ public class Orders {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @Column(name = "delivery_address", length = 500)
+private String deliveryAddress;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "variant_id", nullable = false)
     private ProductVariant variant;
@@ -118,6 +121,14 @@ public class Orders {
     public void setProduct(Product product) {
         this.product = product;
     }
+
+    public String getDeliveryAddress() {
+    return deliveryAddress;
+}
+
+public void setDeliveryAddress(String deliveryAddress) {
+    this.deliveryAddress = deliveryAddress;
+}
 
     public ProductVariant getVariant() {
         return variant;

@@ -5,6 +5,17 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 
 public record ProductVariantRequest(
-        @NotBlank(message = "Size is required") String size,
-        @NotNull(message = "Stock is required") @PositiveOrZero(message = "Stock must be >= 0") Integer stock) {
+
+        @NotBlank(message = "Size is required")
+        String size,
+
+        @NotNull(message = "Stock is required")
+        @PositiveOrZero(message = "Stock must be >= 0")
+        Integer stock,
+
+        @NotNull(message = "Price is required")
+        @PositiveOrZero(message = "Price must be >= 0")
+        Double price
+
+) {
 }
