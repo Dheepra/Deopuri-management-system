@@ -4,6 +4,7 @@ import com.deopuri.api.dto.UserDto;
 import com.deopuri.api.dto.LoginRequest;
 import com.deopuri.api.dto.LoginResponse;
 import com.deopuri.api.model.Users;
+import com.deopuri.exception.BusinessException;
 import com.deopuri.security.jwt.JwtUtil;
 import com.deopuri.api.model.UserRole;
 import com.deopuri.api.model.UserStatus;
@@ -11,6 +12,7 @@ import com.deopuri.service.service.AuthService;
 import com.deopuri.service.service.EmailService;
 import com.deopuri.service.dao.UsersDao;
 import com.deopuri.service.service.NotificationService;
+
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +73,18 @@ public class AuthServiceImpl implements AuthService {
                 // System.out.println leaked it on every signup).
                 log.info("Registration started role={}", dto.role());
 
+                // Check duplicate email
+                if (usersDao.findByEmail(dto.email()).isPresent()) {
+                        throw new BusinessException(
+                                        "email_exists",
+                                        "Email is already registered");
+                }
+
+                if (usersDao.findByMobileNo(dto.mobileNo()).isPresent()) {
+                        throw new BusinessException(
+                                        "mobile_exists",
+                                        "Mobile number is already registered");
+                }
                 Users savedUser = usersDao.save(user);
 
                 // GET ADMINS
@@ -232,45 +246,45 @@ public class AuthServiceImpl implements AuthService {
                 return "User Registered Successfully. Waiting for Admin Approval.";
         }
 
-       @Override
-public LoginResponse login(LoginRequest dto) {
+        @Override
+        public LoginResponse login(LoginRequest dto) {
 
-    Users user = usersDao.findByEmail(dto.email())
-            .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+                Users user = usersDao.findByEmail(dto.email())
+                                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
-    // status check
-    if (user.getStatus() != UserStatus.APPROVED) {
-        throw new DisabledException("Account not active");
-    }
+                // status check
+                if (user.getStatus() != UserStatus.APPROVED) {
+                        throw new DisabledException("Account not active");
+                }
 
-    // 🔥 FIRST TIME LOGIN CHECK (FIXED)
-    if (user.getRole() == UserRole.DOCTOR
-            && !Boolean.TRUE.equals(user.getPasswordCreated())) {
+                // 🔥 FIRST TIME LOGIN CHECK (FIXED)
+                if (user.getRole() == UserRole.DOCTOR
+                                && !Boolean.TRUE.equals(user.getPasswordCreated())) {
 
-        boolean match = passwordEncoder.matches(dto.password(), user.getPassword());
+                        boolean match = passwordEncoder.matches(dto.password(), user.getPassword());
 
-        if (!match) {
-            throw new BadCredentialsException("Invalid temp password");
+                        if (!match) {
+                                throw new BadCredentialsException("Invalid temp password");
+                        }
+
+                        log.info("First time login detected");
+
+                        return LoginResponse.firstTimeLogin(user.getId());
+                }
+
+                // 🔥 NORMAL LOGIN
+                boolean passwordMatch = passwordEncoder.matches(dto.password(), user.getPassword());
+
+                if (!passwordMatch) {
+                        throw new BadCredentialsException("Invalid email or password");
+                }
+
+                String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+
+                return LoginResponse.bearer(
+                                token,
+                                jwtUtil.getExpiration().getSeconds(),
+                                user.getRole(),
+                                user.getId());
         }
-
-        log.info("First time login detected");
-
-        return LoginResponse.firstTimeLogin(user.getId());
-    }
-
-    // 🔥 NORMAL LOGIN
-    boolean passwordMatch = passwordEncoder.matches(dto.password(), user.getPassword());
-
-    if (!passwordMatch) {
-        throw new BadCredentialsException("Invalid email or password");
-    }
-
-    String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
-
-    return LoginResponse.bearer(
-            token,
-            jwtUtil.getExpiration().getSeconds(),
-            user.getRole(),
-            user.getId());
-}
 }

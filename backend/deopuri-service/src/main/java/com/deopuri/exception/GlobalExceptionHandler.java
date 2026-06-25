@@ -29,11 +29,29 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, "not_found", ex.getMessage(), request);
     }
 
-    @ExceptionHandler(EmailAlreadyRegisteredException.class)
-    public ResponseEntity<ErrorResponse> handleEmailTaken(EmailAlreadyRegisteredException ex,
-                                                          HttpServletRequest request) {
-        return build(HttpStatus.CONFLICT, "email_taken", ex.getMessage(), request);
-    }
+@ExceptionHandler(EmailAlreadyRegisteredException.class)
+public ResponseEntity<ErrorResponse> handleEmailTaken(
+        EmailAlreadyRegisteredException ex,
+        HttpServletRequest request) {
+
+    return build(
+            HttpStatus.CONFLICT,
+            "email_taken",
+            ex.getMessage(),
+            request);
+}
+
+@ExceptionHandler(MobileAlreadyRegisteredException.class)
+public ResponseEntity<ErrorResponse> handleMobileTaken(
+        MobileAlreadyRegisteredException ex,
+        HttpServletRequest request) {
+
+    return build(
+            HttpStatus.CONFLICT,
+            "mobile_taken",
+            ex.getMessage(),
+            request);
+}
 
     @ExceptionHandler(InsufficientStockException.class)
     public ResponseEntity<ErrorResponse> handleStock(InsufficientStockException ex,
