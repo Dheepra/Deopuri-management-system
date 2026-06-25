@@ -4,6 +4,7 @@ import com.deopuri.api.dto.OrderRequest;
 import com.deopuri.api.dto.OrderResponse;
 import com.deopuri.api.model.OrderStatus;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface OrdersService {
@@ -23,4 +24,10 @@ public interface OrdersService {
     List<OrderResponse> getCurrentUserOrders();
 
     void deleteOrder(Long id);
+
+    List<OrderResponse> filterOrders(
+            LocalDate from,
+            LocalDate to);
+
+   
 }

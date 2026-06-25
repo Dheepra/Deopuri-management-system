@@ -13,14 +13,20 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
+
 
 import java.util.List;
 
 @RequestMapping("/api/products")
 public interface ProductController {
 
-    @PostMapping
-    ResponseEntity<ProductResponse> addProduct(@Valid @RequestBody ProductRequest request);
+    @PostMapping(consumes = "multipart/form-data")
+ResponseEntity<ProductResponse> addProduct(
+        @Valid @RequestPart("data") ProductRequest request,
+        @RequestPart("image") MultipartFile image
+);
 
     @GetMapping
     ResponseEntity<List<ProductResponse>> findAll();
@@ -28,9 +34,12 @@ public interface ProductController {
     @GetMapping("/{id}")
     ResponseEntity<ProductResponse> findById(@PathVariable Long id);
 
-    @PutMapping("/{id}")
-    ResponseEntity<ProductResponse> update(@PathVariable Long id,
-                                           @Valid @RequestBody ProductRequest request);
+    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
+ResponseEntity<ProductResponse> update(
+        @PathVariable Long id,
+        @Valid @RequestPart("data") ProductRequest request,
+        @RequestPart(value = "image", required = false) MultipartFile image
+);
 
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@PathVariable Long id);

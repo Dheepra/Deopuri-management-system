@@ -40,6 +40,9 @@ public class Orders {
     @Column(name = "order_date", nullable = false, updatable = false)
     private LocalDateTime orderDate;
 
+    @Column(name = "delivered_date")
+    private LocalDateTime deliveredDate;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "product_id")
     private Product product;
@@ -114,6 +117,14 @@ public class Orders {
 
     public void setOrderDate(LocalDateTime orderDate) {
         this.orderDate = orderDate;
+    }
+
+    public LocalDateTime getDeliveredDate() {
+        return deliveredDate;
+    }
+
+    public void setDeliveredDate(LocalDateTime deliveredDate) {
+        this.deliveredDate = deliveredDate;
     }
 
     public Product getProduct() {

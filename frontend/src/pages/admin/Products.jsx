@@ -26,7 +26,7 @@ const [formData, setFormData] = useState({
   price: '',
   quantity: '',
   manufacturingDate: '',
-  imageUrl: '',
+  image: null,
   variants: []
 });
 
@@ -41,87 +41,58 @@ const [formData, setFormData] = useState({
   setShowModal(true);
 };
 
-console.log("FORM DATA", formData);
 
+
+console.log("FORM DATA", formData);
 const handleSave = async () => {
   try {
+    const form = new FormData();
+
+    form.append(
+      "data",
+      new Blob(
+        [JSON.stringify({
+          name: formData.name,
+          description: formData.description,
+          price: Number(formData.price),
+          quantity: Number(formData.quantity),
+          manufacturingDate: formData.manufacturingDate,
+          variants: formData.variants
+        })],
+        { type: "application/json" }
+      )
+    );
+
+    if (formData.image) {
+      form.append("image", formData.image);
+    }
 
     if (editId) {
-
-     await updateProduct(editId, {
-  name: formData.name,
-  description: formData.description,
-  price: Number(formData.price),
-  quantity: Number(formData.quantity),
-  manufacturingDate: formData.manufacturingDate,
-  imageUrl: formData.imageUrl,
-  variants: formData.variants.map(v => ({
-    size: v.size,
-    stock: Number(v.stock),
-    price: Number(v.price)
-  }))
-});
-
+      await updateProduct(editId, form);
     } else {
-
-      const product = await createProduct({
-        name: formData.name,
-        description: formData.description,
-        price: Number(formData.price),
-        quantity: Number(formData.quantity),
-        manufacturingDate: formData.manufacturingDate,
-        imageUrl: formData.imageUrl
-      });
-
-      console.log("CREATED PRODUCT", product);
-
-      for (const variant of formData.variants) {
-
-        console.log("VARIANT", variant);
-
-        const response = await addVariant(product.id, {
-          size: variant.size,
-          stock: Number(variant.stock),
-          price: Number(variant.price)
-        });
-
-        console.log("VARIANT SAVED", response);
-      }
+      await createProduct(form);
     }
 
     refresh();
-
     setShowModal(false);
     setEditId(null);
-
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      quantity: '',
-      manufacturingDate: '',
-      imageUrl: '',
-      variants: []
-    });
 
   } catch (error) {
     console.error(error);
   }
 };
 
+const handleDelete = async (id) => {
+  try {
+    const ok = window.confirm("Delete this product?");
+    if (!ok) return;
 
-async function handleDelete(id) {
-  const ok = window.confirm(
-    'Delete this product?'
-  );
-
-  if (!ok) return;
-
- await deleteProduct(id);
-
-refresh();
-}
-
+    await deleteProduct(id);
+    refresh();
+  } catch (error) {
+    console.error(error);
+  }
+};
   const columns = [
     {
       key: 'name',
@@ -137,11 +108,11 @@ refresh();
 },
   
     {
-  key: 'imageUrl',
+  key: 'image',
   header: 'Image',
   render: (row) => (
     <img
-      src={row.imageUrl}
+      src={`http://localhost:8080${row.imageUrl}`}
       alt={row.name}
       style={{ width: 50, height: 50, objectFit: 'cover' }}
     />
@@ -213,7 +184,7 @@ setFormData({
   price: '',
   quantity: '',
   manufacturingDate: '',
-  imageUrl: '',
+ image: null,
   variants: []
 });
 
@@ -277,73 +248,60 @@ setFormData({
       />
 
       <input
-        className="mb-4 w-full rounded border p-2"
-        placeholder="Image URL"
-        value={formData.imageUrl}
-        onChange={(e) =>
-          setFormData({
-            ...formData,
-            imageUrl: e.target.value,
-          })
-        }
-      />
+  type="file"
+  className="mb-4 w-full"
+  accept="image/*"
+  onChange={(e) =>
+    setFormData({
+      ...formData,
+      image: e.target.files[0]
+    })
+  }
+/>
 
 <h3 className="mb-2 font-semibold">
   Variants
 </h3>
 {formData.variants.map((variant, index) => (
-  <div key={index} className="flex gap-2 mb-2">
-
+  <div key={index}>
+    
     <input
-      className="border p-2"
       placeholder="Size"
       value={variant.size}
       onChange={(e) => {
         const updated = [...formData.variants];
         updated[index].size = e.target.value;
 
-        setFormData({
-          ...formData,
-          variants: updated
-        });
+        setFormData({ ...formData, variants: updated });
       }}
     />
 
     <input
       type="number"
-      className="border p-2"
       placeholder="Stock"
       value={variant.stock}
       onChange={(e) => {
         const updated = [...formData.variants];
-        updated[index].stock = Number(e.target.value);
+        updated[index].stock = e.target.value;
 
-        setFormData({
-          ...formData,
-          variants: updated
-        });
+        setFormData({ ...formData, variants: updated });
       }}
     />
 
     <input
       type="number"
-      className="border p-2"
       placeholder="Price"
       value={variant.price}
       onChange={(e) => {
         const updated = [...formData.variants];
-        updated[index].price = Number(e.target.value);
+        updated[index].price = e.target.value;
 
-        setFormData({
-          ...formData,
-          variants: updated
-        });
+        setFormData({ ...formData, variants: updated });
       }}
     />
 
   </div>
 ))}
-
 <Button
   onClick={() =>
     setFormData({

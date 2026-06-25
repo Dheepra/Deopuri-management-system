@@ -9,6 +9,7 @@ import com.deopuri.api.model.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,4 +33,8 @@ public interface OrdersDao extends JpaRepository<Orders, Long> {
                         Product product,
                         ProductVariant variant,
                         OrderStatus status);
+
+        List<Orders> findByOrderDateBetween(
+                        LocalDateTime start,
+                        LocalDateTime end);
 }

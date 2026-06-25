@@ -21,5 +21,6 @@ public record OrderResponse(
 
                 Double totalAmount,
                 OrderStatus status,
-                LocalDateTime orderDate) {
+                LocalDateTime orderDate,
+                LocalDateTime deliveredDate) {
 }

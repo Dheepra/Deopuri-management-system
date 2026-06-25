@@ -22,6 +22,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -90,8 +92,6 @@ public class OrdersServiceImpl implements OrdersService {
 
                 order.setTotalAmount(0.0);
 
-              
-
                 if (role.contains("HOSPITAL")) {
                         order.setContext("HOSPITAL");
                 } else {
@@ -111,8 +111,6 @@ public class OrdersServiceImpl implements OrdersService {
 
                 order.setQuantity(finalQuantity);
                 order.setTotalAmount(finalQuantity * product.getPrice());
-
-                
 
                 Orders saved = dao.save(order);
 
@@ -151,10 +149,18 @@ public class OrdersServiceImpl implements OrdersService {
                 return "Order Confirmed. Total = " + total;
         }
 
+        @Transactional
         @Override
         public OrderResponse updateOrderStatus(Long id, OrderStatus status) {
                 Orders order = loadOrder(id);
+
                 order.setStatus(status);
+
+                // 👇 delivered date only when delivered
+                if (status == OrderStatus.DELIVERED) {
+                        order.setDeliveredDate(LocalDateTime.now());
+                }
+
                 log.info("Order status updated id={} status={}", id, status);
                 return toResponse(order);
         }
@@ -237,6 +243,23 @@ public class OrdersServiceImpl implements OrdersService {
 
                                 o.getTotalAmount(),
                                 o.getStatus(),
-                                o.getOrderDate());
+                                o.getOrderDate(),
+                                o.getDeliveredDate());
+        }
+
+        @Override
+        public List<OrderResponse> filterOrders(
+                        LocalDate from,
+                        LocalDate to) {
+
+                LocalDateTime start = from.atStartOfDay();
+
+                LocalDateTime end = to.atTime(23, 59, 59);
+
+                return dao
+                                .findByOrderDateBetween(start, end)
+                                .stream()
+                                .map(OrdersServiceImpl::toResponse)
+                                .toList();
         }
 }

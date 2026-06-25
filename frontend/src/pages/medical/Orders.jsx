@@ -268,19 +268,29 @@ localStorage.removeItem(CART_KEY);
                 key={item.cartId}
                 className="flex justify-between border-b py-2"
               >
-                <div>
-                  <p className="font-medium">{item.name}</p>
+                <div className="flex items-center gap-3">
+  
+  <img
+   src={getImageUrl(item.imageUrl)} 
+    alt={item.name}
+    className="w-14 h-14 object-cover rounded"
+  />
 
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) =>
-                      updateQuantity(item.cartId, e.target.value)
-                    }
-                    className="border w-20 mt-1"
-                  />
-                </div>
+  <div>
+    <p className="font-medium">{item.name}</p>
+
+    <input
+      type="number"
+      min="1"
+      value={item.quantity}
+      onChange={(e) =>
+        updateQuantity(item.cartId, e.target.value)
+      }
+      className="border w-20 mt-1"
+    />
+  </div>
+
+</div>
 
                 <button
                   onClick={() => removeFromCart(item.cartId)}

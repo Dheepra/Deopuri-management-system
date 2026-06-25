@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RequestMapping("/api/orders")
@@ -53,4 +54,11 @@ public interface OrdersController {
         @DeleteMapping("/{id}")
         @PreAuthorize("hasRole('ADMIN')")
         ResponseEntity<Void> deleteOrder(@PathVariable Long id);
+
+        @GetMapping("/filter")
+@PreAuthorize("isAuthenticated()")
+ResponseEntity<List<OrderResponse>> filterOrders(
+        @RequestParam LocalDate from,
+        @RequestParam LocalDate to
+);
 }

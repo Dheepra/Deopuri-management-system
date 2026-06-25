@@ -8,7 +8,10 @@ import com.deopuri.api.rest.ProductController;
 import com.deopuri.service.service.ProductService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -22,8 +25,15 @@ public class ProductControllerImpl implements ProductController {
     }
 
     @Override
-    public ResponseEntity<ProductResponse> addProduct(ProductRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(request));
+    public ResponseEntity<ProductResponse> addProduct(
+            ProductRequest request,
+            MultipartFile image) {
+
+        String imageUrl = productService.uploadImage(image);
+
+        ProductResponse response = productService.create(request, imageUrl);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Override
@@ -37,8 +47,21 @@ public class ProductControllerImpl implements ProductController {
     }
 
     @Override
-    public ResponseEntity<ProductResponse> update(Long id, ProductRequest request) {
-        return ResponseEntity.ok(productService.update(id, request));
+
+    public ResponseEntity<ProductResponse> update(
+            Long id,
+            @RequestPart("data") ProductRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+
+        String imageUrl = null;
+
+        if (image != null && !image.isEmpty()) {
+            imageUrl = productService.uploadImage(image);
+        }
+
+        ProductResponse response = productService.update(id, request, imageUrl);
+
+        return ResponseEntity.ok(response);
     }
 
     @Override

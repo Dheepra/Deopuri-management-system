@@ -29,6 +29,16 @@ const [cart, setCart] = useState(() => {
   return saved ? JSON.parse(saved) : [];
 });
 
+const getImageUrl = (url) => {
+  if (!url) return "/placeholder.png";
+  if (url.startsWith("http")) return url;
+  return `http://localhost:8080${url}`;
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "-";
+  return new Date(dateStr).toLocaleDateString("en-IN");
+};
   // PRODUCTS
   const { data: products, loading } = useAsyncData(() => fetchProducts());
 
@@ -62,6 +72,20 @@ useEffect(() => {
   }
 }, [showOrders]);
   
+const groupedOrders = orders.reduce((acc, order) => {
+  if (!order.orderDate) return acc;
+
+  const date = order.orderDate.split("T")[0];
+
+  if (!acc[date]) {
+    acc[date] = [];
+  }
+
+  acc[date].push(order);
+
+  return acc;
+}, {});
+
 
   // ADD TO CART
   const addToCart = (product, variantId) => {
@@ -229,11 +253,11 @@ localStorage.removeItem(CART_KEY);
         <div className="grid grid-cols-4 gap-4">
           {filteredProducts.map((p) => (
             <div key={p.id} className="border rounded-lg p-3 hover:shadow">
-              <img
-    src={p.imageUrl || "/placeholder.png"}
-    alt={p.name}
-    className="w-full h-32 object-cover rounded mb-2"
-  />
+             <img
+  src={getImageUrl(p.imageUrl)}
+  alt={p.name}
+  className="w-full h-32 object-cover rounded mb-2"
+/>
               <h3 className="font-semibold">{p.name}</h3>
 
               <select
@@ -283,6 +307,11 @@ localStorage.removeItem(CART_KEY);
             >
 
               <div>
+                <img
+  src={getImageUrl(item.imageUrl)}
+  alt={item.name}
+  className="w-14 h-14 object-cover rounded"
+/>
                 <p className="font-medium">
                   {item.name} ({item.size})
                 </p>
@@ -320,56 +349,86 @@ localStorage.removeItem(CART_KEY);
       </div>
     )}
 
-    {/* ORDERS */}
-    {showOrders && (
-      <div className="bg-white p-4 rounded-xl shadow">
+   {/* ORDERS */}
+{showOrders && (
+  <div className="bg-white p-4 rounded-xl shadow">
 
-        <h2 className="text-xl font-semibold mb-4">Order History</h2>
+    <h2 className="text-xl font-semibold mb-4">
+      Order History
+    </h2>
 
-        {orders.length === 0 ? (
-          <p className="text-gray-500">No orders found</p>
-        ) : (
-          <div className="space-y-3">
+    {orders.length === 0 ? (
+      <p className="text-gray-500">No orders found</p>
+    ) : (
+      <div className="space-y-3">
 
-            {orders.map(o => (
-              <div
-                key={o.id}
-                className="border rounded-lg p-3 flex justify-between items-center hover:bg-gray-50"
-              >
+        {Object.entries(groupedOrders)
+          .sort((a, b) => new Date(b[0]) - new Date(a[0]))
+          .map(([date, dateOrders]) => (
 
-                <div>
-                  <p className="font-semibold">
-                    #{o.id} {o.productName}
-                  </p>
+            <div key={date} className="mb-6">
 
-                  <p className="text-sm text-gray-500">
-                    Size: {o.size} | Qty: {o.quantity}
-                  </p>
-                </div>
+              <div className="bg-green-100 p-3 rounded-lg mb-3">
+                <h3 className="font-bold text-green-800">
+                  📅 {formatDate(date)}
+                </h3>
+              </div>
 
-                <div className="text-right">
-                  <p className="font-bold">₹{o.totalAmount}</p>
+              <div className="space-y-3">
 
-                  <span className={`text-xs px-2 py-1 rounded
-                    ${o.status === "PENDING" ? "bg-yellow-100 text-yellow-700" :
-                      o.status === "CONFIRMED" ? "bg-blue-100 text-blue-700" :
-                      o.status === "SHIPPED" ? "bg-purple-100 text-purple-700" :
-                      "bg-green-100 text-green-700"
-                    }`}
+                {dateOrders.map((o) => (
+                  <div
+                    key={o.id}
+                    className="border rounded-lg p-3 flex justify-between items-center hover:bg-gray-50"
                   >
-                    {o.status}
-                  </span>
-                </div>
+
+                    <div>
+                      <p className="font-semibold">
+                        #{o.id} {o.productName}
+                      </p>
+
+                      <p className="text-sm text-gray-500">
+                        Size: {o.size} | Qty: {o.quantity}
+                      </p>
+
+                      <p className="text-xs text-gray-500">
+                        Ordered: {formatDate(o.orderDate)}
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="font-bold">
+                        ₹{o.totalAmount}
+                      </p>
+
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${
+                          o.status === "PENDING"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : o.status === "CONFIRMED"
+                            ? "bg-blue-100 text-blue-700"
+                            : o.status === "SHIPPED"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-green-100 text-green-700"
+                        }`}
+                      >
+                        {o.status}
+                      </span>
+                    </div>
+
+                  </div>
+                ))}
 
               </div>
-            ))}
 
-          </div>
-        )}
+            </div>
+          ))}
 
       </div>
     )}
 
   </div>
+)}
+ </div> 
 );
 }

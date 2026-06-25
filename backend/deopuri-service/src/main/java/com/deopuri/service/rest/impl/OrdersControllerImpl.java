@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -61,5 +62,14 @@ public class OrdersControllerImpl implements OrdersController {
     public ResponseEntity<Void> deleteOrder(Long id) {
         service.deleteOrder(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<List<OrderResponse>> filterOrders(
+            LocalDate from,
+            LocalDate to) {
+
+        return ResponseEntity.ok(
+                service.filterOrders(from, to));
     }
 }
