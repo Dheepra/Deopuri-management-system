@@ -11,6 +11,7 @@ export default function Orders() {
   const [showProducts, setShowProducts] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [showOrders, setShowOrders] = useState(false);
+  
 
   const [selectedVariants, setSelectedVariants] = useState({});
 
@@ -176,18 +177,21 @@ localStorage.removeItem(CART_KEY);
       loadOrders();
 
     } catch (err) {
-  console.log("Order Error =", err);
-  console.log("Response =", err.response);
-  console.log("Data =", err.response?.data);
+  const msg =
+    err?.response?.data ||
+    "Failed to place order";
 
-  alert("Failed to place order");
+  
 }
   };
 
   if (loading) return <div>Loading...</div>;
 
   return (
-  <div className="p-6 bg-gray-50 min-h-screen">
+
+    <div className="p-6 bg-gray-50 min-h-screen">
+
+    
 
     {/* HEADER */}
     <h1 className="text-2xl font-bold mb-6 text-gray-800">

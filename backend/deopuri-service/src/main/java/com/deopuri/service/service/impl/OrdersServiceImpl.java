@@ -6,15 +6,17 @@ import com.deopuri.api.model.OrderStatus;
 import com.deopuri.api.model.Orders;
 import com.deopuri.api.model.Product;
 import com.deopuri.api.model.ProductVariant;
+import com.deopuri.api.model.UserRole;
 import com.deopuri.api.model.Users;
 import com.deopuri.exception.BusinessException;
-import com.deopuri.exception.InsufficientStockException;
+
 import com.deopuri.exception.ResourceNotFoundException;
 import com.deopuri.security.SecurityUtils;
 import com.deopuri.service.dao.OrdersDao;
 import com.deopuri.service.dao.ProductRepository;
 import com.deopuri.service.dao.ProductVariantDao;
 import com.deopuri.service.dao.UsersDao;
+import com.deopuri.service.service.NotificationService;
 import com.deopuri.service.service.OrdersService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,15 +38,19 @@ public class OrdersServiceImpl implements OrdersService {
         private final ProductRepository productRepository;
         private final ProductVariantDao variantDao;
         private final UsersDao usersDao;
+        private final NotificationService notificationService;
 
-        public OrdersServiceImpl(OrdersDao dao,
+        public OrdersServiceImpl(
+                        OrdersDao dao,
                         ProductRepository productRepository,
                         ProductVariantDao variantDao,
-                        UsersDao usersDao) {
+                        UsersDao usersDao,
+                        NotificationService notificationService) {
                 this.dao = dao;
                 this.productRepository = productRepository;
                 this.variantDao = variantDao;
                 this.usersDao = usersDao;
+                this.notificationService = notificationService;
         }
 
         @Override
@@ -90,7 +96,7 @@ public class OrdersServiceImpl implements OrdersService {
 
                 order.setContext(context);
 
-                order.setTotalAmount(0.0);
+                order.setTotalAmount(null);
 
                 if (role.contains("HOSPITAL")) {
                         order.setContext("HOSPITAL");
@@ -98,21 +104,24 @@ public class OrdersServiceImpl implements OrdersService {
                         order.setContext("MEDICAL");
                 }
                 // update order quantity first
-                int finalQuantity = order.getQuantity() + request.quantity();
-
-                // FIXED STOCK CHECK
-                if (variant.getStock() < request.quantity()) {
-                        throw new InsufficientStockException("Insufficient stock");
-                }
-
-                // update stock
-                variant.setStock(variant.getStock() - request.quantity());
-                variantDao.save(variant); // ⭐ IMPORTANT FIX
+                int finalQuantity = request.quantity();
 
                 order.setQuantity(finalQuantity);
                 order.setTotalAmount(finalQuantity * product.getPrice());
 
+                System.out.println("Price = " + product.getPrice());
+                System.out.println("Qty = " + finalQuantity);
+                System.out.println("Total = " + (finalQuantity * product.getPrice()));
+
                 Orders saved = dao.save(order);
+                List<Users> admins = usersDao.findByRole(UserRole.ADMIN);
+
+                for (Users admin : admins) {
+                        notificationService.saveNotification(
+                                        "New Order Placed",
+                                        "Order #" + saved.getId() + " placed by " + user.getFirstName(),
+                                        admin.getId());
+                }
 
                 log.info(
                                 "Order placed id={} userId={} productId={} quantity={}",
@@ -149,19 +158,29 @@ public class OrdersServiceImpl implements OrdersService {
                 return "Order Confirmed. Total = " + total;
         }
 
-        @Transactional
         @Override
+        @Transactional
         public OrderResponse updateOrderStatus(Long id, OrderStatus status) {
+
                 Orders order = loadOrder(id);
 
                 order.setStatus(status);
 
-                // 👇 delivered date only when delivered
                 if (status == OrderStatus.DELIVERED) {
                         order.setDeliveredDate(LocalDateTime.now());
                 }
 
+                // Notification for user
+                if (status == OrderStatus.CONFIRMED) {
+
+                        notificationService.saveNotification(
+                                        "Order Confirmed",
+                                        "Your order #" + order.getId() + " has been confirmed.",
+                                        order.getUser().getId());
+                }
+
                 log.info("Order status updated id={} status={}", id, status);
+
                 return toResponse(order);
         }
 

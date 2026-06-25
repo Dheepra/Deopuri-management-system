@@ -14,9 +14,12 @@ const [search, setSearch] = useState("");
 const [filteredOrders, setFilteredOrders] = useState([]);
 
   const loadOrders = async () => {
-    const data = await fetchAllOrders();
-    setOrders(data);
-  };
+  const data = await fetchAllOrders();
+
+  console.log("Orders =", data);
+
+  setOrders(data);
+};
 
   const formatDate = (dateStr) => {
   if (!dateStr) return "-";
@@ -158,6 +161,7 @@ const handleApply = () => {
                     <th className="p-3 text-left">ID</th>
                     <th className="p-3 text-left">User</th>
                     <th className="p-3 text-left">Medicine</th>
+                      <th className="p-3 text-left">Quantity</th>
                     <th className="p-3 text-left">Amount</th>
                     <th className="p-3 text-left">Status</th>
                     <th className="p-3 text-left">Date</th>
@@ -175,10 +179,25 @@ const handleApply = () => {
                       <td className="p-3">{o.userName}</td>
 
                       <td className="p-3">{o.productName}</td>
+                      <td className="p-3">{o.quantity}</td>
 
                       <td className="p-3 font-semibold text-green-600">
-                        ₹{o.totalAmount}
-                      </td>
+                       {o.totalAmount == null}
+
+        
+  <input
+    type="number"
+    defaultValue={o.totalAmount}
+    onBlur={(e) =>
+      handleAmountChange(
+        o.id,
+        Number(e.target.value)
+      )
+    }
+    className="border rounded-lg px-2 py-1 w-24"
+  />
+</td>
+
 
                       <td className="p-3">
                         <select

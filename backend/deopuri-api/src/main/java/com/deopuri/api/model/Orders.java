@@ -30,7 +30,7 @@ public class Orders {
     @Column(nullable = false)
     private int quantity;
 
-    @Column(name = "total_amount", nullable = false)
+    @Column(name = "total_amount", nullable = true)
     private Double totalAmount;
 
     @Enumerated(EnumType.STRING)
