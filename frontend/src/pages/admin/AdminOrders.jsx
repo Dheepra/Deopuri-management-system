@@ -38,21 +38,44 @@ const groupedOrders = filteredOrders.reduce((acc, order) => {
   const date = order.orderDate.split("T")[0];
 
   if (!acc[date]) {
-    acc[date] = [];
+    acc[date] = {};
   }
 
-  acc[date].push(order);
+  const groupId = order.orderGroupId;
+
+  if (!acc[date][groupId]) {
+    acc[date][groupId] = [];
+  }
+
+  acc[date][groupId].push(order);
 
   return acc;
 }, {});
 
   const handleStatusChange = async (id, status) => {
+  try {
     await updateOrderStatus(id, status);
-    loadOrders(); // refresh
-  };
+    loadOrders();
+  } catch (err) {
+    console.log(err.response?.data);
+
+    alert(
+      err.response?.data?.message ||
+      "Failed to update order status."
+    );
+  }
+};
+
   const handleAmountChange = async (id, amount) => {
-  await updateOrderAmount(id, amount);
-  loadOrders(); // refresh
+  try {
+    await updateOrderAmount(id, amount);
+    loadOrders();
+  } catch (err) {
+    alert(
+      err.response?.data?.message ||
+      "Failed to update amount."
+    );
+  }
 };
 
 const handleApply = () => {
@@ -80,12 +103,8 @@ const handleApply = () => {
 
   setFilteredOrders(result);
 };
-
-  return (
-  <div className="p-6 bg-gray-100 min-h-screen">
-    <h1 className="text-3xl font-bold mb-6 text-gray-800">
-      Admin Orders
-    </h1>
+return (
+  <div>
 
     {/* Filters */}
     <div className="bg-white shadow-md rounded-xl p-5 mb-6">
@@ -140,94 +159,97 @@ const handleApply = () => {
 
     {/* Orders Grouped By Date */}
     <div className="space-y-6">
+
       {Object.entries(groupedOrders)
         .sort((a, b) => new Date(b[0]) - new Date(a[0]))
-        .map(([date, dateOrders]) => (
-          <div
-            key={date}
-            className="bg-white rounded-xl shadow-md overflow-hidden"
-          >
+        .map(([date, groupMap]) => (
+          
+          <div key={date} className="bg-white rounded-xl shadow-md overflow-hidden">
 
+            {/* Date Header */}
             <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white px-5 py-3">
               <h2 className="font-semibold text-lg">
                 📅 {formatDate(date)}
               </h2>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="p-3 text-left">ID</th>
-                    <th className="p-3 text-left">User</th>
-                    <th className="p-3 text-left">Medicine</th>
-                      <th className="p-3 text-left">Quantity</th>
-                    <th className="p-3 text-left">Amount</th>
-                    <th className="p-3 text-left">Status</th>
-                    <th className="p-3 text-left">Date</th>
-                  </tr>
-                </thead>
+            {/* Groups */}
+            {Object.entries(groupMap).map(([groupId, groupOrders]) => (
+              
+              <div key={groupId}>
 
-                <tbody>
-                  {dateOrders.map((o) => (
-                    <tr
-                      key={o.id}
-                      className="border-t hover:bg-gray-50"
-                    >
-                      <td className="p-3 font-medium">{o.id}</td>
+                {/* Group Header */}
+                <div className="bg-gray-100 px-5 py-3 flex justify-between items-center">
+                  <div>
+                    <h3 className="font-bold text-lg">
+                      👤 {groupOrders[0].userName}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      📍 {groupOrders[0].deliveryAddress}
+                    </p>
+                  </div>
+                </div>
 
-                      <td className="p-3">{o.userName}</td>
+                {/* Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Medicine</th>
+                        <th>Quantity</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
 
-                      <td className="p-3">{o.productName}</td>
-                      <td className="p-3">{o.quantity}</td>
+                    <tbody>
+                      {groupOrders.map((o) => (
+                        <tr key={o.id}>
+                          <td>{o.id}</td>
+                          <td>{o.productName}</td>
+                          <td>{o.quantity}</td>
 
-                      <td className="p-3 font-semibold text-green-600">
-                       {o.totalAmount == null}
+                          <td>
+                            <input
+                              type="number"
+                              defaultValue={o.totalAmount}
+                              onBlur={(e) =>
+                                handleAmountChange(o.id, Number(e.target.value))
+                              }
+                              className="border rounded px-2 py-1 w-24"
+                            />
+                          </td>
 
-        
-  <input
-    type="number"
-    defaultValue={o.totalAmount}
-    onBlur={(e) =>
-      handleAmountChange(
-        o.id,
-        Number(e.target.value)
-      )
-    }
-    className="border rounded-lg px-2 py-1 w-24"
-  />
-</td>
+                          <td>
+                            <select
+                              value={o.status}
+                              onChange={(e) =>
+                                handleStatusChange(o.id, e.target.value)
+                              }
+                              className="border rounded px-2 py-1"
+                            >
+                              <option value="PENDING">PENDING</option>
+                              <option value="CONFIRMED">CONFIRMED</option>
+                              <option value="SHIPPED">SHIPPED</option>
+                              <option value="DELIVERED">DELIVERED</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
 
+                  
 
-                      <td className="p-3">
-                        <select
-                          value={o.status}
-                          onChange={(e) =>
-                            handleStatusChange(
-                              o.id,
-                              e.target.value
-                            )
-                          }
-                          className="border rounded-lg px-2 py-1"
-                        >
-                          <option value="PENDING">PENDING</option>
-                          <option value="CONFIRMED">CONFIRMED</option>
-                          <option value="SHIPPED">SHIPPED</option>
-                          <option value="DELIVERED">DELIVERED</option>
-                        </select>
-                      </td>
+                </div>
 
-                      <td className="p-3">
-                        {formatDate(o.orderDate)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+              </div>
 
-              </table>
-            </div>
+            ))}
 
           </div>
+
         ))}
     </div>
 

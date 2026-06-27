@@ -37,4 +37,6 @@ public interface OrdersDao extends JpaRepository<Orders, Long> {
         List<Orders> findByOrderDateBetween(
                         LocalDateTime start,
                         LocalDateTime end);
+
+        List<Orders> findByOrderGroupId(String orderGroupId);
 }

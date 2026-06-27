@@ -3,7 +3,7 @@ import { fetchProducts } from '../../services/products.js';
 import Button from '../../components/ui/Button.jsx';
 import { useMemo, useState, useEffect } from 'react';
 import { getAuthUser } from "../../services/auth.js";
-import { placeOrder, fetchMyOrders } from '../../services/orders.js';
+import { placeOrder,placeAllOrders, fetchMyOrders } from '../../services/orders.js';
 
 export default function Orders() {
 
@@ -157,26 +157,19 @@ const groupedOrders = orders.reduce((acc, order) => {
       return;
     }
 
-    try {
-      for (const item of validItems) {
-        await placeOrder(
-          {
-            productId: item.productId,
-            variantId: item.variantId,
-            quantity: Number(item.quantity)
-          }
-        );
-       
-      }
+ try {
 
-      alert("Order placed successfully");
+  await placeAllOrders(validItems);
 
-      setCart([]);
-localStorage.removeItem(CART_KEY);
+  alert("Order placed successfully");
 
-      loadOrders();
+  setCart([]);
+  localStorage.removeItem(CART_KEY);
 
-    } catch (err) {
+  loadOrders();
+
+
+}catch (err) {
   const msg =
     err?.response?.data ||
     "Failed to place order";

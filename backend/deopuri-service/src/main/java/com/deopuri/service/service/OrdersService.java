@@ -11,6 +11,8 @@ public interface OrdersService {
 
     OrderResponse placeOrder(OrderRequest request);
 
+    void placeAllOrders(List<OrderRequest> requests);
+
     OrderResponse updateOrderStatus(Long id, OrderStatus status);
 
     OrderResponse updateTotalAmount(Long id, Double amount);
@@ -29,5 +31,4 @@ public interface OrdersService {
             LocalDate from,
             LocalDate to);
 
-   
 }

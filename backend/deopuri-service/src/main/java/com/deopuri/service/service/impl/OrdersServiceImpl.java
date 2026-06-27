@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -58,62 +59,10 @@ public class OrdersServiceImpl implements OrdersService {
 
                 Users user = currentUser();
 
-                Product product = productRepository
-                                .findById(request.productId())
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Product not found with id "
-                                                                + request.productId()));
+                String orderGroupId = UUID.randomUUID().toString();
 
-                ProductVariant variant = variantDao
-                                .findById(request.variantId())
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "Variant not found with id "
-                                                                + request.variantId()));
+                Orders saved = createOrder(request, user, orderGroupId);
 
-                if (variant.getProduct() == null
-                                || !variant.getProduct()
-                                                .getId()
-                                                .equals(product.getId())) {
-
-                        throw new IllegalArgumentException(
-                                        "Variant does not belong to the given product");
-                }
-                Orders order = new Orders();
-                order.setUser(user);
-                order.setProduct(product);
-                order.setVariant(variant);
-                order.setQuantity(request.quantity());
-                order.setStatus(OrderStatus.PENDING);
-                order.setDeliveryAddress(user.getAddress());
-
-                String role = SecurityUtils.currentUserRole();
-
-                String context = "MEDICAL";
-
-                if ("ROLE_HOSPITAL_ADMIN".equals(role)) {
-                        context = "HOSPITAL";
-                }
-
-                order.setContext(context);
-
-                order.setTotalAmount(null);
-
-                if (role.contains("HOSPITAL")) {
-                        order.setContext("HOSPITAL");
-                } else {
-                        order.setContext("MEDICAL");
-                }
-                // update order quantity first
-                int finalQuantity = request.quantity();
-
-                order.setQuantity(finalQuantity);
-                order.setTotalAmount(finalQuantity * product.getPrice());
-
-                System.out.println("Price = " + product.getPrice());
-                System.out.println("Qty = " + finalQuantity);
-                System.out.println("Total = " + (finalQuantity * product.getPrice()));
-
-                Orders saved = dao.save(order);
                 List<Users> admins = usersDao.findByRole(UserRole.ADMIN);
 
                 for (Users admin : admins) {
@@ -123,14 +72,36 @@ public class OrdersServiceImpl implements OrdersService {
                                         admin.getId());
                 }
 
-                log.info(
-                                "Order placed id={} userId={} productId={} quantity={}",
-                                saved.getId(),
-                                user.getId(),
-                                product.getId(),
-                                finalQuantity);
-
                 return toResponse(saved);
+        }
+
+        @Override
+        @Transactional
+        public void placeAllOrders(List<OrderRequest> requests) {
+                String orderGroupId = UUID.randomUUID().toString();
+
+                Users user = currentUser();
+
+                for (OrderRequest request : requests) {
+
+                        createOrder(request, user, orderGroupId);
+
+                }
+
+                List<Users> admins = usersDao.findByRole(UserRole.ADMIN);
+
+                for (Users admin : admins) {
+
+                        notificationService.saveNotification(
+                                        "New Order Placed",
+                                        user.getFirstName() + " has placed an order for "
+                                                        + requests.size() + " item(s).",
+                                        admin.getId());
+
+                }
+                log.info("Bulk order placed userId={} totalItems={}",
+                                user.getId(),
+                                requests.size());
         }
 
         @Override
@@ -149,6 +120,13 @@ public class OrdersServiceImpl implements OrdersService {
                 double total = 0;
 
                 for (Orders order : cartItems) {
+
+                        if (order.getTotalAmount() == null || order.getTotalAmount() <= 0) {
+                                throw new BusinessException(
+                                                "amount_required",
+                                                "Please assign total amount before confirming the order.");
+                        }
+
                         order.setStatus(OrderStatus.CONFIRMED);
                         total += order.getTotalAmount();
                 }
@@ -164,22 +142,49 @@ public class OrdersServiceImpl implements OrdersService {
 
                 Orders order = loadOrder(id);
 
-                order.setStatus(status);
+                // Same group ke saare orders nikalo
+                List<Orders> groupOrders = dao.findByOrderGroupId(order.getOrderGroupId());
 
-                if (status == OrderStatus.DELIVERED) {
-                        order.setDeliveredDate(LocalDateTime.now());
-                }
-
-                // Notification for user
+                // Confirm karne se pehle sabhi orders ka amount check karo
                 if (status == OrderStatus.CONFIRMED) {
 
+                        for (Orders o : groupOrders) {
+                                if (o.getTotalAmount() == null || o.getTotalAmount() <= 0) {
+                                        throw new BusinessException(
+                                                        "amount_required",
+                                                        "Please assign total amount before confirming the order.");
+                                }
+                        }
+
+                        // Group ke saare orders confirm karo
+                        for (Orders o : groupOrders) {
+                                o.setStatus(OrderStatus.CONFIRMED);
+                        }
+
+                        dao.saveAll(groupOrders);
+
+                        // Sirf EK notification
                         notificationService.saveNotification(
                                         "Order Confirmed",
-                                        "Your order #" + order.getId() + " has been confirmed.",
+                                        "Your order has been confirmed.",
                                         order.getUser().getId());
-                }
 
-                log.info("Order status updated id={} status={}", id, status);
+                        log.info("Bulk order confirmed userId={} totalItems={}",
+                                        order.getUser().getId(),
+                                        groupOrders.size());
+
+                } else {
+
+                        order.setStatus(status);
+
+                        if (status == OrderStatus.DELIVERED) {
+                                order.setDeliveredDate(LocalDateTime.now());
+                        }
+
+                        dao.save(order);
+
+                        log.info("Order status updated id={} status={}", id, status);
+                }
 
                 return toResponse(order);
         }
@@ -263,7 +268,53 @@ public class OrdersServiceImpl implements OrdersService {
                                 o.getTotalAmount(),
                                 o.getStatus(),
                                 o.getOrderDate(),
-                                o.getDeliveredDate());
+                                o.getDeliveredDate(),
+                                o.getOrderGroupId());
+        }
+
+        private Orders createOrder(
+                        OrderRequest request,
+                        Users user,
+                        String orderGroupId) {
+
+                Product product = productRepository
+                                .findById(request.productId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Product not found with id " + request.productId()));
+
+                ProductVariant variant = variantDao
+                                .findById(request.variantId())
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Variant not found with id " + request.variantId()));
+
+                if (variant.getProduct() == null
+                                || !variant.getProduct().getId().equals(product.getId())) {
+
+                        throw new IllegalArgumentException(
+                                        "Variant does not belong to the given product");
+                }
+
+                Orders order = new Orders();
+
+                order.setUser(user);
+                order.setProduct(product);
+                order.setVariant(variant);
+                order.setQuantity(request.quantity());
+                order.setStatus(OrderStatus.PENDING);
+                order.setDeliveryAddress(user.getAddress());
+
+                String role = SecurityUtils.currentUserRole();
+
+                if (role.contains("HOSPITAL")) {
+                        order.setContext("HOSPITAL");
+                } else {
+                        order.setContext("MEDICAL");
+                }
+
+                order.setTotalAmount(null);
+                order.setOrderGroupId(orderGroupId);
+
+                return dao.save(order);
         }
 
         @Override

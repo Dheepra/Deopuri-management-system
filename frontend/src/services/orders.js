@@ -9,6 +9,11 @@ export async function placeOrder(payload) {
   return data;
 }
 
+export async function placeAllOrders(orders) {
+  const { data } = await http.post("/api/orders/place-all", orders);
+  return data;
+}
+
 // GET ORDERS OF USER (hospital/medical admin)
 export async function fetchOrders(userId) {
   const { data } = await http.get(

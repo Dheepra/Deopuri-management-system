@@ -25,6 +25,11 @@ public interface OrdersController {
         @PreAuthorize("hasAnyRole('HOSPITAL_ADMIN','MEDICAL_ADMIN')")
         ResponseEntity<OrderResponse> placeOrder(@Valid @RequestBody OrderRequest request);
 
+        @PostMapping("/place-all")
+        @PreAuthorize("hasAnyRole('HOSPITAL_ADMIN','MEDICAL_ADMIN')")
+        ResponseEntity<String> placeAllOrders(
+                        @Valid @RequestBody List<OrderRequest> requests);
+
         @GetMapping
         @PreAuthorize("hasRole('ADMIN')")
         ResponseEntity<List<OrderResponse>> getAllOrders();
@@ -56,9 +61,8 @@ public interface OrdersController {
         ResponseEntity<Void> deleteOrder(@PathVariable Long id);
 
         @GetMapping("/filter")
-@PreAuthorize("isAuthenticated()")
-ResponseEntity<List<OrderResponse>> filterOrders(
-        @RequestParam LocalDate from,
-        @RequestParam LocalDate to
-);
+        @PreAuthorize("isAuthenticated()")
+        ResponseEntity<List<OrderResponse>> filterOrders(
+                        @RequestParam LocalDate from,
+                        @RequestParam LocalDate to);
 }

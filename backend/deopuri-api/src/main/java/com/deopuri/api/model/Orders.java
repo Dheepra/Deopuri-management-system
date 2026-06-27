@@ -33,6 +33,9 @@ public class Orders {
     @Column(name = "total_amount", nullable = true)
     private Double totalAmount;
 
+    @Column(name = "order_group_id")
+    private String orderGroupId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;
@@ -101,6 +104,14 @@ public class Orders {
 
     public void setTotalAmount(Double totalAmount) {
         this.totalAmount = totalAmount;
+    }
+
+    public String getOrderGroupId() {
+        return orderGroupId;
+    }
+
+    public void setOrderGroupId(String orderGroupId) {
+        this.orderGroupId = orderGroupId;
     }
 
     public OrderStatus getStatus() {

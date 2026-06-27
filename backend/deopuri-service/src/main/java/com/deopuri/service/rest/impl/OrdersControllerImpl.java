@@ -27,6 +27,14 @@ public class OrdersControllerImpl implements OrdersController {
     }
 
     @Override
+    public ResponseEntity<String> placeAllOrders(List<OrderRequest> requests) {
+
+        service.placeAllOrders(requests);
+
+        return ResponseEntity.ok("Orders placed successfully");
+    }
+
+    @Override
     public ResponseEntity<List<OrderResponse>> getAllOrders() {
         return ResponseEntity.ok(service.getAllOrders());
     }
