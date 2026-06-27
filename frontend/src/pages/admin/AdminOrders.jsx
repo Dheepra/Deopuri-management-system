@@ -78,6 +78,36 @@ const groupedOrders = filteredOrders.reduce((acc, order) => {
   }
 };
 
+const handleConfirm = async (groupOrders) => {
+  try {
+
+    // Check if every product has amount
+    const hasEmptyAmount = groupOrders.some(
+      (order) =>
+        order.totalAmount === null ||
+        order.totalAmount === "" ||
+        Number(order.totalAmount) <= 0
+    );
+
+    if (hasEmptyAmount) {
+      alert("Please enter amount for all medicines before confirming.");
+      return;
+    }
+
+    for (const order of groupOrders) {
+      await updateOrderStatus(order.id, "CONFIRMED");
+    }
+
+    loadOrders();
+
+  } catch (err) {
+    alert(
+      err.response?.data?.message ||
+      "Failed to confirm order."
+    );
+  }
+};
+
 const handleApply = () => {
   let result = [...orders];
 
@@ -174,8 +204,14 @@ return (
             </div>
 
             {/* Groups */}
-            {Object.entries(groupMap).map(([groupId, groupOrders]) => (
-              
+           {Object.entries(groupMap).map(([groupId, groupOrders]) => {
+
+  const totalAmount = groupOrders.reduce(
+    (sum, item) => sum + (Number(item.totalAmount) || 0),
+    0
+  );
+
+  return (
               <div key={groupId}>
 
                 {/* Group Header */}
@@ -221,7 +257,7 @@ return (
                             />
                           </td>
 
-                          <td>
+                          {/* <td>
                             <select
                               value={o.status}
                               onChange={(e) =>
@@ -234,23 +270,55 @@ return (
                               <option value="SHIPPED">SHIPPED</option>
                               <option value="DELIVERED">DELIVERED</option>
                             </select>
-                          </td>
+                          </td> */}
+
+                          <td>
+  {o.status}
+</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
 
-                  
+                  <div className="flex justify-between items-center px-5 py-4 border-t bg-gray-50">
+
+  <div>
+    <h3 className="text-lg font-bold">
+      Total Amount : ₹{totalAmount}
+    </h3>
+
+    <p className="text-sm text-gray-600">
+      Status : {groupOrders[0].status}
+    </p>
+  </div>
+
+  {groupOrders[0].status === "PENDING" ? (
+    <button
+      onClick={() => handleConfirm(groupOrders)}
+      className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg"
+    >
+      Confirm Order
+    </button>
+  ) : (
+    <span className="text-green-600 font-bold">
+      ✔ Confirmed
+    </span>
+  )}
+
+</div>
 
                 </div>
 
               </div>
 
-            ))}
+            
+              );
+})}
 
           </div>
 
         ))}
+        
     </div>
 
   </div>

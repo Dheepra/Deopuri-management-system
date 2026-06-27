@@ -79,10 +79,16 @@ const groupedOrders = orders.reduce((acc, order) => {
   const date = order.orderDate.split("T")[0];
 
   if (!acc[date]) {
-    acc[date] = [];
+    acc[date] = {};
   }
 
-  acc[date].push(order);
+  const groupId = order.orderGroupId;
+
+  if (!acc[date][groupId]) {
+    acc[date][groupId] = [];
+  }
+
+  acc[date][groupId].push(order);
 
   return acc;
 }, {});
@@ -372,49 +378,67 @@ const groupedOrders = orders.reduce((acc, order) => {
               </div>
 
               <div className="space-y-3">
+{Object.entries(dateOrders).map(([groupId, groupOrders]) => {
 
-                {dateOrders.map((o) => (
-                  <div
-                    key={o.id}
-                    className="border rounded-lg p-3 flex justify-between items-center hover:bg-gray-50"
-                  >
+  const totalAmount = groupOrders.reduce(
+    (sum, item) => sum + (Number(item.totalAmount) || 0),
+    0
+  );
 
-                    <div>
-                      <p className="font-semibold">
-                        #{o.id} {o.productName}
-                      </p>
+  return (
+    <div
+      key={groupId}
+      className="border rounded-lg p-4 mb-4 bg-white shadow-sm"
+    >
 
-                      <p className="text-sm text-gray-500">
-                        Size: {o.size} | Qty: {o.quantity}
-                      </p>
+      {groupOrders.map((o) => (
+        <div
+          key={o.id}
+          className="flex justify-between items-center border-b py-2 last:border-0"
+        >
+          <div>
+            <p className="font-semibold">
+              {o.productName}
+            </p>
 
-                      <p className="text-xs text-gray-500">
-                        Ordered: {formatDate(o.orderDate)}
-                      </p>
-                    </div>
+            <p className="text-sm text-gray-500">
+              Size: {o.size} | Qty: {o.quantity}
+            </p>
 
-                    <div className="text-right">
-                      <p className="font-bold">
-                        ₹{o.totalAmount}
-                      </p>
+            <p className="text-xs text-gray-500">
+              Ordered: {formatDate(o.orderDate)}
+            </p>
+          </div>
 
-                      <span
-                        className={`text-xs px-2 py-1 rounded ${
-                          o.status === "PENDING"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : o.status === "CONFIRMED"
-                            ? "bg-blue-100 text-blue-700"
-                            : o.status === "SHIPPED"
-                            ? "bg-purple-100 text-purple-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {o.status}
-                      </span>
-                    </div>
+          <div>
+            ₹{o.totalAmount}
+          </div>
+        </div>
+      ))}
 
-                  </div>
-                ))}
+      <div className="flex justify-between items-center mt-3 pt-3 border-t">
+        <h3 className="font-bold">
+          Total Amount : ₹{totalAmount}
+        </h3>
+
+        <span
+          className={`text-xs px-2 py-1 rounded ${
+            groupOrders[0].status === "PENDING"
+              ? "bg-yellow-100 text-yellow-700"
+              : groupOrders[0].status === "CONFIRMED"
+              ? "bg-blue-100 text-blue-700"
+              : groupOrders[0].status === "SHIPPED"
+              ? "bg-purple-100 text-purple-700"
+              : "bg-green-100 text-green-700"
+          }`}
+        >
+          {groupOrders[0].status}
+        </span>
+      </div>
+
+    </div>
+  );
+})}
 
               </div>
 
