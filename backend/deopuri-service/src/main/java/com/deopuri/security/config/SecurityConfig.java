@@ -73,6 +73,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/orders/**")
                         .authenticated()
 
+                        .requestMatchers("/api/payments/**")
+                        .authenticated()
+
                         // USER NOTIFICATIONS
                         .requestMatchers("/api/user/notifications")
                         .authenticated()

@@ -4,6 +4,7 @@ import com.deopuri.api.dto.OrderRequest;
 import com.deopuri.api.dto.OrderResponse;
 import com.deopuri.api.model.OrderStatus;
 import com.deopuri.api.model.Orders;
+import com.deopuri.api.model.PaymentStatus;
 import com.deopuri.api.model.Product;
 import com.deopuri.api.model.ProductVariant;
 import com.deopuri.api.model.UserRole;
@@ -195,8 +196,18 @@ public class OrdersServiceImpl implements OrdersService {
                         throw new IllegalArgumentException("Amount must be non-negative");
                 }
                 Orders order = loadOrder(id);
+
                 order.setTotalAmount(amount);
+
+                // Agar abhi tak payment nahi hui hai
+                if (order.getPaidAmount() == null) {
+                        order.setPaidAmount(0.0);
+                }
+
+                order.setRemainingAmount(amount - order.getPaidAmount());
+
                 log.info("Order total updated id={} amount={}", id, amount);
+
                 return toResponse(order);
         }
 
@@ -312,6 +323,13 @@ public class OrdersServiceImpl implements OrdersService {
                 }
 
                 order.setTotalAmount(null);
+
+                order.setPaidAmount(0.0);
+
+                order.setRemainingAmount(0.0);
+
+                order.setPaymentStatus(PaymentStatus.PENDING);
+
                 order.setOrderGroupId(orderGroupId);
 
                 return dao.save(order);

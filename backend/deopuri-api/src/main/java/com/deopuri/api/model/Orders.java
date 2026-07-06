@@ -61,18 +61,42 @@ public class Orders {
     @JoinColumn(name = "variant_id", nullable = false)
     private ProductVariant variant;
 
+    @Column(name = "paid_amount", nullable = false)
+    private Double paidAmount = 0.0;
+
+    @Column(name = "remaining_amount", nullable = false)
+    private Double remainingAmount = 0.0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false)
+    private PaymentStatus paymentStatus;
+
     public Orders() {
     }
 
     @PrePersist
-    void onCreate() {
-        if (orderDate == null) {
-            orderDate = LocalDateTime.now();
-        }
-        if (status == null) {
-            status = OrderStatus.PENDING;
-        }
+void onCreate() {
+
+    if (orderDate == null) {
+        orderDate = LocalDateTime.now();
     }
+
+    if (status == null) {
+        status = OrderStatus.PENDING;
+    }
+
+    if (paidAmount == null) {
+        paidAmount = 0.0;
+    }
+
+    if (remainingAmount == null) {
+        remainingAmount = totalAmount != null ? totalAmount : 0.0;
+    }
+
+    if (paymentStatus == null) {
+        paymentStatus = PaymentStatus.PENDING;
+    }
+}
 
     public Long getId() {
         return id;
@@ -168,5 +192,29 @@ public class Orders {
 
     public void setVariant(ProductVariant variant) {
         this.variant = variant;
+    }
+
+    public Double getPaidAmount() {
+        return paidAmount;
+    }
+
+    public void setPaidAmount(Double paidAmount) {
+        this.paidAmount = paidAmount;
+    }
+
+    public Double getRemainingAmount() {
+        return remainingAmount;
+    }
+
+    public void setRemainingAmount(Double remainingAmount) {
+        this.remainingAmount = remainingAmount;
+    }
+
+    public PaymentStatus getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(PaymentStatus paymentStatus) {
+        this.paymentStatus = paymentStatus;
     }
 }
