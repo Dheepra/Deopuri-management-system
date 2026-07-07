@@ -11,15 +11,13 @@ import com.deopuri.api.dto.PaymentRequest;
 @RequestMapping("/api/payments")
 public interface PaymentController {
 
-    @PostMapping("/{orderId}")
-    ResponseEntity<?> addPayment(
-            @PathVariable Long orderId,
-            @RequestBody PaymentRequest request
-    );
+        @PostMapping("/{orderNumber}")
+        ResponseEntity<?> addPayment(
+                        @PathVariable String orderNumber,
+                        @RequestBody PaymentRequest request);
 
-    @GetMapping("/order/{orderId}")
-    ResponseEntity<?> getPaymentHistory(
-            @PathVariable Long orderId
-    );
+        @GetMapping("/order/{orderNumber}")
+        ResponseEntity<?> getPaymentHistory(
+                        @PathVariable String orderNumber);
 
 }

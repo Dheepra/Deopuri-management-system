@@ -7,13 +7,7 @@ import java.util.List;
 
 public interface PaymentService {
 
-    PaymentResponse addPayment(
-            Long orderId,
-            PaymentRequest request
-    );
+    PaymentResponse addPayment(String orderNumber, PaymentRequest request);
 
-    List<PaymentResponse> getPaymentHistory(
-            Long orderId
-    );
-
+List<PaymentResponse> getPaymentHistory(String orderNumber);
 }

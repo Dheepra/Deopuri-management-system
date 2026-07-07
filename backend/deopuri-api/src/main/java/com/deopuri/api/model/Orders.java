@@ -71,32 +71,38 @@ public class Orders {
     @Column(name = "payment_status", nullable = false)
     private PaymentStatus paymentStatus;
 
+    @Column(name = "order_number")
+    private String orderNumber;
+
+    @Column(name = "product_amount")
+    private Double productAmount;
+
     public Orders() {
     }
 
     @PrePersist
-void onCreate() {
+    void onCreate() {
 
-    if (orderDate == null) {
-        orderDate = LocalDateTime.now();
-    }
+        if (orderDate == null) {
+            orderDate = LocalDateTime.now();
+        }
 
-    if (status == null) {
-        status = OrderStatus.PENDING;
-    }
+        if (status == null) {
+            status = OrderStatus.PENDING;
+        }
 
-    if (paidAmount == null) {
-        paidAmount = 0.0;
-    }
+        if (paidAmount == null) {
+            paidAmount = 0.0;
+        }
 
-    if (remainingAmount == null) {
-        remainingAmount = totalAmount != null ? totalAmount : 0.0;
-    }
+        if (remainingAmount == null) {
+            remainingAmount = totalAmount != null ? totalAmount : 0.0;
+        }
 
-    if (paymentStatus == null) {
-        paymentStatus = PaymentStatus.PENDING;
+        if (paymentStatus == null) {
+            paymentStatus = PaymentStatus.PENDING;
+        }
     }
-}
 
     public Long getId() {
         return id;
@@ -216,5 +222,21 @@ void onCreate() {
 
     public void setPaymentStatus(PaymentStatus paymentStatus) {
         this.paymentStatus = paymentStatus;
+    }
+
+    public String getOrderNumber() {
+        return orderNumber;
+    }
+
+    public void setOrderNumber(String orderNumber) {
+        this.orderNumber = orderNumber;
+    }
+
+    public Double getProductAmount() {
+        return productAmount;
+    }
+
+    public void setProductAmount(Double productAmount) {
+        this.productAmount = productAmount;
     }
 }

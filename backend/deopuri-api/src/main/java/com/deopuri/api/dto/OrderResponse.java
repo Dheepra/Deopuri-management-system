@@ -23,5 +23,7 @@ public record OrderResponse(
                 OrderStatus status,
                 LocalDateTime orderDate,
                 LocalDateTime deliveredDate,
-                String orderGroupId) {
+                String orderGroupId,
+                String orderNumber,
+                 Double productAmount) {
 }

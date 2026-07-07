@@ -83,22 +83,20 @@ const handleConfirm = async (groupOrders) => {
 
     // Check if every product has amount
     const hasEmptyAmount = groupOrders.some(
-      (order) =>
-        order.totalAmount === null ||
-        order.totalAmount === "" ||
-        Number(order.totalAmount) <= 0
-    );
+  (order) =>
+    order.productAmount === null ||
+    order.productAmount === "" ||
+    Number(order.productAmount) <= 0
+);
 
     if (hasEmptyAmount) {
       alert("Please enter amount for all medicines before confirming.");
       return;
     }
 
-    for (const order of groupOrders) {
-      await updateOrderStatus(order.id, "CONFIRMED");
-    }
+    await updateOrderStatus(groupOrders[0].id, "CONFIRMED");
 
-    loadOrders();
+loadOrders();
 
   } catch (err) {
     alert(
@@ -207,9 +205,9 @@ return (
            {Object.entries(groupMap).map(([groupId, groupOrders]) => {
 
   const totalAmount = groupOrders.reduce(
-    (sum, item) => sum + (Number(item.totalAmount) || 0),
-    0
-  );
+  (sum, item) => sum + (Number(item.productAmount) || 0),
+  0
+);
 
   return (
               <div key={groupId}>
@@ -223,6 +221,9 @@ return (
                     <p className="text-sm text-gray-600">
                       📍 {groupOrders[0].deliveryAddress}
                     </p>
+                    <p className="mt-2 text-base font-bold text-blue-700">
+      📦 Order Number : {groupOrders[0].orderNumber}
+    </p>
                   </div>
                 </div>
 
@@ -231,7 +232,7 @@ return (
                   <table className="w-full">
                     <thead>
                       <tr>
-                        <th>ID</th>
+                       
                         <th>Medicine</th>
                         <th>Quantity</th>
                         <th>Amount</th>
@@ -242,14 +243,14 @@ return (
                     <tbody>
                       {groupOrders.map((o) => (
                         <tr key={o.id}>
-                          <td>{o.id}</td>
+                       
                           <td>{o.productName}</td>
                           <td>{o.quantity}</td>
 
                           <td>
                             <input
                               type="number"
-                              defaultValue={o.totalAmount}
+                              defaultValue={o.productAmount}
                               onBlur={(e) =>
                                 handleAmountChange(o.id, Number(e.target.value))
                               }
@@ -257,20 +258,7 @@ return (
                             />
                           </td>
 
-                          {/* <td>
-                            <select
-                              value={o.status}
-                              onChange={(e) =>
-                                handleStatusChange(o.id, e.target.value)
-                              }
-                              className="border rounded px-2 py-1"
-                            >
-                              <option value="PENDING">PENDING</option>
-                              <option value="CONFIRMED">CONFIRMED</option>
-                              <option value="SHIPPED">SHIPPED</option>
-                              <option value="DELIVERED">DELIVERED</option>
-                            </select>
-                          </td> */}
+                          
 
                           <td>
   {o.status}

@@ -19,112 +19,116 @@ import java.util.List;
 @Transactional
 public class PaymentServiceImpl implements PaymentService {
 
-    private final PaymentDao paymentDao;
-    private final OrdersDao ordersDao;
-    private final NotificationService notificationService;
-    private final EmailService emailService;
+        private final PaymentDao paymentDao;
+        private final OrdersDao ordersDao;
+        private final NotificationService notificationService;
+        private final EmailService emailService;
 
-    public PaymentServiceImpl(
-            PaymentDao paymentDao,
-            OrdersDao ordersDao,
-            NotificationService notificationService,
-            EmailService emailService) {
+        public PaymentServiceImpl(
+                        PaymentDao paymentDao,
+                        OrdersDao ordersDao,
+                        NotificationService notificationService,
+                        EmailService emailService) {
 
-        this.paymentDao = paymentDao;
-        this.ordersDao = ordersDao;
-        this.notificationService = notificationService;
-        this.emailService = emailService;
-    }
-
-    @Override
-    public PaymentResponse addPayment(
-            Long orderId,
-            PaymentRequest request) {
-
-        Orders order = ordersDao.findById(orderId)
-                .orElseThrow(() ->
-                        new RuntimeException("Order not found"));
-
-        double paid = order.getPaidAmount() + request.amount();
-
-        if (paid > order.getTotalAmount()) {
-            throw new RuntimeException(
-                    "Payment cannot be greater than total amount.");
+                this.paymentDao = paymentDao;
+                this.ordersDao = ordersDao;
+                this.notificationService = notificationService;
+                this.emailService = emailService;
         }
 
-        double remaining =
-                order.getTotalAmount() - paid;
+        @Override
+        public PaymentResponse addPayment(
+                        String orderNumber,
+                        PaymentRequest request) {
 
-        Payment payment = new Payment();
+                List<Orders> orders = ordersDao.findAllByOrderNumber(orderNumber);
 
-        payment.setOrder(order);
-        payment.setAmount(request.amount());
-        payment.setPaymentMethod(request.paymentMethod());
-        payment.setRemark(request.remark());
-        payment.setBalanceAfterPayment(remaining);
+                if (orders.isEmpty()) {
+                        throw new RuntimeException("Order not found");
+                }
 
-        payment = paymentDao.save(payment);
+                Orders order = orders.get(0);
+                double paid = order.getPaidAmount() + request.amount();
 
-        order.setPaidAmount(paid);
-        order.setRemainingAmount(remaining);
+                if (paid > order.getTotalAmount()) {
+                        throw new RuntimeException(
+                                        "Payment cannot be greater than total amount.");
+                }
 
-        if (remaining == 0) {
-            order.setPaymentStatus(PaymentStatus.PAID);
-        } else {
-            order.setPaymentStatus(PaymentStatus.PARTIALLY_PAID);
+                double remaining = order.getTotalAmount() - paid;
+
+                Payment payment = new Payment();
+
+                payment.setOrder(order);
+                payment.setAmount(request.amount());
+                payment.setPaymentMethod(request.paymentMethod());
+                payment.setRemark(request.remark());
+                payment.setBalanceAfterPayment(remaining);
+
+                payment = paymentDao.save(payment);
+
+                for (Orders o : orders) {
+
+                        o.setPaidAmount(paid);
+                        o.setRemainingAmount(remaining);
+
+                        if (remaining == 0) {
+                                o.setPaymentStatus(PaymentStatus.PAID);
+                        } else {
+                                o.setPaymentStatus(PaymentStatus.PARTIALLY_PAID);
+                        }
+                }
+
+                ordersDao.saveAll(orders);
+
+                notificationService.saveNotification(
+                                "Payment Received",
+                                "Payment received for Order #" + order.getOrderNumber(),
+                                order.getUser().getId());
+
+                String body = "<h2>Payment Received</h2>"
+                                + "<p>Order Number : " + order.getOrderNumber() + "</p>"
+                                + "<p>Total Amount : ₹" + order.getTotalAmount() + "</p>"
+                                + "<p>Paid : ₹" + request.amount() + "</p>"
+                                + "<p>Remaining : ₹" + remaining + "</p>";
+
+                emailService.sendEmail(
+                                order.getUser().getEmail(),
+                                "Payment Received",
+                                body);
+
+                return new PaymentResponse(
+                                payment.getId(),
+                                payment.getAmount(),
+                                payment.getPaymentMethod(),
+                                payment.getRemark(),
+                                payment.getBalanceAfterPayment(),
+                                payment.getPaymentDate());
         }
 
-        ordersDao.save(order);
+        @Override
+        @Transactional(readOnly = true)
+        public List<PaymentResponse> getPaymentHistory(String orderNumber) {
+                paymentDao.findByOrderOrderNumberOrderByPaymentDateDesc(orderNumber);
 
-        notificationService.saveNotification(
-                "Payment Received",
-                "Payment received for Order #" + order.getId(),
-                order.getUser().getId());
+                List<Payment> payments = paymentDao.findByOrderOrderNumberOrderByPaymentDateDesc(orderNumber);
 
-        String body =
-                "<h2>Payment Received</h2>"
-                        + "<p>Order Id : " + order.getId() + "</p>"
-                        + "<p>Total Amount : ₹" + order.getTotalAmount() + "</p>"
-                        + "<p>Paid : ₹" + request.amount() + "</p>"
-                        + "<p>Remaining : ₹" + remaining + "</p>";
+                return payments.stream()
+                                .map(payment -> new PaymentResponse(
 
-        emailService.sendEmail(
-                order.getUser().getEmail(),
-                "Payment Received",
-                body);
+                                                payment.getId(),
 
-        return new PaymentResponse(
-                payment.getId(),
-                payment.getAmount(),
-                payment.getPaymentMethod(),
-                payment.getRemark(),
-                payment.getBalanceAfterPayment(),
-                payment.getPaymentDate());
-    }
+                                                payment.getAmount(),
 
-    @Override
-@Transactional(readOnly = true)
-public List<PaymentResponse> getPaymentHistory(Long orderId) {
+                                                payment.getPaymentMethod(),
 
-    List<Payment> payments =
-            paymentDao.findByOrderIdOrderByPaymentDateDesc(orderId);
+                                                payment.getRemark(),
 
-    return payments.stream()
-            .map(payment -> new PaymentResponse(
+                                                payment.getBalanceAfterPayment(),
 
-                    payment.getId(),
+                                                payment.getPaymentDate()
 
-                    payment.getAmount(),
-
-                    payment.getPaymentMethod(),
-
-                    payment.getRemark(),
-
-                    payment.getBalanceAfterPayment(),
-
-                    payment.getPaymentDate()
-
-            ))
-            .toList();
-}
+                                ))
+                                .toList();
+        }
 }

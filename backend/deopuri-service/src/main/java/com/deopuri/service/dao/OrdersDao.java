@@ -7,6 +7,8 @@ import com.deopuri.api.model.ProductVariant;
 import com.deopuri.api.model.Users;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -39,4 +41,16 @@ public interface OrdersDao extends JpaRepository<Orders, Long> {
                         LocalDateTime end);
 
         List<Orders> findByOrderGroupId(String orderGroupId);
+
+        List<Orders> findAllByOrderNumber(String orderNumber);
+
+        @Query(value = """
+        SELECT order_number
+        FROM orders
+        WHERE order_number LIKE CONCAT(:prefix, '%')
+        ORDER BY order_number DESC
+        LIMIT 1
+        """, nativeQuery = true)
+String findLastOrderNumberByPrefix(@Param("prefix") String prefix);
+
 }

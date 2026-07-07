@@ -31,4 +31,6 @@ public interface OrdersService {
             LocalDate from,
             LocalDate to);
 
+   // void confirmOrderByOrderNumber(String orderNumber);
+
 }

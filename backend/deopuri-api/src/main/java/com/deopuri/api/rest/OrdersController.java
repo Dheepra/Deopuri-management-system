@@ -65,4 +65,9 @@ public interface OrdersController {
         ResponseEntity<List<OrderResponse>> filterOrders(
                         @RequestParam LocalDate from,
                         @RequestParam LocalDate to);
+
+        // @PutMapping("/{orderNumber}/confirm")
+        // @PreAuthorize("hasRole('ADMIN')")
+        // ResponseEntity<String> confirmOrderByOrderNumber(
+        //                 @PathVariable String orderNumber);
 }

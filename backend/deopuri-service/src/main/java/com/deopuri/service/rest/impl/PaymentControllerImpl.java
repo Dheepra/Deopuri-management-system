@@ -17,21 +17,12 @@ public class PaymentControllerImpl implements PaymentController {
         this.paymentService = paymentService;
     }
 
-    @Override
-    public ResponseEntity<?> addPayment(
-            Long orderId,
-            PaymentRequest request) {
+    public ResponseEntity<?> addPayment(String orderNumber, PaymentRequest request) {
+    return ResponseEntity.ok(paymentService.addPayment(orderNumber, request));
+}
 
-        return ResponseEntity.ok(
-                paymentService.addPayment(orderId, request));
-    }
-
-    @Override
-    public ResponseEntity<?> getPaymentHistory(
-            Long orderId) {
-
-        return ResponseEntity.ok(
-                paymentService.getPaymentHistory(orderId));
-    }
+public ResponseEntity<?> getPaymentHistory(String orderNumber) {
+    return ResponseEntity.ok(paymentService.getPaymentHistory(orderNumber));
+}
 }    
 

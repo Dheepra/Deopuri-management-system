@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,8 +62,22 @@ public class OrdersServiceImpl implements OrdersService {
                 Users user = currentUser();
 
                 String orderGroupId = UUID.randomUUID().toString();
+                String date = LocalDate.now()
+                                .format(DateTimeFormatter.ofPattern("yyMMdd"));
 
-                Orders saved = createOrder(request, user, orderGroupId);
+               String prefix = "ORD-" + date + "-";
+
+                String lastOrderNumber = dao.findLastOrderNumberByPrefix(prefix);
+
+                String orderNumber;
+
+                if (lastOrderNumber == null) {
+                        orderNumber = prefix + "001";
+                } else {
+                        int sequence = Integer.parseInt(lastOrderNumber.substring(prefix.length()));
+                        orderNumber = prefix + String.format("%03d", sequence + 1);
+                }
+                Orders saved = createOrder(request, user, orderGroupId, orderNumber);
 
                 List<Users> admins = usersDao.findByRole(UserRole.ADMIN);
 
@@ -81,11 +96,27 @@ public class OrdersServiceImpl implements OrdersService {
         public void placeAllOrders(List<OrderRequest> requests) {
                 String orderGroupId = UUID.randomUUID().toString();
 
+                String date = LocalDate.now()
+                                .format(DateTimeFormatter.ofPattern("yyMMdd"));
+
+              String prefix = "ORD-" + date + "-";
+
+                String lastOrderNumber = dao.findLastOrderNumberByPrefix(prefix);
+
+                String orderNumber;
+
+                if (lastOrderNumber == null) {
+                        orderNumber = prefix + "001";
+                } else {
+                        int sequence = Integer.parseInt(lastOrderNumber.substring(prefix.length()));
+                        orderNumber = prefix + String.format("%03d", sequence + 1);
+                }
+
                 Users user = currentUser();
 
                 for (OrderRequest request : requests) {
 
-                        createOrder(request, user, orderGroupId);
+                        createOrder(request, user, orderGroupId, orderNumber);
 
                 }
 
@@ -140,7 +171,7 @@ public class OrdersServiceImpl implements OrdersService {
         @Override
         @Transactional
         public OrderResponse updateOrderStatus(Long id, OrderStatus status) {
-
+                log.info("updateOrderStatus called -> id={}, status={}", id, status);
                 Orders order = loadOrder(id);
 
                 // Same group ke saare orders nikalo
@@ -163,6 +194,7 @@ public class OrdersServiceImpl implements OrdersService {
                         }
 
                         dao.saveAll(groupOrders);
+                        log.info("Sending notification for orderNumber={}", order.getOrderNumber());
 
                         // Sirf EK notification
                         notificationService.saveNotification(
@@ -191,22 +223,42 @@ public class OrdersServiceImpl implements OrdersService {
         }
 
         @Override
+        @Transactional
         public OrderResponse updateTotalAmount(Long id, Double amount) {
+
                 if (amount == null || amount < 0) {
                         throw new IllegalArgumentException("Amount must be non-negative");
                 }
+
+                // Jis product ka amount update ho raha hai
                 Orders order = loadOrder(id);
 
-                order.setTotalAmount(amount);
+                // Product amount update karo
+                order.setProductAmount(amount);
+                dao.save(order);
 
-                // Agar abhi tak payment nahi hui hai
-                if (order.getPaidAmount() == null) {
-                        order.setPaidAmount(0.0);
+                // Same order ke saare products nikalo
+                List<Orders> orders = dao.findAllByOrderNumber(order.getOrderNumber());
+                // Total calculate karo
+                double total = orders.stream()
+                                .mapToDouble(o -> o.getProductAmount() == null ? 0.0 : o.getProductAmount())
+                                .sum();
+
+                // Sabhi rows me total update karo
+                for (Orders o : orders) {
+
+                        o.setTotalAmount(total);
+
+                        if (o.getPaidAmount() == null) {
+                                o.setPaidAmount(0.0);
+                        }
+
+                        o.setRemainingAmount(total - o.getPaidAmount());
                 }
 
-                order.setRemainingAmount(amount - order.getPaidAmount());
+                dao.saveAll(orders);
 
-                log.info("Order total updated id={} amount={}", id, amount);
+                log.info("Order {} total updated = {}", order.getOrderNumber(), total);
 
                 return toResponse(order);
         }
@@ -280,13 +332,16 @@ public class OrdersServiceImpl implements OrdersService {
                                 o.getStatus(),
                                 o.getOrderDate(),
                                 o.getDeliveredDate(),
-                                o.getOrderGroupId());
+                                o.getOrderGroupId(),
+                                o.getOrderNumber(),
+                                o.getProductAmount());
         }
 
         private Orders createOrder(
                         OrderRequest request,
                         Users user,
-                        String orderGroupId) {
+                        String orderGroupId,
+                        String orderNumber) {
 
                 Product product = productRepository
                                 .findById(request.productId())
@@ -313,6 +368,7 @@ public class OrdersServiceImpl implements OrdersService {
                 order.setQuantity(request.quantity());
                 order.setStatus(OrderStatus.PENDING);
                 order.setDeliveryAddress(user.getAddress());
+                order.setOrderNumber(orderNumber);
 
                 String role = SecurityUtils.currentUserRole();
 
@@ -322,6 +378,7 @@ public class OrdersServiceImpl implements OrdersService {
                         order.setContext("MEDICAL");
                 }
 
+                order.setProductAmount(0.0);
                 order.setTotalAmount(null);
 
                 order.setPaidAmount(0.0);
@@ -350,4 +407,5 @@ public class OrdersServiceImpl implements OrdersService {
                                 .map(OrdersServiceImpl::toResponse)
                                 .toList();
         }
+        
 }
