@@ -74,6 +74,7 @@ useEffect(() => {
 }, [showOrders]);
   
 const groupedOrders = orders.reduce((acc, order) => {
+
   if (!order.orderDate) return acc;
 
   const date = order.orderDate.split("T")[0];
@@ -82,15 +83,16 @@ const groupedOrders = orders.reduce((acc, order) => {
     acc[date] = {};
   }
 
-  const groupId = order.orderGroupId;
+  const orderNo = order.orderNumber;
 
-  if (!acc[date][groupId]) {
-    acc[date][groupId] = [];
+  if (!acc[date][orderNo]) {
+    acc[date][orderNo] = [];
   }
 
-  acc[date][groupId].push(order);
+  acc[date][orderNo].push(order);
 
   return acc;
+
 }, {});
 
 
@@ -380,10 +382,10 @@ const groupedOrders = orders.reduce((acc, order) => {
               <div className="space-y-3">
 {Object.entries(dateOrders).map(([groupId, groupOrders]) => {
 
-  const totalAmount = groupOrders.reduce(
-    (sum, item) => sum + (Number(item.totalAmount) || 0),
-    0
-  );
+  const totalAmount = groupOrders[0].totalAmount || 0;
+  const paidAmount = groupOrders[0].paidAmount || 0;
+const remainingAmount = groupOrders[0].remainingAmount || 0;
+const paymentStatus = groupOrders[0].paymentStatus || "PENDING";
 
   return (
     <div
@@ -411,7 +413,7 @@ const groupedOrders = orders.reduce((acc, order) => {
           </div>
 
           <div>
-            ₹{o.totalAmount}
+              ₹{o.productAmount}
           </div>
         </div>
       ))}
@@ -436,6 +438,59 @@ const groupedOrders = orders.reduce((acc, order) => {
         </span>
       </div>
 
+          <div className="mt-4 bg-gray-50 rounded-xl p-4">
+
+  <h3 className="font-bold text-blue-700 mb-3">
+    💰 Payment Details
+  </h3>
+
+  <div className="grid grid-cols-3 gap-4">
+
+    <div>
+      <p className="text-sm text-gray-500">
+        Total Amount
+      </p>
+      <p className="font-bold">
+        ₹{totalAmount}
+      </p>
+    </div>
+
+
+    <div>
+      <p className="text-sm text-gray-500">
+        Paid Amount
+      </p>
+      <p className="font-bold text-green-600">
+        ₹{paidAmount}
+      </p>
+    </div>
+
+
+    <div>
+      <p className="text-sm text-gray-500">
+        Remaining Amount
+      </p>
+      <p className="font-bold text-red-600">
+        ₹{remainingAmount}
+      </p>
+    </div>
+
+  </div>
+
+
+  <div className="mt-3">
+
+    <span className="font-semibold">
+      Payment Status :
+    </span>
+
+    <span className="ml-2 px-3 py-1 rounded-full bg-yellow-100 text-yellow-700">
+      {paymentStatus}
+    </span>
+
+  </div>
+
+</div>
     </div>
   );
 })}

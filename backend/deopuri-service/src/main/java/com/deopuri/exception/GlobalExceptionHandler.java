@@ -94,10 +94,17 @@ public ResponseEntity<ErrorResponse> handleMobileTaken(
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex,
-                                                              HttpServletRequest request) {
-        return build(HttpStatus.UNAUTHORIZED, "invalid_credentials", "Invalid email or password", request);
-    }
+public ResponseEntity<ErrorResponse> handleBadCredentials(
+        BadCredentialsException ex,
+        HttpServletRequest request) {
+
+    return build(
+            HttpStatus.UNAUTHORIZED,
+            "invalid_credentials",
+            ex.getMessage(),
+            request
+    );
+}
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<ErrorResponse> handleDisabled(DisabledException ex,

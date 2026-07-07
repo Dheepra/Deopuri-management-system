@@ -250,7 +250,7 @@ public class AuthServiceImpl implements AuthService {
         public LoginResponse login(LoginRequest dto) {
 
                 Users user = usersDao.findByEmail(dto.email())
-                                .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
+                                .orElseThrow(() -> new BadCredentialsException("Email not registered"));
 
                 // status check
                 if (user.getStatus() != UserStatus.APPROVED) {
@@ -264,7 +264,7 @@ public class AuthServiceImpl implements AuthService {
                         boolean match = passwordEncoder.matches(dto.password(), user.getPassword());
 
                         if (!match) {
-                                throw new BadCredentialsException("Invalid temp password");
+                                throw new BadCredentialsException("Invalid temporary password");
                         }
 
                         log.info("First time login detected");
@@ -276,7 +276,7 @@ public class AuthServiceImpl implements AuthService {
                 boolean passwordMatch = passwordEncoder.matches(dto.password(), user.getPassword());
 
                 if (!passwordMatch) {
-                        throw new BadCredentialsException("Invalid email or password");
+                        throw new BadCredentialsException("Incorrect password");
                 }
 
                 String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());

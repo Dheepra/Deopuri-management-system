@@ -14,6 +14,8 @@ import CompanyDashboard from '../pages/admin/Dashboard.jsx';
 import CompanyDashboardLayout from '../layouts/CompanyDashboardLayout.jsx';
 import Product from "../pages/admin/Products.jsx";
 import AdminOrders from "../pages/admin/AdminOrders.jsx";
+import Payments from "../pages/admin/Payments.jsx";
+import PaymentDetails from "../pages/admin/PaymentDetails.jsx";
 
 import HospitalDashboardLayout from '../layouts/HospitalDashboardLayout.jsx';
 import HospitalDashboard from '../pages/hospital/HospitalDashboard.jsx';
@@ -71,6 +73,8 @@ export default function AppRoutes() {
         <Route path="dashboard"  element={<CompanyDashboard />} />
           <Route path="products" element={<Product />} />
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="payments" element={<Payments />} />
+          <Route path="payments/:orderNumber" element={<PaymentDetails />} />
       </Route>
 
       {/* HOSPITAL_ADMIN */}

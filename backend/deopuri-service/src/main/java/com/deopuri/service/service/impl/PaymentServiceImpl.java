@@ -8,7 +8,7 @@ import com.deopuri.api.model.PaymentStatus;
 import com.deopuri.service.dao.OrdersDao;
 import com.deopuri.service.dao.PaymentDao;
 import com.deopuri.service.service.EmailService;
-import com.deopuri.service.service.NotificationService;
+
 import com.deopuri.service.service.PaymentService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,18 +21,18 @@ public class PaymentServiceImpl implements PaymentService {
 
         private final PaymentDao paymentDao;
         private final OrdersDao ordersDao;
-        private final NotificationService notificationService;
+
         private final EmailService emailService;
 
         public PaymentServiceImpl(
                         PaymentDao paymentDao,
                         OrdersDao ordersDao,
-                        NotificationService notificationService,
+
                         EmailService emailService) {
 
                 this.paymentDao = paymentDao;
                 this.ordersDao = ordersDao;
-                this.notificationService = notificationService;
+
                 this.emailService = emailService;
         }
 
@@ -81,20 +81,73 @@ public class PaymentServiceImpl implements PaymentService {
 
                 ordersDao.saveAll(orders);
 
-                notificationService.saveNotification(
-                                "Payment Received",
-                                "Payment received for Order #" + order.getOrderNumber(),
-                                order.getUser().getId());
+                String subject = "Payment Received Successfully";
 
-                String body = "<h2>Payment Received</h2>"
-                                + "<p>Order Number : " + order.getOrderNumber() + "</p>"
-                                + "<p>Total Amount : ₹" + order.getTotalAmount() + "</p>"
-                                + "<p>Paid : ₹" + request.amount() + "</p>"
-                                + "<p>Remaining : ₹" + remaining + "</p>";
+                String customerName = order.getUser().getFirstName() + " " + order.getUser().getLastName();
+
+                String paymentStatus = remaining == 0 ? "PAID" : "PARTIALLY PAID";
+
+                String body = """
+                                <html>
+                                <body style="font-family: Arial, sans-serif;">
+
+                                    <div style="text-align:center;">
+
+                                        <img src="cid:logoImage"
+                                             alt="Company Logo"
+                                             style="width:120px;height:auto;margin-bottom:10px;">
+
+                                        <h2 style="color:#2e7d32;">
+                                            Deopuri Herbal Drugs and Pharmaceuticals
+                                        </h2>
+
+                                        <hr style="width:60%%; margin:15px auto;"/>
+
+                                        <h3 style="margin-top:20px;">
+                                            Payment Received Successfully
+                                        </h3>
+
+                                        <p>Dear <b>%s</b>,</p>
+
+                                        <p>Your payment has been received successfully.</p>
+
+                                        <br>
+
+                                        <p><b>Order Number:</b> %s</p>
+                                        <p><b>Total Amount:</b> ₹%.2f</p>
+                                        <p><b>Current Payment:</b> ₹%.2f</p>
+                                        <p><b>Total Paid:</b> ₹%.2f</p>
+                                        <p><b>Remaining Amount:</b> ₹%.2f</p>
+                                        <p><b>Payment Status:</b> %s</p>
+
+                                        <br>
+
+                                        <p>
+                                            Thank you for choosing
+                                            <b>Deopuri Herbal Drugs and Pharmaceuticals.</b>
+                                        </p>
+
+                                        <p>
+                                            Regards,<br>
+                                            <b>Deopuri Herbal Drugs and Pharmaceuticals</b>
+                                        </p>
+
+                                    </div>
+
+                                </body>
+                                </html>
+                                """.formatted(
+                                customerName,
+                                order.getOrderNumber(),
+                                order.getTotalAmount(),
+                                request.amount(),
+                                paid,
+                                remaining,
+                                paymentStatus);
 
                 emailService.sendEmail(
                                 order.getUser().getEmail(),
-                                "Payment Received",
+                                subject,
                                 body);
 
                 return new PaymentResponse(

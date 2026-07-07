@@ -82,12 +82,17 @@ const handleConfirm = async (groupOrders) => {
   try {
 
     // Check if every product has amount
-    const hasEmptyAmount = groupOrders.some(
-  (order) =>
+    const hasEmptyAmount = groupOrders.some((order) => {
+  const amount = Number(order.productAmount);
+
+  return (
     order.productAmount === null ||
-    order.productAmount === "" ||
-    Number(order.productAmount) <= 0
-);
+    order.productAmount === undefined ||
+    String(order.productAmount).trim() === "" ||
+    isNaN(amount) ||
+    amount <= 0
+  );
+});
 
     if (hasEmptyAmount) {
       alert("Please enter amount for all medicines before confirming.");
@@ -249,13 +254,25 @@ return (
 
                           <td>
                             <input
-                              type="number"
-                              defaultValue={o.productAmount}
-                              onBlur={(e) =>
-                                handleAmountChange(o.id, Number(e.target.value))
-                              }
-                              className="border rounded px-2 py-1 w-24"
-                            />
+  type="number"
+  value={o.productAmount ?? ""}
+  onChange={(e) =>
+    setOrders((prev) =>
+      prev.map((item) =>
+        item.id === o.id
+          ? {
+              ...item,
+              productAmount: e.target.value
+            }
+          : item
+      )
+    )
+  }
+  onBlur={(e) =>
+    handleAmountChange(o.id, Number(e.target.value))
+  }
+  className="border rounded px-2 py-1 w-24"
+/>
                           </td>
 
                           

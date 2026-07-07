@@ -65,7 +65,7 @@ public class OrdersServiceImpl implements OrdersService {
                 String date = LocalDate.now()
                                 .format(DateTimeFormatter.ofPattern("yyMMdd"));
 
-               String prefix = "ORD-" + date + "-";
+                String prefix = "ORD-" + date + "-";
 
                 String lastOrderNumber = dao.findLastOrderNumberByPrefix(prefix);
 
@@ -99,7 +99,7 @@ public class OrdersServiceImpl implements OrdersService {
                 String date = LocalDate.now()
                                 .format(DateTimeFormatter.ofPattern("yyMMdd"));
 
-              String prefix = "ORD-" + date + "-";
+                String prefix = "ORD-" + date + "-";
 
                 String lastOrderNumber = dao.findLastOrderNumberByPrefix(prefix);
 
@@ -329,6 +329,9 @@ public class OrdersServiceImpl implements OrdersService {
                                 o.getDeliveryAddress(),
 
                                 o.getTotalAmount(),
+                                o.getPaidAmount(),
+                                o.getRemainingAmount(),
+                                o.getPaymentStatus(),
                                 o.getStatus(),
                                 o.getOrderDate(),
                                 o.getDeliveredDate(),
@@ -407,5 +410,5 @@ public class OrdersServiceImpl implements OrdersService {
                                 .map(OrdersServiceImpl::toResponse)
                                 .toList();
         }
-        
+
 }
