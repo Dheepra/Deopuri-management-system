@@ -230,21 +230,32 @@ public class OrdersServiceImpl implements OrdersService {
                         throw new IllegalArgumentException("Amount must be non-negative");
                 }
 
-                // Jis product ka amount update ho raha hai
                 Orders order = loadOrder(id);
 
-                // Product amount update karo
-                order.setProductAmount(amount);
+                // Order confirm hone ke baad amount edit nahi hoga
+                if (order.getStatus() == OrderStatus.CONFIRMED
+                                || order.getStatus() == OrderStatus.DELIVERED) {
+
+                        throw new BusinessException(
+                                        "amount_locked",
+                                        "Amount cannot be updated after the order is confirmed.");
+                }
+
+                // Per product price
+                order.setProductPrice(amount);
+
+                // Quantity × Price
+                Double productTotal = amount * order.getQuantity();
+                order.setProductAmount(productTotal);
+
                 dao.save(order);
 
-                // Same order ke saare products nikalo
                 List<Orders> orders = dao.findAllByOrderNumber(order.getOrderNumber());
-                // Total calculate karo
+
                 double total = orders.stream()
                                 .mapToDouble(o -> o.getProductAmount() == null ? 0.0 : o.getProductAmount())
                                 .sum();
 
-                // Sabhi rows me total update karo
                 for (Orders o : orders) {
 
                         o.setTotalAmount(total);
@@ -257,8 +268,6 @@ public class OrdersServiceImpl implements OrdersService {
                 }
 
                 dao.saveAll(orders);
-
-                log.info("Order {} total updated = {}", order.getOrderNumber(), total);
 
                 return toResponse(order);
         }
@@ -337,7 +346,8 @@ public class OrdersServiceImpl implements OrdersService {
                                 o.getDeliveredDate(),
                                 o.getOrderGroupId(),
                                 o.getOrderNumber(),
-                                o.getProductAmount());
+                                o.getProductAmount(),
+                                o.getProductPrice());
         }
 
         private Orders createOrder(
@@ -380,7 +390,7 @@ public class OrdersServiceImpl implements OrdersService {
                 } else {
                         order.setContext("MEDICAL");
                 }
-
+                order.setProductPrice(0.0);
                 order.setProductAmount(0.0);
                 order.setTotalAmount(null);
 

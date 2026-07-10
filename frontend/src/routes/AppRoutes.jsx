@@ -16,11 +16,14 @@ import Product from "../pages/admin/Products.jsx";
 import AdminOrders from "../pages/admin/AdminOrders.jsx";
 import Payments from "../pages/admin/Payments.jsx";
 import PaymentDetails from "../pages/admin/PaymentDetails.jsx";
+import Offers from "../pages/admin/Offers.jsx";
+import TopCustomers from "../pages/admin/TopCustomers.jsx";
 
 import HospitalDashboardLayout from '../layouts/HospitalDashboardLayout.jsx';
 import HospitalDashboard from '../pages/hospital/HospitalDashboard.jsx';
 import Doctors from '../pages/hospital/Doctors.jsx';
 import Orders from '../pages/hospital/Orders.jsx';
+import HospitalMyOffers from "../pages/hospital/MyOffers.jsx";
 import Staff from '../pages/hospital/Staff.jsx';
 import Patients from '../pages/hospital/Patients.jsx';
 import Inventory from '../pages/hospital/Inventory.jsx';
@@ -39,6 +42,7 @@ import Profile from '../pages/doctor/Profile.jsx';
 import MedicalDashboardLayout from '../layouts/MedicalDashboardLayout.jsx';
 import MedicalDashboard from '../pages/medical/MedicalDashboard.jsx';
 import Catalog from '../pages/medical/Catalog.jsx';
+import MedicalMyOffers from "../pages/medical/MyOffers.jsx";
 
 import MedicalSettings from '../pages/medical/Settings.jsx';
 import CreatePassword from '../pages/CreatePassword.jsx';
@@ -75,6 +79,15 @@ export default function AppRoutes() {
           <Route path="orders" element={<AdminOrders />} />
           <Route path="payments" element={<Payments />} />
           <Route path="payments/:orderNumber" element={<PaymentDetails />} />
+          <Route
+  path="offers"
+  element={<Offers />}
+/>
+
+<Route
+  path="top-customers"
+  element={<TopCustomers />}
+/>
       </Route>
 
       {/* HOSPITAL_ADMIN */}
@@ -89,6 +102,10 @@ export default function AppRoutes() {
         <Route index               element={<HospitalDashboard />} />
         <Route path="dashboard"    element={<HospitalDashboard />} />
         <Route path="orders"       element={<Orders />} />
+        <Route
+  path="my-offers"
+  element={<HospitalMyOffers />}
+/>
         <Route path="doctors"      element={<Doctors />} />
         <Route path="staff"        element={<Staff />} />
         <Route path="patients"     element={<Patients />} />
@@ -111,6 +128,10 @@ export default function AppRoutes() {
         <Route path="dashboard" element={<MedicalDashboard />} />
         <Route path="catalog"   element={<Catalog />} />
         <Route path="orders"    element={<Orders />} />
+        <Route
+  path="my-offers"
+  element={<MedicalMyOffers />}
+/>
         <Route path="settings"  element={<MedicalSettings />} />
       </Route>
 

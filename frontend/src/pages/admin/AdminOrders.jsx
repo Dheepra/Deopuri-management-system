@@ -236,65 +236,71 @@ return (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr>
-                       
-                        <th>Medicine</th>
-                        <th>Quantity</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
+  <tr>
+    <th>Medicine</th>
+    <th>Price</th>
+    <th>Quantity</th>
+    <th>Product Total</th>
+    <th>Status</th>
+  </tr>
+</thead>
 
-                    <tbody>
-                      {groupOrders.map((o) => (
-                        <tr key={o.id}>
-                       
-                          <td>{o.productName}</td>
-                          <td>{o.quantity}</td>
+<tbody>
+  {groupOrders.map((o) => (
+    <tr key={o.id}>
 
-                          <td>
-                            <input
-  type="number"
-  value={o.productAmount ?? ""}
-  onChange={(e) =>
-    setOrders((prev) =>
-      prev.map((item) =>
-        item.id === o.id
-          ? {
-              ...item,
-              productAmount: e.target.value
-            }
-          : item
-      )
-    )
-  }
-  onBlur={(e) =>
-    handleAmountChange(o.id, Number(e.target.value))
-  }
-  className="border rounded px-2 py-1 w-24"
-/>
-                          </td>
+      <td>{o.productName}</td>
 
-                          
+      <td>
+        <input
+          type="number"
+          value={o.productPrice ?? ""}
+          disabled={
+            o.status === "CONFIRMED" ||
+            o.status === "DELIVERED"
+          }
+          onChange={(e) =>
+            setOrders((prev) =>
+              prev.map((item) =>
+                item.id === o.id
+                  ? {
+                      ...item,
+                      productPrice: e.target.value,
+                    }
+                  : item
+              )
+            )
+          }
+          onBlur={(e) =>
+            handleAmountChange(o.id, Number(e.target.value))
+          }
+          className="border rounded px-2 py-1 w-24"
+        />
+      </td>
 
-                          <td>
-  {o.status}
-</td>
-                        </tr>
-                      ))}
-                    </tbody>
+      <td>{o.quantity}</td>
+
+      <td>₹ {o.productAmount}</td>
+
+      <td>{o.status}</td>
+
+    </tr>
+  ))}
+</tbody>
                   </table>
 
                   <div className="flex justify-between items-center px-5 py-4 border-t bg-gray-50">
 
   <div>
-    <h3 className="text-lg font-bold">
-      Total Amount : ₹{totalAmount}
-    </h3>
+    
+  <p className="font-bold text-lg text-blue-700">
+    Total Amount : ₹ {groupOrders[0].totalAmount}
+  </p>
 
-    <p className="text-sm text-gray-600">
-      Status : {groupOrders[0].status}
-    </p>
+  <p className="text-sm text-gray-600">
+    Status : {groupOrders[0].status}
+  </p>
+
   </div>
 
   {groupOrders[0].status === "PENDING" ? (

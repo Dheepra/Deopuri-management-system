@@ -30,6 +30,7 @@ public record OrderResponse(
 
         String orderGroupId,
         String orderNumber,
-        Double productAmount
+        Double productAmount,
+        Double productPrice
 ) {
 } 

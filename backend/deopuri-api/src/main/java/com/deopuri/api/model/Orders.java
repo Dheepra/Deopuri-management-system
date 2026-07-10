@@ -77,6 +77,9 @@ public class Orders {
     @Column(name = "product_amount")
     private Double productAmount;
 
+    @Column(name = "product_price")
+    private Double productPrice;
+
     public Orders() {
     }
 
@@ -238,5 +241,13 @@ public class Orders {
 
     public void setProductAmount(Double productAmount) {
         this.productAmount = productAmount;
+    }
+
+    public Double getProductPrice() {
+        return productPrice;
+    }
+
+    public void setProductPrice(Double productPrice) {
+        this.productPrice = productPrice;
     }
 }
