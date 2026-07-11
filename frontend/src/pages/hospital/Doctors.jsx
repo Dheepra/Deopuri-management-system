@@ -5,6 +5,32 @@ import Table from '../../components/ui/Table.jsx';
 import Button from '../../components/ui/Button.jsx';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { getDoctors } from '../../services/hospital.js';
+import {
+  email as emailValidator,
+  phone10,
+  required,
+  runValidators,
+} from '../../utils/validators.js';
+
+function validateDoctor(values) {
+  const experienceError = runValidators(values.experienceYears, required('Experience'));
+  const experienceInvalid =
+    !experienceError &&
+    (Number.isNaN(Number(values.experienceYears)) || Number(values.experienceYears) < 0)
+      ? 'Enter a valid number of years (0 or more)'
+      : null;
+
+  return {
+    firstName: runValidators(values.firstName, required('First name')),
+    lastName: runValidators(values.lastName, required('Last name')),
+    email: runValidators(values.email, required('Email'), emailValidator),
+    mobileNo: runValidators(values.mobileNo, required('Mobile number'), phone10),
+    qualification: runValidators(values.qualification, required('Qualification')),
+    specialization: runValidators(values.specialization, required('Specialization')),
+    experienceYears: experienceError || experienceInvalid,
+    address: runValidators(values.address, required('Address')),
+  };
+}
 
 
 const STATUS_TONE = { active: 'success', 'on-leave': 'warning', inactive: 'neutral' };
@@ -80,17 +106,22 @@ const [doctorForm, setDoctorForm] = useState({
   experienceYears: '',
   address: '',
 });
+const [doctorErrors, setDoctorErrors] = useState({});
+
+const setDoctorField = (name, value) => {
+  setDoctorForm((prev) => ({ ...prev, [name]: value }));
+  if (doctorErrors[name]) {
+    setDoctorErrors((prev) => ({ ...prev, [name]: undefined }));
+  }
+};
 
 const handleDoctorSubmit = async (e) => {
   e.preventDefault();
 
-  if (!doctorForm.qualification || !doctorForm.specialization) {
-    alert("Please select Qualification and Specialization");
-    return;
-  }
+  const nextErrors = validateDoctor(doctorForm);
+  setDoctorErrors(nextErrors);
 
-  if (doctorForm.mobileNo.length !== 10) {
-    alert("Mobile number must be exactly 10 digits");
+  if (Object.values(nextErrors).some(Boolean)) {
     return;
   }
 
@@ -133,6 +164,7 @@ const handleDoctorSubmit = async (e) => {
       experienceYears: '',
       address: '',
     });
+    setDoctorErrors({});
 
     if (refetch) refetch(); // better version
 
@@ -201,155 +233,171 @@ const handleDoctorSubmit = async (e) => {
       />
 
       {showDoctorModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-20 overflow-y-auto">
-  <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-white p-8 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl">
 
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold">
-          Register Doctor
-        </h2>
+            {/* Header */}
+            <div className="flex items-center gap-3 border-b border-ink-100 px-5 py-4">
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-50 text-2xl">👨‍⚕️</span>
+              <div className="min-w-0">
+                <h3 className="font-display text-lg font-bold text-ink-900">Register doctor</h3>
+                <p className="truncate text-xs text-ink-500">Onboard a new clinician to your hospital</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDoctorModal(false)}
+                className="ml-auto grid h-9 w-9 place-items-center rounded-full text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
+                aria-label="Close"
+              >✕</button>
+            </div>
 
-        <button
-  type="button"
-  onClick={() => setShowDoctorModal(false)}
-  className="text-xl"
->
-          ✕
-        </button>
-      </div>
+            <form onSubmit={handleDoctorSubmit} className="flex min-h-0 flex-1 flex-col">
+              {/* Body (scrolls) */}
+              <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-ink-700">🧑 First name</span>
+                    <input
+                      className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                      placeholder="e.g. Aditi"
+                      value={doctorForm.firstName}
+                      onChange={(e) => setDoctorField('firstName', e.target.value)}
+                    />
+                    {doctorErrors.firstName && (
+                      <p className="mt-1 text-xs font-medium text-red-500">{doctorErrors.firstName}</p>
+                    )}
+                  </label>
 
-      <form
-        onSubmit={handleDoctorSubmit}
-        className="grid grid-cols-2 gap-4"
-      >
-        <input
-          className="rounded border p-2"
-          placeholder="First Name"
-          value={doctorForm.firstName}
-          onChange={(e) =>
-            setDoctorForm({
-              ...doctorForm,
-              firstName: e.target.value,
-            })
-          }
-        />
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-ink-700">🧑 Last name</span>
+                    <input
+                      className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                      placeholder="e.g. Sharma"
+                      value={doctorForm.lastName}
+                      onChange={(e) => setDoctorField('lastName', e.target.value)}
+                    />
+                    {doctorErrors.lastName && (
+                      <p className="mt-1 text-xs font-medium text-red-500">{doctorErrors.lastName}</p>
+                    )}
+                  </label>
+                </div>
 
-        <input
-          className="rounded border p-2"
-          placeholder="Last Name"
-          value={doctorForm.lastName}
-          onChange={(e) =>
-            setDoctorForm({
-              ...doctorForm,
-              lastName: e.target.value,
-            })
-          }
-        />
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold text-ink-700">📧 Email</span>
+                  <input
+                    type="email"
+                    className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                    placeholder="doctor@hospital.com"
+                    value={doctorForm.email}
+                    onChange={(e) => setDoctorField('email', e.target.value)}
+                  />
+                  {doctorErrors.email && (
+                    <p className="mt-1 text-xs font-medium text-red-500">{doctorErrors.email}</p>
+                  )}
+                </label>
 
-        <input
-          className="rounded border p-2"
-          placeholder="Email"
-          value={doctorForm.email}
-          onChange={(e) =>
-            setDoctorForm({
-              ...doctorForm,
-              email: e.target.value,
-            })
-          }
-        />
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold text-ink-700">📱 Mobile</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                    placeholder="10-digit mobile number"
+                    value={doctorForm.mobileNo}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setDoctorField('mobileNo', value);
+                    }}
+                  />
+                  {doctorErrors.mobileNo && (
+                    <p className="mt-1 text-xs font-medium text-red-500">{doctorErrors.mobileNo}</p>
+                  )}
+                </label>
 
-       <input
-  type="text"
-  className="rounded border p-2"
-  placeholder="Mobile No"
-  value={doctorForm.mobileNo}
-  maxLength={10}
-  onChange={(e) => {
-    const value = e.target.value.replace(/\D/g, "");
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-ink-700">🎓 Qualification</span>
+                    <select
+                      className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                      value={doctorForm.qualification}
+                      onChange={(e) => setDoctorField('qualification', e.target.value)}
+                    >
+                      <option value="">Select qualification</option>
+                      {QUALIFICATIONS.map((q) => (
+                        <option key={q} value={q}>{q}</option>
+                      ))}
+                    </select>
+                    {doctorErrors.qualification && (
+                      <p className="mt-1 text-xs font-medium text-red-500">{doctorErrors.qualification}</p>
+                    )}
+                  </label>
 
-    if (value.length <= 10) {
-      setDoctorForm({
-        ...doctorForm,
-        mobileNo: value,
-      });
-    }
-  }}
-/>
+                  <label className="block">
+                    <span className="mb-1.5 block text-sm font-semibold text-ink-700">🩺 Specialization</span>
+                    <select
+                      className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                      value={doctorForm.specialization}
+                      onChange={(e) => setDoctorField('specialization', e.target.value)}
+                    >
+                      <option value="">Select specialization</option>
+                      {SPECIALIZATIONS.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    {doctorErrors.specialization && (
+                      <p className="mt-1 text-xs font-medium text-red-500">{doctorErrors.specialization}</p>
+                    )}
+                  </label>
+                </div>
 
-        <select
-  className="rounded border p-2"
-  value={doctorForm.qualification}
-  onChange={(e) =>
-    setDoctorForm({ ...doctorForm, qualification: e.target.value })
-  }
-  required
->
-  <option value="">Select Qualification</option>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold text-ink-700">⏳ Experience (years)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                    placeholder="e.g. 5"
+                    value={doctorForm.experienceYears}
+                    onChange={(e) => setDoctorField('experienceYears', e.target.value)}
+                  />
+                  {doctorErrors.experienceYears && (
+                    <p className="mt-1 text-xs font-medium text-red-500">{doctorErrors.experienceYears}</p>
+                  )}
+                </label>
 
-  {QUALIFICATIONS.map((q) => (
-    <option key={q} value={q}>
-      {q}
-    </option>
-  ))}
-</select>
-<select
-  className="rounded border p-2"
-  value={doctorForm.specialization}
-  onChange={(e) =>
-    setDoctorForm({ ...doctorForm, specialization: e.target.value })
-  }
-  required
->
-  <option value="">Select Specialization</option>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-semibold text-ink-700">🏠 Address</span>
+                  <input
+                    className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                    placeholder="Street, city, state"
+                    value={doctorForm.address}
+                    onChange={(e) => setDoctorField('address', e.target.value)}
+                  />
+                  {doctorErrors.address && (
+                    <p className="mt-1 text-xs font-medium text-red-500">{doctorErrors.address}</p>
+                  )}
+                </label>
+              </div>
 
-  {SPECIALIZATIONS.map((s) => (
-    <option key={s} value={s}>
-      {s}
-    </option>
-  ))}
-</select>
+              {/* Footer (sticky) */}
+              <div className="flex gap-3 border-t border-ink-100 px-5 py-4 pb-safe">
+                <button
+                  type="button"
+                  onClick={() => setShowDoctorModal(false)}
+                  className="flex-1 rounded-xl border border-ink-200 py-2.5 text-sm font-semibold text-ink-600 transition-colors hover:bg-ink-50"
+                >✖ Cancel</button>
 
-        <input
-         type="number"
-          className="rounded border p-2"
-          placeholder="Experience Years"
-          value={doctorForm.experienceYears}
-          onChange={(e) =>
-            setDoctorForm({
-              ...doctorForm,
-              experienceYears: e.target.value,
-            })
-          }
-        />
-
-        <input
-          className="rounded border p-2"
-          placeholder="Address"
-          value={doctorForm.address}
-          onChange={(e) =>
-            setDoctorForm({
-              ...doctorForm,
-              address: e.target.value,
-            })
-          }
-        />
-
-        <div className="col-span-2 mt-2 flex justify-end gap-2">
-          <Button
-            type="button"
-            onClick={() => setShowDoctorModal(false)}
-          >
-            Cancel
-          </Button>
-
-          <Button type="submit" disabled={loading}>
-  {loading ? "Registering..." : "Register Doctor"}
-</Button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-[1.5] rounded-xl bg-brand-600 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-60"
+                >{loading ? 'Creating…' : '✅ Create doctor'}</button>
+              </div>
+            </form>
+          </div>
         </div>
-      </form>
-    </div>
-  </div>
-)}
+      )}
     </section>
   );
 }

@@ -1,76 +1,16 @@
-import { Outlet, NavLink } from "react-router-dom";
-import logo from "../assets/picture/logo.jpg";
+import DashboardLayout from './DashboardLayout.jsx';
+
+// Doctor console now uses the shared modern shell (dark sidebar on desktop, app-style bottom tab bar
+// on mobile) instead of a bespoke fixed-width sidebar that broke on phones.
+const NAV = [
+  { label: 'Overview',      to: '/doctor/dashboard',     end: true, icon: 'M3 12 12 3l9 9M5 10v10h14V10' },
+  { label: 'Appointments',  to: '/doctor/appointments',  icon: 'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z' },
+  { label: 'Patients',      to: '/doctor/patients',      icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
+  { label: 'Prescriptions', to: '/doctor/prescriptions', icon: 'M9 2h6a1 1 0 0 1 1 1v1h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V3a1 1 0 0 1 1-1zM9 12h6M9 16h4' },
+  { label: 'Reports',       to: '/doctor/reports',       icon: 'M3 3v18h18M8 14v4M13 9v9M18 5v13' },
+  { label: 'Profile',       to: '/doctor/profile',       icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM6 21v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1' },
+];
 
 export default function DoctorDashboardLayout() {
-  const menuStyle = ({ isActive }) => ({
-    display: "block",
-    padding: "14px 16px",
-    borderRadius: "10px",
-    textDecoration: "none",
-    color: "#fff",
-    background: isActive ? "rgba(255,255,255,0.12)" : "transparent",
-    marginBottom: "8px",
-    fontSize: "16px",
-  });
-
-  return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      {/* Sidebar */}
-      <div
-        style={{
-          width: "275px",
-          background: "#031133",
-          color: "#fff",
-          padding: "24px 14px",
-        }}
-      >
-    <div style={{ textAlign: "center", marginBottom: "40px" }}>
-  <img
-    src={logo}
-    alt="Deopuri"
-    style={{
-      width: "100px",
-      height: "auto",
-      margin:"auto"
-    }}
-  />
-</div>
-
-        <NavLink to="/doctor/dashboard" style={menuStyle}>
-  Dashboard
-</NavLink>
-
-<NavLink to="/doctor/appointments" style={menuStyle}>
-  Appointments
-</NavLink>
-
-<NavLink to="/doctor/patients" style={menuStyle}>
-  My Patients
-</NavLink>
-
-<NavLink to="/doctor/prescriptions" style={menuStyle}>
-  Prescriptions
-</NavLink>
-
-        <NavLink to="/doctor/reports" style={menuStyle}>
-          Reports
-        </NavLink>
-
-        <NavLink to="/doctor/profile" style={menuStyle}>
-          Profile
-        </NavLink>
-      </div>
-
-      {/* Main */}
-      <div
-        style={{
-          flex: 1,
-          background: "#F5F7FB",
-          padding: "30px",
-        }}
-      >
-        <Outlet />
-      </div>
-    </div>
-  );
+  return <DashboardLayout navItems={NAV} consoleLabel="Doctor" />;
 }

@@ -13,6 +13,8 @@ import com.deopuri.api.model.Offer;
 import com.deopuri.api.model.UserOffer;
 import com.deopuri.api.model.Users;
 import com.deopuri.service.service.OfferService;
+import com.deopuri.exception.BusinessException;
+import com.deopuri.exception.ResourceNotFoundException;
 import com.deopuri.service.dao.OfferDao;
 import com.deopuri.service.dao.OrdersDao;
 import com.deopuri.service.dao.UserOfferDao;
@@ -68,7 +70,7 @@ public class OfferServiceImpl implements OfferService {
     public OfferResponse updateOffer(Long offerId, UpdateOfferRequest request) {
 
         Offer offer = offerDao.findById(offerId)
-                .orElseThrow(() -> new RuntimeException("Offer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Offer not found"));
 
         offer.setOfferName(request.offerName());
         offer.setDescription(request.description());
@@ -101,7 +103,7 @@ public class OfferServiceImpl implements OfferService {
     public OfferResponse getOfferById(Long offerId) {
 
         Offer offer = offerDao.findById(offerId)
-                .orElseThrow(() -> new RuntimeException("Offer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Offer not found"));
 
         return mapToResponse(offer);
     }
@@ -143,7 +145,7 @@ public class OfferServiceImpl implements OfferService {
                 break;
 
             default:
-                throw new RuntimeException("Invalid Period");
+                throw new BusinessException("invalid_period", "Invalid Period");
         }
 
         List<TopCustomerResponse> customers = ordersDao.findTopCustomers(
@@ -180,10 +182,10 @@ public class OfferServiceImpl implements OfferService {
     public void assignOffer(AssignOfferRequest request) {
 
         Offer offer = offerDao.findById(request.offerId())
-                .orElseThrow(() -> new RuntimeException("Offer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Offer not found"));
 
         Users user = usersDao.findById(request.userId().intValue())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         UserOffer userOffer = new UserOffer();
 

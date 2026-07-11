@@ -4,9 +4,11 @@ import com.deopuri.api.dto.*;
 import com.deopuri.api.model.*;
 import com.deopuri.exception.BusinessException;
 import com.deopuri.exception.ResourceNotFoundException;
+import com.deopuri.security.SecurityUtils;
 import com.deopuri.service.dao.*;
 import com.deopuri.service.service.CartService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,9 +35,8 @@ public class CartServiceImpl implements CartService {
         @Override
         public List<CartResponse> addToCart(CartDto dto) {
 
-                Users user = usersDao.findById(dto.userId())
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "User not found with id " + dto.userId()));
+                // IDOR fix: act on the authenticated user, never a body-supplied id.
+                Users user = currentUser();
 
                 Product product = productDao.findById(dto.productId())
                                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -104,9 +105,8 @@ public class CartServiceImpl implements CartService {
         @Override
         public List<CartResponse> addBulk(BulkCartDto dto) {
 
-                Users user = usersDao.findById(dto.userId())
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "User not found with id " + dto.userId()));
+                // IDOR fix: act on the authenticated user, never a body-supplied id.
+                Users user = currentUser();
 
                 if (user.getRole() == UserRole.ADMIN) {
                         throw new BusinessException("cart_admin_forbidden",
@@ -176,8 +176,8 @@ public class CartServiceImpl implements CartService {
         @Override
         public List<CartResponse> getCart(Integer userId) {
 
-                Users user = usersDao.findById(userId)
-                                .orElseThrow(() -> new RuntimeException("User Not Found"));
+                // IDOR fix: ignore the path userId; scope to the authenticated user.
+                Users user = currentUser();
 
                 return ordersDao.findByUserAndStatus(user, OrderStatus.PENDING)
                                 .stream()
@@ -189,8 +189,29 @@ public class CartServiceImpl implements CartService {
         @Override
         public String removeItem(Long orderId) {
 
-                ordersDao.deleteById(orderId);
+                // IDOR fix: only allow removing a row that belongs to the caller.
+                Users user = currentUser();
+
+                Orders order = ordersDao.findById(orderId)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Cart item not found with id " + orderId));
+
+                if (order.getUser() == null
+                                || order.getUser().getId() != user.getId()) {
+                        throw new AccessDeniedException(
+                                        "You cannot remove another user's cart item.");
+                }
+
+                ordersDao.delete(order);
                 return "Removed Successfully";
+        }
+
+        // ================= CURRENT USER =================
+        private Users currentUser() {
+                String email = SecurityUtils.currentUserEmail();
+                return usersDao.findByEmail(email)
+                                .orElseThrow(() -> new AccessDeniedException(
+                                                "Authenticated user no longer exists"));
         }
 
         // ================= RESPONSE MAPPER =================

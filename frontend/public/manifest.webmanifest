@@ -1,0 +1,20 @@
+{
+  "name": "Deopuri — Medical Shop Management",
+  "short_name": "Deopuri",
+  "description": "Inventory, orders, appointments and payments in one calm dashboard.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a1124",
+  "theme_color": "#157d58",
+  "categories": ["medical", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

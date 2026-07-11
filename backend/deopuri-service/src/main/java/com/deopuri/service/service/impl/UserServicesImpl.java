@@ -68,7 +68,11 @@ public class UserServicesImpl implements UserServices {
         user.setStatus(UserStatus.APPROVED);
 
         Users updated = dao.save(user);
-      
+
+        // Clear the pending "…requested registration" notice from every admin's panel now that this
+        // user is approved (matched by refUserId = this user's id).
+        notificationService.resolveNotificationsForUser(user.getId());
+
     notificationService.saveNotification(
         "Account Approved",
         "Your account approved successfully",
@@ -174,7 +178,9 @@ public class UserServicesImpl implements UserServices {
 
         Users updated = dao.save(user);
 
-     
+        // Registration handled → clear the pending "…requested registration" notice from admins.
+        notificationService.resolveNotificationsForUser(user.getId());
+
     // NEW rejection notification
    notificationService.saveNotification(
         "Account Rejected",

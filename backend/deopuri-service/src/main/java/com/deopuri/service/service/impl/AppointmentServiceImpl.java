@@ -11,6 +11,8 @@ import com.deopuri.service.dao.NotificationDao;
 import com.deopuri.api.model.Notification;
 import com.deopuri.service.service.AppointmentService;
 import com.deopuri.service.service.EmailService;
+import com.deopuri.exception.BusinessException;
+import com.deopuri.exception.ResourceNotFoundException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -47,12 +49,12 @@ public class AppointmentServiceImpl implements AppointmentService {
 
                 Doctor doctor = doctorDao.findById(
                                 request.doctorId())
-                                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+                                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
 
                 if (request.appointmentDate()
                                 .isBefore(LocalDate.now())) {
 
-                        throw new RuntimeException(
+                        throw new BusinessException("appointment_date_in_past",
                                         "Appointment date cannot be in past");
                 }
 
@@ -64,7 +66,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
                 if (slotExists) {
 
-                        throw new RuntimeException(
+                        throw new BusinessException("slot_already_booked",
                                         "This slot is already booked");
                 }
 
@@ -190,7 +192,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         public AppointmentResponse getAppointmentById(Long id) {
 
                 Appointment appointment = appointmentDao.findById(id)
-                                .orElseThrow(() -> new RuntimeException(
+                                .orElseThrow(() -> new ResourceNotFoundException(
                                                 "Appointment not found"));
 
                 return AppointmentResponse.from(appointment);
@@ -223,7 +225,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         public AppointmentResponse updateStatus(Long id, AppointmentStatus status) {
 
                 Appointment appointment = appointmentDao.findById(id)
-                                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+                                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
 
                 appointment.setStatus(status);
 
@@ -300,7 +302,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         public AppointmentResponse cancelAppointment(Long id) {
 
                 Appointment appointment = appointmentDao.findById(id)
-                                .orElseThrow(() -> new RuntimeException("Appointment not found"));
+                                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
 
                 appointment.setStatus(AppointmentStatus.CANCELLED);
 

@@ -39,6 +39,16 @@ public class NotificationServiceImpl
             String message,
             Integer userId
     ) {
+        saveNotification(title, message, userId, null);
+    }
+
+    @Override
+    public void saveNotification(
+            String title,
+            String message,
+            Integer userId,
+            Integer refUserId
+    ) {
 
         Notification n = new Notification();
 
@@ -47,14 +57,42 @@ public class NotificationServiceImpl
         n.setIsRead(false);
         n.setIsActive(true);
         n.setUserId(userId);
+        n.setRefUserId(refUserId);
 
         Notification saved = notificationDao.save(n);
 
         log.info(
-                "Notification created id={} title='{}' userId={}",
+                "Notification created id={} title='{}' userId={} refUserId={}",
                 saved.getId(),
                 title,
-                userId);
+                userId,
+                refUserId);
+    }
+
+    // RESOLVE (soft-delete) all active notifications ABOUT a given user.
+    @Override
+    @Transactional
+    public void resolveNotificationsForUser(
+            Integer refUserId
+    ) {
+        if (refUserId == null) {
+            return;
+        }
+
+        List<Notification> list =
+                notificationDao.findByRefUserIdAndIsActiveTrue(refUserId);
+
+        if (list.isEmpty()) {
+            return;
+        }
+
+        for (Notification n : list) {
+            n.setIsActive(false);
+        }
+
+        notificationDao.saveAll(list);
+
+        log.info("Resolved {} notification(s) about refUserId={}", list.size(), refUserId);
     }
 
     // GET NOTIFICATIONS

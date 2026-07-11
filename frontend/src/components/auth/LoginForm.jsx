@@ -50,7 +50,7 @@ export default function LoginForm({ onFirstTimeLogin }) {
       // 🚨 FIRST TIME LOGIN
       if (session.status === "FIRST_TIME_LOGIN") {
   console.log("Opening Create Password Form");
-  onFirstTimeLogin(session.userId || session.id);
+  onFirstTimeLogin(session.userId || session.id, session.invitationToken);
   return;
 }
 

@@ -4,6 +4,42 @@ import {
   updateOffer,
   getAllOffers,
 } from "../../services/offers";
+import { required, runValidators } from "../../utils/validators.js";
+
+// Numeric validator: value must parse to a number strictly greater than 0.
+const positiveNumber = (label) => (value) => {
+  const n = Number(value);
+  if (value === "" || value == null || Number.isNaN(n)) return `${label} must be a number`;
+  return n > 0 ? null : `${label} must be greater than 0`;
+};
+
+// Percent cap: value must be <= 100 (only applied to PERCENTAGE offers).
+const maxPercent = (value) =>
+  Number(value) > 100 ? "Percentage cannot exceed 100" : null;
+
+function validate(values) {
+  const discountValidators = [
+    required("Discount"),
+    positiveNumber("Discount"),
+  ];
+  if (values.offerType === "PERCENTAGE") discountValidators.push(maxPercent);
+
+  let endDateError = runValidators(values.endDate, required("End date"));
+  if (!endDateError && values.startDate && values.endDate) {
+    if (new Date(values.endDate) <= new Date(values.startDate)) {
+      endDateError = "End date must be after the start date";
+    }
+  }
+
+  return {
+    offerName: runValidators(values.offerName, required("Offer name")),
+    description: runValidators(values.description, required("Description")),
+    offerType: runValidators(values.offerType, required("Offer type")),
+    discountValue: runValidators(values.discountValue, ...discountValidators),
+    startDate: runValidators(values.startDate, required("Start date")),
+    endDate: endDateError,
+  };
+}
 
 export default function Offers() {
 
@@ -18,6 +54,12 @@ export default function Offers() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [active, setActive] = useState(true);
+
+  const [errors, setErrors] = useState({});
+
+  // Clear a single field's error as soon as the user edits it.
+  const clearError = (name) =>
+    setErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
 
   useEffect(() => {
     loadOffers();
@@ -42,10 +84,26 @@ export default function Offers() {
     setStartDate("");
     setEndDate("");
     setActive(true);
+    setErrors({});
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const nextErrors = validate({
+      offerName,
+      description,
+      offerType,
+      discountValue,
+      startDate,
+      endDate,
+    });
+
+    if (Object.values(nextErrors).some(Boolean)) {
+      setErrors(nextErrors);
+      return;
+    }
+    setErrors({});
 
     const payload = {
       offerName,
@@ -98,146 +156,141 @@ export default function Offers() {
 
     <div className="p-6">
 
-      <h1 className="text-3xl font-bold mb-6">
-        Offer Management
+      <h1 className="flex items-center gap-2 font-display text-3xl font-bold text-ink-900 mb-6">
+        🎁 Offer Management
       </h1>
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white shadow rounded-lg p-6 space-y-4"
+        noValidate
+        className="mx-auto max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl"
       >
 
-        <div>
+        {/* Header */}
+        <div className="flex items-center gap-3 border-b border-ink-100 px-5 py-4">
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-50 text-2xl">🎁</span>
+          <div className="min-w-0">
+            <h3 className="font-display text-lg font-bold text-ink-900">
+              {editingId ? "Edit offer" : "Create offer"}
+            </h3>
+            <p className="truncate text-xs text-ink-500">
+              {editingId ? "Update this offer's details" : "Set up a new discount offer"}
+            </p>
+          </div>
+        </div>
 
-          <label className="block font-medium mb-1">
-            Offer Name
+        {/* Body */}
+        <div className="space-y-4 px-5 py-4">
+
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold text-ink-700">🏷️ Offer name</span>
+            <input
+              type="text"
+              value={offerName}
+              onChange={(e) => { setOfferName(e.target.value); clearError("offerName"); }}
+              placeholder="e.g. Monsoon Sale"
+              className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+            {errors.offerName && <p className="mt-1 text-xs text-red-600">{errors.offerName}</p>}
           </label>
 
-          <input
-            type="text"
-            value={offerName}
-            onChange={(e) => setOfferName(e.target.value)}
-            className="w-full border rounded p-2"
-            required
-          />
-
-        </div>
-
-        <div>
-
-          <label className="block font-medium mb-1">
-            Description
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold text-ink-700">📝 Description</span>
+            <textarea
+              value={description}
+              onChange={(e) => { setDescription(e.target.value); clearError("description"); }}
+              placeholder="Short description of the offer…"
+              rows={3}
+              className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+            {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description}</p>}
           </label>
 
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full border rounded p-2"
-          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-
-          <div>
-
-            <label className="block font-medium mb-1">
-              Offer Type
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold text-ink-700">🎚️ Offer type</span>
+              <select
+                value={offerType}
+                onChange={(e) => { setOfferType(e.target.value); clearError("offerType"); clearError("discountValue"); }}
+                className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              >
+                <option value="PERCENTAGE">Percentage</option>
+                <option value="FLAT">Flat</option>
+              </select>
+              {errors.offerType && <p className="mt-1 text-xs text-red-600">{errors.offerType}</p>}
             </label>
 
-            <select
-              value={offerType}
-              onChange={(e) => setOfferType(e.target.value)}
-              className="w-full border rounded p-2"
-            >
-
-              <option value="PERCENTAGE">
-                Percentage
-              </option>
-
-              <option value="FLAT">
-                Flat
-              </option>
-
-            </select>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold text-ink-700">
+                {offerType === "PERCENTAGE" ? "💯 Discount (%)" : "💰 Discount (₹)"}
+              </span>
+              <input
+                type="number"
+                value={discountValue}
+                onChange={(e) => { setDiscountValue(e.target.value); clearError("discountValue"); }}
+                placeholder={offerType === "PERCENTAGE" ? "e.g. 20" : "e.g. 100"}
+                className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              />
+              {errors.discountValue && <p className="mt-1 text-xs text-red-600">{errors.discountValue}</p>}
+            </label>
 
           </div>
 
-          <div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-            <label className="block font-medium mb-1">
-              Discount
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold text-ink-700">📅 Start date</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); clearError("startDate"); clearError("endDate"); }}
+                className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              />
+              {errors.startDate && <p className="mt-1 text-xs text-red-600">{errors.startDate}</p>}
             </label>
 
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold text-ink-700">📆 End date</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); clearError("endDate"); }}
+                className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+              />
+              {errors.endDate && <p className="mt-1 text-xs text-red-600">{errors.endDate}</p>}
+            </label>
+
+          </div>
+
+          <label className="flex items-center gap-2">
             <input
-              type="number"
-              value={discountValue}
-              onChange={(e) => setDiscountValue(e.target.value)}
-              className="w-full border rounded p-2"
-              required
+              type="checkbox"
+              checked={active}
+              onChange={(e) => setActive(e.target.checked)}
+              className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
             />
-
-          </div>
+            <span className="text-sm font-semibold text-ink-700">✅ Active</span>
+          </label>
 
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* Footer (sticky) */}
+        <div className="flex gap-3 border-t border-ink-100 px-5 py-4 pb-safe">
+          <button
+            type="button"
+            onClick={clearForm}
+            className="flex-1 rounded-xl border border-ink-200 py-2.5 text-sm font-semibold text-ink-600 transition-colors hover:bg-ink-50"
+          >✖ Cancel</button>
 
-          <div>
-
-            <label className="block font-medium mb-1">
-              Start Date
-            </label>
-
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full border rounded p-2"
-              required
-            />
-
-          </div>
-
-          <div>
-
-            <label className="block font-medium mb-1">
-              End Date
-            </label>
-
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full border rounded p-2"
-              required
-            />
-
-          </div>
-
+          <button
+            type="submit"
+            className="flex-[1.5] rounded-xl bg-brand-600 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700 active:scale-[.99]"
+          >{editingId ? "✅ Update Offer" : "✅ Create Offer"}</button>
         </div>
-
-        <div className="flex items-center gap-2">
-
-          <input
-            type="checkbox"
-            checked={active}
-            onChange={(e) => setActive(e.target.checked)}
-          />
-
-          <label>Active</label>
-
-        </div>
-
-        <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
-        >
-          {editingId ? "Update Offer" : "Create Offer"}
-        </button>
 
       </form>
-      
+
             {/* Offer List */}
 
       <div className="mt-8 bg-white shadow rounded-lg">

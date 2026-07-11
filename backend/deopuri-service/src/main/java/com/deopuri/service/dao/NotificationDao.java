@@ -18,6 +18,10 @@ public interface NotificationDao
     List<Notification> findByUserIdAndIsActiveTrue(
             Integer userId
     );
+
+    List<Notification> findByRefUserIdAndIsActiveTrue(
+            Integer refUserId
+    );
 List<Notification>findByUserIdAndIsReadFalse(
             Integer userId
     );

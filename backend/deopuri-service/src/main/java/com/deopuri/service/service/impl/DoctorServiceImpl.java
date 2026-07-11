@@ -12,6 +12,7 @@ import com.deopuri.service.dao.UsersDao;
 import com.deopuri.service.service.DoctorService;
 import com.deopuri.service.service.EmailService;
 import com.deopuri.exception.ResourceNotFoundException;
+import com.deopuri.exception.BusinessException;
 import org.springframework.http.ResponseEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,15 +64,20 @@ public class DoctorServiceImpl implements DoctorService {
         doctorUser.setRole(UserRole.DOCTOR);
         doctorUser.setStatus(UserStatus.APPROVED);
 
-        String tempPassword = "Temp@123";
+        // Random, per-doctor temporary password — never a shared constant. It is emailed to the
+        // doctor (below) and replaced on first login. A shared "Temp@123" let anyone log in as any
+        // freshly-created doctor.
+        String tempPassword = "Dp@" + java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12);
 
         doctorUser.setPassword(
                 passwordEncoder.encode(tempPassword));
 
         doctorUser.setPasswordCreated(false);
 
-        // token ki ab zarurat nahi
-        doctorUser.setInvitationToken(null);
+        // Single-use invitation token — required by create-password so only the invited doctor
+        // (who received this token by email, or logged in with the temp password) can set the password.
+        String invitationToken = java.util.UUID.randomUUID().toString();
+        doctorUser.setInvitationToken(invitationToken);
 
         doctorUser.setAddress(request.address() != null ? request.address() : "N/A");
         doctorUser.setShopName("N/A");
@@ -89,7 +95,8 @@ public class DoctorServiceImpl implements DoctorService {
         doctorDao.save(doctor);
 
         // 4. Email
-        String link = "http://localhost:5173/login?userId=" + doctorUser.getId();
+        String link = "http://localhost:5173/login?userId=" + doctorUser.getId()
+                + "&token=" + invitationToken;
 
         String body = """
                 <div style="font-family:Arial,sans-serif; padding:20px; text-align:center;">
@@ -177,21 +184,33 @@ public class DoctorServiceImpl implements DoctorService {
         log.info("CREATE PASSWORD START userId={}", userId);
 
         if (userId == null || request == null || request.password() == null || request.password().trim().isEmpty()) {
-            throw new RuntimeException("Password is required");
+            throw new BusinessException("password_required", "Password is required");
         }
 
         Users user = usersDao.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
 
         // 🔥 IMPORTANT CHECK
         if (Boolean.TRUE.equals(user.getPasswordCreated())) {
-            throw new RuntimeException("Password already created");
+            throw new BusinessException("password_already_created", "Password already created");
+        }
+
+        // 🔒 Bind this call to the invitation: the caller must present the single-use token that was
+        // emailed to the doctor (or returned on first-time login). Without this, anyone could set a
+        // password for any not-yet-activated user by guessing the userId (account takeover).
+        String presentedToken = request.token();
+        if (presentedToken == null || presentedToken.isBlank()
+                || user.getInvitationToken() == null
+                || !presentedToken.equals(user.getInvitationToken())) {
+            throw new BusinessException("invalid_password_setup_link", "Invalid or expired password-setup link");
         }
 
         String encodedPassword = passwordEncoder.encode(request.password().trim());
 
         user.setPassword(encodedPassword);
         user.setPasswordCreated(true);
+        // Single-use: burn the token so the link can't be replayed.
+        user.setInvitationToken(null);
 
         usersDao.save(user);
 
@@ -223,7 +242,7 @@ public DoctorResponse getDoctorByUserId(Integer userId) {
 
     Doctor doctor = doctorDao.findByUserId(userId)
             .orElseThrow(() ->
-                    new RuntimeException("Doctor not found"));
+                    new ResourceNotFoundException("Doctor not found"));
 
     return new DoctorResponse(
             doctor.getId(),

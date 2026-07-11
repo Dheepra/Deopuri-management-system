@@ -54,6 +54,7 @@ export async function signIn({ email, password }) {
       // IMPORTANT FIX (safe mapping)
       status: data?.status,              // FIRST_TIME_LOGIN / SUCCESS
       userId: data?.userId || data?.id,  // backend compatibility fix
+      invitationToken: data?.invitationToken ?? null, // present only on FIRST_TIME_LOGIN
 
       role: fromBackendRole(data?.role),
 

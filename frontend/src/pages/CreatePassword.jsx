@@ -1,176 +1,111 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
+import { http } from "../services/http.js";
+import { matches, minLength, required, runValidators } from "../utils/validators.js";
 
-
-export default function CreatePassword({ userId, onSuccess }) {
-  
-
-  console.log("LOCATION STATE =", location.state);
-  console.log("USER ID =", userId);
-
+export default function CreatePassword({ userId, token, onSuccess }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  const linkInvalid = !userId || !token;
+
+  const validate = (pw = password, cpw = confirmPassword) => ({
+    password: runValidators(pw, required("Password"), minLength(8)),
+    confirmPassword: runValidators(cpw, required("Confirm password"), matches(pw, "password")),
+  });
+
+  const clearError = (name) =>
+    setErrors((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!password || !confirmPassword) {
-      alert("Please fill all fields");
+    if (linkInvalid) {
+      toast.error("Missing or invalid setup link. Use the link from your email, or log in with your temporary password.");
       return;
     }
 
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
-      return;
-    }
-if (!userId) {
-  alert("Invalid access. Please login again.");
-  return;
-}
+    const next = validate();
+    setErrors(next);
+    if (Object.values(next).some(Boolean)) return;
 
     try {
       setLoading(true);
-
-      console.log("CREATE PASSWORD REQUEST =", {
-        userId,
-        password,
-      });
-
-      const response = await fetch(
-        `http://localhost:8080/api/auth/create-password/${userId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId,
-            password,
-          }),
-        }
-      );
-
-      console.log("RESPONSE STATUS =", response.status);
-
-      const text = await response.text();
-      console.log("RESPONSE BODY =", text);
-
-      if (response.ok) {
-  alert("Password created successfully");
-
-  if (onSuccess) {
-    onSuccess();
-  }
-
-      } else {
-        alert(text || "Failed to create password");
-      }
+      // Relative path → Vite proxy → backend. token authorises the password set for this userId.
+      await http.post(`/api/auth/create-password/${userId}`, { userId, password, token });
+      toast.success("Password created — please log in");
+      onSuccess?.();
     } catch (error) {
-      console.error("CREATE PASSWORD ERROR =", error);
-      alert("Something went wrong");
+      const msg = error?.response?.data?.message || error?.response?.data || "Failed to create password";
+      toast.error(typeof msg === "string" ? msg : "Failed to create password");
     } finally {
       setLoading(false);
     }
   };
 
+  const inputCls = (invalid) =>
+    [
+      "w-full rounded-xl border px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:ring-2 focus:ring-brand-100",
+      invalid ? "border-red-400 focus:border-red-500" : "border-ink-200 focus:border-brand-500",
+    ].join(" ");
+
   return (
-    <div
-  style={{
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "linear-gradient(135deg, #e0f2f1, #f5f5f5)",
-    fontFamily: "Arial, sans-serif",
-  }}
->
-  <div
-    style={{
-      width: "100%",
-      maxWidth: "420px",
-      background: "#fff",
-      padding: "35px",
-      borderRadius: "14px",
-      boxShadow: "0 8px 25px rgba(0,0,0,0.1)",
-      borderTop: "5px solid #2e7d32",
-    }}
-  >
-    <h2
-      style={{
-        textAlign: "center",
-        marginBottom: "25px",
-        color: "#2e7d32",
-        fontSize: "24px",
-        fontWeight: "600",
-      }}
-    >
-      🔐 Create Your Password
-    </h2>
-
-    <form onSubmit={handleSubmit}>
-      {/* Password */}
-      <div style={{ marginBottom: "18px" }}>
-        <label style={{ fontSize: "14px", color: "#555" }}>
-          New Password
-        </label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter new password"
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginTop: "6px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            outline: "none",
-            transition: "0.3s",
-          }}
-        />
+    <div className="w-full">
+      <div className="mb-6 flex items-center gap-3">
+        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-50 text-2xl">🔐</span>
+        <div>
+          <h2 className="font-display text-lg font-bold text-ink-900">Create your password</h2>
+          <p className="text-xs text-ink-500">Set a password to finish activating your account.</p>
+        </div>
       </div>
 
-      {/* Confirm Password */}
-      <div style={{ marginBottom: "22px" }}>
-        <label style={{ fontSize: "14px", color: "#555" }}>
-          Confirm Password
-        </label>
-        <input
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="Re-enter password"
-          style={{
-            width: "100%",
-            padding: "12px",
-            marginTop: "6px",
-            borderRadius: "8px",
-            border: "1px solid #ccc",
-            outline: "none",
-          }}
-        />
-      </div>
+      {linkInvalid && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-medium text-amber-700">
+          ⚠️ Missing or invalid setup link. Open the link from your email, or log in with your temporary password.
+        </div>
+      )}
 
-      {/* Button */}
-      <button
-        type="submit"
-        disabled={loading}
-        style={{
-          width: "100%",
-          padding: "12px",
-          background: loading ? "#a5d6a7" : "#2e7d32",
-          color: "#fff",
-          border: "none",
-          borderRadius: "8px",
-          fontSize: "16px",
-          cursor: loading ? "not-allowed" : "pointer",
-          transition: "0.3s",
-        }}
-      >
-        {loading ? "Creating Password..." : "Create Password"}
-      </button>
-    </form>
-  </div>
-</div>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold text-ink-700">🔑 New password</span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); clearError("password"); }}
+            className={inputCls(Boolean(errors.password))}
+          />
+          {errors.password && (
+            <p className="mt-1 text-xs font-medium text-red-600">{errors.password}</p>
+          )}
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold text-ink-700">✅ Confirm password</span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            placeholder="Re-enter password"
+            value={confirmPassword}
+            onChange={(e) => { setConfirmPassword(e.target.value); clearError("confirmPassword"); }}
+            className={inputCls(Boolean(errors.confirmPassword))}
+          />
+          {errors.confirmPassword && (
+            <p className="mt-1 text-xs font-medium text-red-600">{errors.confirmPassword}</p>
+          )}
+        </label>
+
+        <button
+          type="submit"
+          disabled={loading || linkInvalid}
+          className="w-full rounded-xl bg-brand-600 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading ? "Creating…" : "🔓 Create password"}
+        </button>
+      </form>
+    </div>
   );
 }

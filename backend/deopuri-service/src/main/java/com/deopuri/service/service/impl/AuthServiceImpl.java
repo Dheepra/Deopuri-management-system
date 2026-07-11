@@ -58,11 +58,21 @@ public class AuthServiceImpl implements AuthService {
                 user.setAddress(dto.address());
                 user.setShopName(dto.shopName());
 
-                user.setRole(
-                                UserRole.valueOf(
-                                                dto.role()
-                                                                .trim()
-                                                                .toUpperCase()));
+                // Never trust the client for privilege. Public self-registration may ONLY create
+                // HOSPITAL_ADMIN or MEDICAL_ADMIN. ADMIN is seeded manually; DOCTOR is created by a
+                // hospital admin. Anything else (incl. "ADMIN") is rejected.
+                UserRole requestedRole;
+                try {
+                        requestedRole = UserRole.valueOf(dto.role().trim().toUpperCase());
+                } catch (IllegalArgumentException | NullPointerException ex) {
+                        throw new BusinessException("invalid_role", "Invalid role");
+                }
+                if (requestedRole != UserRole.HOSPITAL_ADMIN
+                                && requestedRole != UserRole.MEDICAL_ADMIN) {
+                        throw new BusinessException("role_not_allowed",
+                                        "This role cannot be self-registered");
+                }
+                user.setRole(requestedRole);
 
                 user.setStatus(UserStatus.PENDING);
 
@@ -218,12 +228,14 @@ public class AuthServiceImpl implements AuthService {
                                                 "New User Approval Request",
                                                 adminBody);
 
-                                // 🔔 NOTIFICATION TO ADMIN
+                                // 🔔 NOTIFICATION TO ADMIN — tagged with the registrant so it can be
+                                // auto-cleared from every admin's panel once this user is approved.
                                 notificationService.saveNotification(
                                                 "New Registration Request",
                                                 savedUser.getEmail()
                                                                 + " requested registration",
-                                                admin.getId());
+                                                admin.getId(),
+                                                savedUser.getId());
                         }
 
                 } catch (Exception e) {
@@ -269,7 +281,7 @@ public class AuthServiceImpl implements AuthService {
 
                         log.info("First time login detected");
 
-                        return LoginResponse.firstTimeLogin(user.getId());
+                        return LoginResponse.firstTimeLogin(user.getId(), user.getInvitationToken());
                 }
 
                 // 🔥 NORMAL LOGIN

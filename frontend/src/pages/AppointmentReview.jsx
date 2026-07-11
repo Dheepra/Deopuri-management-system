@@ -1,12 +1,47 @@
+import { useState } from "react";
 import axios from "axios";
+import {
+  email as emailValidator,
+  phone10,
+  required,
+  runValidators,
+} from "../utils/validators.js";
+
+// Date must not be earlier than today (local).
+const notPast = (value) => {
+  if (!value) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const picked = new Date(`${value}T00:00:00`);
+  return picked < today ? "Date cannot be in the past" : null;
+};
+
+function validate(values) {
+  return {
+    patientName: runValidators(values.patientName, required("Patient name")),
+    patientMobile: runValidators(values.patientMobile, required("Phone number"), phone10),
+    patientEmail: runValidators(values.patientEmail, required("Email"), emailValidator),
+    patientAge: runValidators(values.patientAge, required("Age")),
+    patientGender: runValidators(values.patientGender, required("Gender")),
+    hospitalAdminId: runValidators(values.hospitalAdminId, required("Hospital")),
+    doctorId: runValidators(values.doctorId, required("Doctor")),
+    appointmentDate: runValidators(values.appointmentDate, required("Date")) || notPast(values.appointmentDate),
+    appointmentTime: runValidators(values.appointmentTime, required("Time")),
+  };
+}
+
+const inputClass =
+  "w-full rounded-xl border border-ink-200 bg-ink-50/50 px-3 py-2.5 text-sm text-ink-900 outline-none";
+const labelClass = "mb-1.5 block text-sm font-semibold text-ink-700";
+const errorClass = "mt-1 text-xs text-red-600";
 
 export default function AppointmentReview({
   reviewData,
   setStep,
-  setShowAppointmentForm,
-  setReviewData,
   resetAppointmentFlow
 }){
+  const [errors, setErrors] = useState({});
+
   if (!reviewData?.formData) {
     return <p>No Data Found</p>;
   }
@@ -22,6 +57,13 @@ export default function AppointmentReview({
   );
 
   const handleConfirm = async () => {
+    const next = validate(formData);
+    setErrors(next);
+
+    if (Object.values(next).some(Boolean)) {
+      return;
+    }
+
     try {
       const payload = {
         ...formData,
@@ -55,145 +97,100 @@ export default function AppointmentReview({
   };
 
   return (
-    <div style={styles.card}>
-      <h2 style={styles.title}>Review Appointment</h2>
+    <div className="flex min-h-screen items-center justify-center bg-ink-50 p-4">
+      <div className="w-full max-w-2xl rounded-3xl border border-ink-100 bg-white p-6 shadow-sm">
 
-      <div style={styles.field}>
-        <label style={styles.label}>Patient Name</label>
-        <input style={styles.input} value={formData.patientName} readOnly />
-      </div>
+        <div className="mb-6 flex items-center gap-3">
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-50 text-2xl">📋</span>
+          <div>
+            <h2 className="font-display text-xl font-bold text-ink-900">Review Appointment</h2>
+            <p className="text-xs text-ink-500">Confirm the details before booking</p>
+          </div>
+        </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Mobile Number</label>
-        <input style={styles.input} value={formData.patientMobile} readOnly />
-      </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass}>🧑 Patient Name</label>
+            <input className={inputClass} value={formData.patientName} readOnly />
+            {errors.patientName && <p className={errorClass}>{errors.patientName}</p>}
+          </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Email</label>
-        <input style={styles.input} value={formData.patientEmail} readOnly />
-      </div>
+          <div>
+            <label className={labelClass}>📱 Phone</label>
+            <input className={inputClass} value={formData.patientMobile} readOnly />
+            {errors.patientMobile && <p className={errorClass}>{errors.patientMobile}</p>}
+          </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Age</label>
-        <input style={styles.input} value={formData.patientAge} readOnly />
-      </div>
+          <div>
+            <label className={labelClass}>✉️ Email</label>
+            <input className={inputClass} value={formData.patientEmail} readOnly />
+            {errors.patientEmail && <p className={errorClass}>{errors.patientEmail}</p>}
+          </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Gender</label>
-        <input style={styles.input} value={formData.patientGender} readOnly />
-      </div>
+          <div>
+            <label className={labelClass}>🎂 Age</label>
+            <input className={inputClass} value={formData.patientAge} readOnly />
+            {errors.patientAge && <p className={errorClass}>{errors.patientAge}</p>}
+          </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Hospital</label>
-        <input style={styles.input} value={hospital?.shopName || ""} readOnly />
-      </div>
+          <div>
+            <label className={labelClass}>⚧ Gender</label>
+            <input className={inputClass} value={formData.patientGender} readOnly />
+            {errors.patientGender && <p className={errorClass}>{errors.patientGender}</p>}
+          </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Doctor</label>
-        <input
-          style={styles.input}
-          value={`Dr. ${doctor?.firstName || ""} ${doctor?.lastName || ""}`}
-          readOnly
-        />
-      </div>
+          <div>
+            <label className={labelClass}>🏥 Hospital</label>
+            <input className={inputClass} value={hospital?.shopName || ""} readOnly />
+            {errors.hospitalAdminId && <p className={errorClass}>{errors.hospitalAdminId}</p>}
+          </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Appointment Date</label>
-        <input style={styles.input} value={formData.appointmentDate} readOnly />
-      </div>
+          <div>
+            <label className={labelClass}>👨‍⚕️ Doctor</label>
+            <input
+              className={inputClass}
+              value={`Dr. ${doctor?.firstName || ""} ${doctor?.lastName || ""}`}
+              readOnly
+            />
+            {errors.doctorId && <p className={errorClass}>{errors.doctorId}</p>}
+          </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Appointment Time</label>
-        <input style={styles.input} value={formData.appointmentTime} readOnly />
-      </div>
+          <div>
+            <label className={labelClass}>📅 Appointment Date</label>
+            <input className={inputClass} value={formData.appointmentDate} readOnly />
+            {errors.appointmentDate && <p className={errorClass}>{errors.appointmentDate}</p>}
+          </div>
 
-      <div style={styles.field}>
-        <label style={styles.label}>Notes</label>
-        <textarea style={styles.textarea} value={formData.notes} readOnly />
-      </div>
+          <div>
+            <label className={labelClass}>⏰ Appointment Time</label>
+            <input className={inputClass} value={formData.appointmentTime} readOnly />
+            {errors.appointmentTime && <p className={errorClass}>{errors.appointmentTime}</p>}
+          </div>
 
-      <div style={styles.buttonContainer}>
-        <button style={styles.backButton} onClick={handleEdit}>
-          Edit Details
-        </button>
+          <div className="sm:col-span-2">
+            <label className={labelClass}>📝 Notes</label>
+            <textarea className={inputClass} value={formData.notes} rows={3} readOnly />
+          </div>
+        </div>
 
-        <button style={styles.confirmButton} onClick={handleConfirm}>
-          Confirm Appointment
-        </button>
+        <div className="mt-6 flex gap-3">
+          <button
+            type="button"
+            onClick={handleEdit}
+            className="flex-1 rounded-xl border border-ink-200 py-2.5 text-sm font-semibold text-ink-600 transition-colors hover:bg-ink-50"
+          >
+            ✏️ Edit Details
+          </button>
+
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="flex-[1.5] rounded-xl bg-brand-600 py-2.5 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-700 active:scale-[.99]"
+          >
+            ✅ Confirm Appointment
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-const styles = {
-  page: {
-    minHeight: "100vh",
-    background: "#f4f6f8",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center"
-  },
-
-  card: {
-    width: "500px",
-    background: "#fff",
-    padding: "25px",
-    borderRadius: "12px",
-    boxShadow: "0 8px 20px rgba(0,0,0,0.1)"
-  },
-
-  title: {
-    textAlign: "center",
-    marginBottom: "20px",
-    color: "#157d58"
-  },
-
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    marginBottom: "12px"
-  },
-
-  label: {
-    marginBottom: "5px",
-    fontWeight: "600"
-  },
-
-  input: {
-    padding: "10px",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    background: "#f9f9f9"
-  },
-
-  textarea: {
-    padding: "10px",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    minHeight: "80px",
-    background: "#f9f9f9"
-  },
-
-  buttonContainer: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: "20px"
-  },
-
-  backButton: {
-    padding: "10px 20px",
-    background: "#6c757d",
-    color: "#fff",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer"
-  },
-
-  confirmButton: {
-    padding: "10px 20px",
-    background: "#157d58",
-    color: "#fff",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer"
-  }
-};

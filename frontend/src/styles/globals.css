@@ -43,7 +43,27 @@ body {
   background: var(--color-ink-50);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* App-like feel: no tap flash, no rubber-band overscroll, no text-select on chrome */
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
 }
+
+/* Buttons / links feel tappable, never text-selected like a document */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Safe-area helpers for notch / home-indicator (used by the dashboard shell) */
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+/* When launched as an installed app, hide any browser-only marketing chrome if present */
+@media (display-mode: standalone) {
+  .hide-in-app { display: none !important; }
+}
+
+/* Smooth momentum scrolling in scroll areas */
+main, .scroll-area { -webkit-overflow-scrolling: touch; }
 
 img {
   user-select: none;

@@ -1,7 +1,10 @@
 import axios from "axios";
 
-const baseURL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+// Default to a RELATIVE base ("") so every `/api/...` call goes to the same origin the page is
+// served from (the Vite dev server), which proxies `/api` to the backend. This means it works from
+// a phone on the same Wi-Fi (http://<PC-IP>:5173) with no CORS or backend-LAN config. Override with
+// VITE_API_BASE_URL only when the API lives on a different host (e.g. a separate prod domain).
+const baseURL = import.meta.env.VITE_API_BASE_URL || "";
 
 export const http = axios.create({
   baseURL,

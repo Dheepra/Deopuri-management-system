@@ -1,6 +1,6 @@
 import EnterpriseAuthLayout from '../layouts/EnterpriseAuthLayout.jsx';
 import LoginForm from '../components/auth/LoginForm.jsx';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useSearchParams } from "react-router-dom";
 import toast from 'react-hot-toast';
 import { useEffect, useState } from 'react';
@@ -30,9 +30,10 @@ export default function Login() {
 
 const userId = searchParams.get("userId");
   const location = useLocation();
-  const navigate = useNavigate();
   const [showCreatePassword, setShowCreatePassword] = useState(false);
-const [doctorUserId, setDoctorUserId] = useState(null);
+  const [doctorUserId, setDoctorUserId] = useState(null);
+  const [inviteToken, setInviteToken] = useState(null);
+  const urlToken = searchParams.get("token");
 
 
   useEffect(() => {
@@ -41,37 +42,15 @@ const [doctorUserId, setDoctorUserId] = useState(null);
     }
   }, [location.state]);
 
-  // 🔥 LOGIN HANDLER (NOW CORRECT)
-  const handleLoginSuccess = (res) => {
-
-    // 👇 FIRST TIME LOGIN (DOCTOR ONLY)
-    if (session.status === "FIRST_TIME_LOGIN") {
-  navigate("/create-password", {
-    state: { userId: session.id }
-  });
-  return;
-}
-useEffect(() => {
-  if (userId) {
-    setDoctorUserId(Number(userId));
-    setShowCreatePassword(true);
-  }
-}, [userId]);
-
-    // 👇 NORMAL LOGIN SUCCESS
-    if (res.token) {
-
-      localStorage.setItem("token", res.token);
-
-      if (res.role === "DOCTOR") {
-        navigate("/doctor/dashboard");
-      } else if (res.role === "ADMIN") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/dashboard");
-      }
+  // Email "Create Password" link path: /login?userId=X&token=Y opens the create-password form
+  // pre-filled with the invitation token. (Normal login + first-time login are handled by LoginForm.)
+  useEffect(() => {
+    if (userId) {
+      setDoctorUserId(Number(userId));
+      setInviteToken(urlToken);
+      setShowCreatePassword(true);
     }
-  };
+  }, [userId, urlToken]);
 
   return (
   <EnterpriseAuthLayout
@@ -84,6 +63,7 @@ useEffect(() => {
     {showCreatePassword ? (
       <CreatePassword
         userId={doctorUserId}
+        token={inviteToken}
         onSuccess={() => {
           setShowCreatePassword(false);
           toast.success("Password created successfully. Please login.");
@@ -91,8 +71,9 @@ useEffect(() => {
       />
     ) : (
       <LoginForm
-        onFirstTimeLogin={(userId) => {
-          setDoctorUserId(userId);
+        onFirstTimeLogin={(uid, token) => {
+          setDoctorUserId(uid);
+          setInviteToken(token);
           setShowCreatePassword(true);
         }}
       />

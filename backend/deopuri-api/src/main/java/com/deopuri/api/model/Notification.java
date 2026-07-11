@@ -24,7 +24,12 @@ public class Notification {
 
     // NEW FIELD
     @Column(name = "user_id")
-    private Integer userId;   // null = admin notification
+    private Integer userId;   // recipient; null = broadcast/admin notification
+
+    // The user this notification is ABOUT (e.g. the registrant for an approval request). Lets us
+    // auto-resolve the "X requested registration" notice once that user is approved. Null when N/A.
+    @Column(name = "ref_user_id")
+    private Integer refUserId;
 
     @Column(name = "is_read")
     private Boolean isRead = false;
@@ -82,6 +87,14 @@ public class Notification {
 
     public void setUserId(Integer userId) {
         this.userId = userId;
+    }
+
+    public Integer getRefUserId() {
+        return refUserId;
+    }
+
+    public void setRefUserId(Integer refUserId) {
+        this.refUserId = refUserId;
     }
 
     public Boolean getIsRead() {

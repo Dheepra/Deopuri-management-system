@@ -36,18 +36,8 @@ public class PublicEndpoints {
                         HttpMethod.GET,
                         "/api/products/**"),
 
-                // cart apis
-                builder.matcher(
-                        HttpMethod.POST,
-                        "/api/cart/add"),
-
-                builder.matcher(
-                        HttpMethod.GET,
-                        "/api/cart/all"),
-
-                builder.matcher(
-                        HttpMethod.DELETE,
-                        "/api/cart/remove/**"),
+                // cart apis are authenticated (IDOR fix — acting user is derived
+                // from the JWT principal, not the request body/path).
 
                 // default
                 builder.matcher("/error"),

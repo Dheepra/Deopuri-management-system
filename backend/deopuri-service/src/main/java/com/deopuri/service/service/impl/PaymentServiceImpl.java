@@ -5,11 +5,15 @@ import com.deopuri.api.dto.PaymentResponse;
 import com.deopuri.api.model.Orders;
 import com.deopuri.api.model.Payment;
 import com.deopuri.api.model.PaymentStatus;
+import com.deopuri.security.SecurityUtils;
 import com.deopuri.service.dao.OrdersDao;
 import com.deopuri.service.dao.PaymentDao;
 import com.deopuri.service.service.EmailService;
 
 import com.deopuri.service.service.PaymentService;
+import com.deopuri.exception.BusinessException;
+import com.deopuri.exception.ResourceNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,14 +48,14 @@ public class PaymentServiceImpl implements PaymentService {
                 List<Orders> orders = ordersDao.findAllByOrderNumber(orderNumber);
 
                 if (orders.isEmpty()) {
-                        throw new RuntimeException("Order not found");
+                        throw new ResourceNotFoundException("Order not found");
                 }
 
                 Orders order = orders.get(0);
                 double paid = order.getPaidAmount() + request.amount();
 
                 if (paid > order.getTotalAmount()) {
-                        throw new RuntimeException(
+                        throw new BusinessException("payment_exceeds_total",
                                         "Payment cannot be greater than total amount.");
                 }
 
@@ -162,7 +166,23 @@ public class PaymentServiceImpl implements PaymentService {
         @Override
         @Transactional(readOnly = true)
         public List<PaymentResponse> getPaymentHistory(String orderNumber) {
-                paymentDao.findByOrderOrderNumberOrderByPaymentDateDesc(orderNumber);
+
+                // IDOR fix: only an ADMIN or the order's owner may view its payments.
+                List<Orders> orders = ordersDao.findAllByOrderNumber(orderNumber);
+
+                if (orders.isEmpty()) {
+                        throw new ResourceNotFoundException("Order not found");
+                }
+
+                if (!"ROLE_ADMIN".equals(SecurityUtils.currentUserRole())) {
+                        String email = SecurityUtils.currentUserEmail();
+                        Orders order = orders.get(0);
+                        if (order.getUser() == null
+                                        || !email.equals(order.getUser().getEmail())) {
+                                throw new AccessDeniedException(
+                                                "You cannot view another order's payments.");
+                        }
+                }
 
                 List<Payment> payments = paymentDao.findByOrderOrderNumberOrderByPaymentDateDesc(orderNumber);
 

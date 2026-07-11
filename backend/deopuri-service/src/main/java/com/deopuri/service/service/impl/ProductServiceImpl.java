@@ -197,6 +197,7 @@ public ProductResponse create(ProductRequest request, String imageUrl) {
             return "/uploads/" + fileName;
 
         } catch (Exception e) {
+            log.error("Image upload failed filename={}", image.getOriginalFilename(), e);
             throw new RuntimeException("Image upload failed", e);
         }
     }
