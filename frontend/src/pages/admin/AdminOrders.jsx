@@ -94,6 +94,8 @@ const handleConfirm = async (groupOrders) => {
   );
 });
 
+
+
     if (hasEmptyAmount) {
       alert("Please enter amount for all medicines before confirming.");
       return;
@@ -107,6 +109,22 @@ loadOrders();
     alert(
       err.response?.data?.message ||
       "Failed to confirm order."
+    );
+  }
+};
+
+const handleDeliver = async (groupOrders) => {
+  try {
+    await updateOrderStatus(
+      groupOrders[0].id,
+      "DELIVERED"
+    );
+
+    await loadOrders();
+  } catch (err) {
+    alert(
+      err.response?.data?.message ||
+      "Failed to deliver order."
     );
   }
 };
@@ -303,19 +321,29 @@ return (
 
   </div>
 
-  {groupOrders[0].status === "PENDING" ? (
-    <button
-      onClick={() => handleConfirm(groupOrders)}
-      className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg"
-    >
-      Confirm Order
-    </button>
-  ) : (
-    <span className="text-green-600 font-bold">
-      ✔ Confirmed
-    </span>
-  )}
+  {groupOrders[0].status === "PENDING" && (
+  <button
+    onClick={() => handleConfirm(groupOrders)}
+    className="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg"
+  >
+    Confirm Order
+  </button>
+)}
 
+{groupOrders[0].status === "CONFIRMED" && (
+  <button
+    onClick={() => handleDeliver(groupOrders)}
+    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg"
+  >
+    Deliver Order
+  </button>
+)}
+
+{groupOrders[0].status === "DELIVERED" && (
+  <span className="text-green-700 font-bold">
+    ✔ Delivered
+  </span>
+)}
 </div>
 
                 </div>

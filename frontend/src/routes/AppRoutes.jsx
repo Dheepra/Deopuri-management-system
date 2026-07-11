@@ -18,6 +18,9 @@ import Payments from "../pages/admin/Payments.jsx";
 import PaymentDetails from "../pages/admin/PaymentDetails.jsx";
 import Offers from "../pages/admin/Offers.jsx";
 import TopCustomers from "../pages/admin/TopCustomers.jsx";
+import RawMaterial from "../pages/admin/RawMaterial.jsx";
+import Expenses from "../pages/admin/Expenses.jsx";
+import ProfitLoss from "../pages/admin/ProfitLoss.jsx";
 
 import HospitalDashboardLayout from '../layouts/HospitalDashboardLayout.jsx';
 import HospitalDashboard from '../pages/hospital/HospitalDashboard.jsx';
@@ -83,10 +86,18 @@ export default function AppRoutes() {
   path="offers"
   element={<Offers />}
 />
-
 <Route
   path="top-customers"
   element={<TopCustomers />}
+/>
+<Route path="raw-material" element={<RawMaterial />} />
+<Route
+  path="expenses"
+  element={<Expenses />}
+/>
+<Route
+   path="profit-loss"
+   element={<ProfitLoss />}
 />
       </Route>
 

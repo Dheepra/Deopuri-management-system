@@ -169,59 +169,55 @@ public class OrdersServiceImpl implements OrdersService {
         }
 
         @Override
-        @Transactional
-        public OrderResponse updateOrderStatus(Long id, OrderStatus status) {
-                log.info("updateOrderStatus called -> id={}, status={}", id, status);
-                Orders order = loadOrder(id);
+@Transactional
+public OrderResponse updateOrderStatus(Long id, OrderStatus status) {
 
-                // Same group ke saare orders nikalo
-                List<Orders> groupOrders = dao.findByOrderGroupId(order.getOrderGroupId());
+    log.info("updateOrderStatus called -> id={}, status={}", id, status);
 
-                // Confirm karne se pehle sabhi orders ka amount check karo
-                if (status == OrderStatus.CONFIRMED) {
+    Orders order = loadOrder(id);
 
-                        for (Orders o : groupOrders) {
-                                if (o.getTotalAmount() == null || o.getTotalAmount() <= 0) {
-                                        throw new BusinessException(
-                                                        "amount_required",
-                                                        "Please assign total amount before confirming the order.");
-                                }
-                        }
+    // Same orderNumber ke saare products nikalo
+    List<Orders> groupOrders =
+            dao.findAllByOrderNumber(order.getOrderNumber());
 
-                        // Group ke saare orders confirm karo
-                        for (Orders o : groupOrders) {
-                                o.setStatus(OrderStatus.CONFIRMED);
-                        }
+    if (status == OrderStatus.CONFIRMED) {
 
-                        dao.saveAll(groupOrders);
-                        log.info("Sending notification for orderNumber={}", order.getOrderNumber());
-
-                        // Sirf EK notification
-                        notificationService.saveNotification(
-                                        "Order Confirmed",
-                                        "Your order has been confirmed.",
-                                        order.getUser().getId());
-
-                        log.info("Bulk order confirmed userId={} totalItems={}",
-                                        order.getUser().getId(),
-                                        groupOrders.size());
-
-                } else {
-
-                        order.setStatus(status);
-
-                        if (status == OrderStatus.DELIVERED) {
-                                order.setDeliveredDate(LocalDateTime.now());
-                        }
-
-                        dao.save(order);
-
-                        log.info("Order status updated id={} status={}", id, status);
-                }
-
-                return toResponse(order);
+        for (Orders o : groupOrders) {
+            if (o.getTotalAmount() == null || o.getTotalAmount() <= 0) {
+                throw new BusinessException(
+                        "amount_required",
+                        "Please assign total amount before confirming the order."
+                );
+            }
         }
 
+        for (Orders o : groupOrders) {
+            o.setStatus(OrderStatus.CONFIRMED);
+        }
+
+        dao.saveAll(groupOrders);
+
+        notificationService.saveNotification(
+                "Order Confirmed",
+                "Your order has been confirmed.",
+                order.getUser().getId()
+        );
+
+    } else {
+
+        for (Orders o : groupOrders) {
+            o.setStatus(status);
+
+            if (status == OrderStatus.DELIVERED) {
+                o.setDeliveredDate(LocalDateTime.now());
+            }
+        }
+
+        dao.saveAll(groupOrders);
+    }
+
+    return toResponse(order);
+}
         @Override
         @Transactional
         public OrderResponse updateTotalAmount(Long id, Double amount) {
