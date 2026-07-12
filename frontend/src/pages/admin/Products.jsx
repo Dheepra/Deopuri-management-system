@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import SearchInput from '../../components/ui/SearchInput.jsx';
 import Table from '../../components/ui/Table.jsx';
 import Button from '../../components/ui/Button.jsx';
@@ -8,7 +9,8 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  addVariant
+  addVariant,
+  importProducts
 } from '../../services/products.js';
 
 
@@ -93,6 +95,75 @@ const handleDelete = async (id) => {
     console.error(error);
   }
 };
+
+const fileInputRef = useRef(null);
+const [importing, setImporting] = useState(false);
+
+const handleImportClick = () => {
+  fileInputRef.current?.click();
+};
+
+const handleImportFile = async (event) => {
+  const file = event.target.files?.[0];
+  // Reset so selecting the same file again re-triggers onChange.
+  event.target.value = '';
+  if (!file) return;
+
+  setImporting(true);
+  const loadingId = toast.loading('Importing products…');
+  try {
+    const result = await importProducts(file);
+    const { total = 0, imported = 0, skipped = 0, errors = [] } = result || {};
+
+    toast.success(`Imported ${imported} of ${total} (${skipped} skipped)`, { id: loadingId });
+
+    if (errors.length) {
+      toast.error(
+        (t) => (
+          <div className="max-w-xs">
+            <div className="mb-1 flex items-center justify-between gap-3">
+              <span className="font-semibold">{errors.length} row(s) skipped</span>
+              <button
+                type="button"
+                onClick={() => toast.dismiss(t.id)}
+                className="text-xs text-ink-400 hover:text-ink-700"
+              >✕</button>
+            </div>
+            <ul className="list-disc space-y-0.5 pl-4 text-xs">
+              {errors.slice(0, 8).map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+              {errors.length > 8 && <li>…and {errors.length - 8} more</li>}
+            </ul>
+          </div>
+        ),
+        { duration: 8000 }
+      );
+    }
+
+    refresh();
+  } catch (error) {
+    console.error(error);
+    const msg =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      'Import failed. Please check the file and try again.';
+    toast.error(msg, { id: loadingId });
+  } finally {
+    setImporting(false);
+  }
+};
+
+const handleDownloadSample = () => {
+  const csv = 'name,description,price,quantity,category\n';
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'products-sample.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+};
   const columns = [
     {
       key: 'name',
@@ -176,24 +247,48 @@ return (
     placeholder="Search products..."
   />
 
-  <Button
-  onClick={() => {
-    setEditId(null);
-setFormData({
-  name: '',
-  description: '',
-  price: '',
-  quantity: '',
-  manufacturingDate: '',
- image: null,
-  variants: []
-});
+  <div className="flex items-center gap-2">
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept=".csv"
+      className="hidden"
+      onChange={handleImportFile}
+    />
 
-    setShowModal(true);
-  }}
->
-  ➕ Add Product
-</Button>
+    <Button onClick={handleImportClick} disabled={importing}>
+      {importing ? '⏳ Importing…' : '⬆️ Import CSV'}
+    </Button>
+
+    <Button
+    onClick={() => {
+      setEditId(null);
+  setFormData({
+    name: '',
+    description: '',
+    price: '',
+    quantity: '',
+    manufacturingDate: '',
+   image: null,
+    variants: []
+  });
+
+      setShowModal(true);
+    }}
+  >
+    ➕ Add Product
+  </Button>
+  </div>
+</div>
+
+<div className="mb-2 flex justify-end">
+  <button
+    type="button"
+    onClick={handleDownloadSample}
+    className="text-xs font-semibold text-brand-600 underline-offset-2 hover:underline"
+  >
+    ⬇️ Download sample CSV
+  </button>
 </div>
 
     <Table

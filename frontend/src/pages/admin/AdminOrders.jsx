@@ -4,6 +4,7 @@ import {
   updateOrderStatus,
 } from "../../services/adminOrders";
 import { updateOrderAmount } from "../../services/adminOrders";
+import { downloadCsv, todayStamp } from "../../utils/exportCsv.js";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -203,6 +204,24 @@ return (
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium shadow"
         >
           Apply
+        </button>
+
+        <button
+          onClick={() =>
+            downloadCsv(`orders-${todayStamp()}.csv`, filteredOrders, [
+              { header: "Order #", value: (o) => o.orderNumber },
+              { header: "Customer", value: (o) => o.userName },
+              { header: "Date", value: (o) => formatDate(o.orderDate) },
+              { header: "Medicine", value: (o) => o.productName },
+              { header: "Quantity", value: (o) => o.quantity },
+              { header: "Product Total", value: (o) => o.productAmount },
+              { header: "Order Total", value: (o) => o.totalAmount },
+              { header: "Status", value: (o) => o.status },
+            ])
+          }
+          className="border border-blue-600 text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg font-medium"
+        >
+          ⬇️ Export CSV
         </button>
 
       </div>

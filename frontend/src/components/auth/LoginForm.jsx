@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -23,6 +23,18 @@ export default function LoginForm({ onFirstTimeLogin }) {
 
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  // Where to go once the auth context reflects the new session. We navigate from an effect (not
+  // inline after signIn) so the destination's ProtectedRoute always renders with the up-to-date
+  // role — otherwise a role-based route can briefly see the stale (null) role and bounce to
+  // /unauthorized (the "first login shows 403, second works" bug).
+  const [redirectTo, setRedirectTo] = useState(null);
+
+  useEffect(() => {
+    if (redirectTo && auth.isAuthenticated && auth.role) {
+      navigate(redirectTo, { replace: true });
+      setRedirectTo(null);
+    }
+  }, [redirectTo, auth.isAuthenticated, auth.role, navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -74,8 +86,8 @@ export default function LoginForm({ onFirstTimeLogin }) {
 
       toast.success('Welcome back');
 
-      const redirectTo = location.state?.from ?? home;
-      navigate(redirectTo, { replace: true });
+      // Defer the actual navigation to the effect above, which fires once the context has the role.
+      setRedirectTo(location.state?.from ?? home);
 
     } catch (err) {
       if (import.meta.env.DEV) console.warn('[auth] sign-in failed', err);

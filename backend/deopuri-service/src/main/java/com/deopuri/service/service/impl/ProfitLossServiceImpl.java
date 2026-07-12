@@ -12,11 +12,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
 public class ProfitLossServiceImpl implements ProfitLossService {
+
+        private static final int MONEY_SCALE = 2;
 
         @Autowired
         private OrdersDao ordersDao;
@@ -25,85 +30,86 @@ public class ProfitLossServiceImpl implements ProfitLossService {
         private ExpenseDao expenseDao;
 
         @Override
-        public ProfitLossResponse getProfitLoss() {
+        public ProfitLossResponse getProfitLoss(LocalDate from, LocalDate to) {
 
-                // ================= TOTAL SALES =================
+                // ================= TOTAL SALES (delivered orders in period) =================
+                BigDecimal totalSales = ordersDao.findByStatus(OrderStatus.DELIVERED).stream()
+                                .filter(o -> inRange(o.getOrderDate() == null ? null
+                                                : o.getOrderDate().toLocalDate(), from, to))
+                                .map(Orders::getTotalAmount)
+                                .filter(a -> a != null)
+                                .map(BigDecimal::valueOf)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-                List<Orders> deliveredOrders = ordersDao.findByStatus(OrderStatus.DELIVERED);
+                // ================= EXPENSES (by type, in period) =================
+                BigDecimal rawMaterial = expenseTotal(ExpenseType.RAW_MATERIAL, from, to);
+                BigDecimal manufacturing = expenseTotal(ExpenseType.MANUFACTURING, from, to);
+                BigDecimal packaging = expenseTotal(ExpenseType.PACKAGING, from, to);
+                BigDecimal delivery = expenseTotal(ExpenseType.DELIVERY, from, to);
+                BigDecimal salary = expenseTotal(ExpenseType.SALARY, from, to);
+                BigDecimal electricity = expenseTotal(ExpenseType.ELECTRICITY, from, to);
+                BigDecimal rent = expenseTotal(ExpenseType.RENT, from, to);
+                BigDecimal other = expenseTotal(ExpenseType.OTHER, from, to);
 
-                Double totalSales = deliveredOrders.stream()
-                                .mapToDouble(order -> order.getTotalAmount() == null ? 0.0 : order.getTotalAmount())
-                                .sum();
+                // COGS = cost of goods sold; the rest are operating expenses.
+                BigDecimal cogs = rawMaterial.add(manufacturing).add(packaging);
+                BigDecimal operating = salary.add(electricity).add(rent).add(delivery).add(other);
+                BigDecimal totalExpense = cogs.add(operating);
 
-                // ================= EXPENSES =================
+                // ================= RESULTS =================
+                BigDecimal grossProfit = totalSales.subtract(cogs);
+                BigDecimal net = totalSales.subtract(totalExpense); // signed
 
-                Double rawMaterialExpense = getExpenseTotal(ExpenseType.RAW_MATERIAL);
+                String status = net.signum() >= 0 ? "PROFIT" : "LOSS";
+                BigDecimal netProfit = net.signum() >= 0 ? net : BigDecimal.ZERO;
+                BigDecimal netLoss = net.signum() < 0 ? net.abs() : BigDecimal.ZERO;
 
-                Double manufacturingExpense = getExpenseTotal(ExpenseType.MANUFACTURING);
-
-                Double packagingExpense = getExpenseTotal(ExpenseType.PACKAGING);
-
-                Double deliveryExpense = getExpenseTotal(ExpenseType.DELIVERY);
-
-                Double salaryExpense = getExpenseTotal(ExpenseType.SALARY);
-
-                Double electricityExpense = getExpenseTotal(ExpenseType.ELECTRICITY);
-
-                Double rentExpense = getExpenseTotal(ExpenseType.RENT);
-
-                Double otherExpense = getExpenseTotal(ExpenseType.OTHER);
-
-                Double totalExpense = rawMaterialExpense +
-                                manufacturingExpense +
-                                packagingExpense +
-                                deliveryExpense +
-                                salaryExpense +
-                                electricityExpense +
-                                rentExpense +
-                                otherExpense;
-
-                // ================= PROFIT / LOSS =================
-
-                // ================= PROFIT / LOSS =================
-
-                Double netProfit = totalSales - totalExpense;
-                Double netLoss = 0.0;
-
-                String status;
-
-                if (netProfit >= 0) {
-                        status = "PROFIT";
-                } else {
-                        status = "LOSS";
-                        netLoss = Math.abs(netProfit); // Loss ko positive value me dikhao
-                        netProfit = 0.0; // Profit 0 kar do
-                }
+                BigDecimal grossMargin = percentOf(grossProfit, totalSales);
+                BigDecimal netMargin = percentOf(net, totalSales);
 
                 return new ProfitLossResponse(
-                                totalSales,
-                                rawMaterialExpense,
-                                manufacturingExpense,
-                                packagingExpense,
-                                deliveryExpense,
-                                salaryExpense,
-                                electricityExpense,
-                                rentExpense,
-                                otherExpense,
-                                totalExpense,
-                                netProfit,
-                                netLoss,
-                                status);
+                                money(totalSales),
+                                money(rawMaterial), money(manufacturing), money(packaging), money(delivery),
+                                money(salary), money(electricity), money(rent), money(other),
+                                money(cogs), money(operating), money(totalExpense),
+                                money(grossProfit), money(netProfit), money(netLoss),
+                                grossMargin, netMargin,
+                                status, from, to);
         }
 
-        // ================= HELPER =================
-
-        private Double getExpenseTotal(ExpenseType expenseType) {
-
-                List<Expense> expenses = expenseDao.findByExpenseType(expenseType);
-
+        // Sum of a category's expenses whose expenseDate falls in [from, to] (null bounds = open).
+        private BigDecimal expenseTotal(ExpenseType type, LocalDate from, LocalDate to) {
+                List<Expense> expenses = expenseDao.findByExpenseType(type);
                 return expenses.stream()
-                                .mapToDouble(expense -> expense.getAmount() == null ? 0.0 : expense.getAmount())
-                                .sum();
+                                .filter(e -> inRange(e.getExpenseDate(), from, to))
+                                .map(Expense::getAmount)
+                                .filter(a -> a != null)
+                                .map(BigDecimal::valueOf)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
         }
 
+        private boolean inRange(LocalDate date, LocalDate from, LocalDate to) {
+                if (from == null && to == null) {
+                        return true; // all-time
+                }
+                if (date == null) {
+                        return false; // can't place an undated row in a bounded period
+                }
+                if (from != null && date.isBefore(from)) {
+                        return false;
+                }
+                return to == null || !date.isAfter(to);
+        }
+
+        private BigDecimal money(BigDecimal v) {
+                return v.setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+        }
+
+        private BigDecimal percentOf(BigDecimal part, BigDecimal whole) {
+                if (whole == null || whole.signum() == 0) {
+                        return BigDecimal.ZERO.setScale(1, RoundingMode.HALF_UP);
+                }
+                return part.multiply(BigDecimal.valueOf(100))
+                                .divide(whole, 1, RoundingMode.HALF_UP);
+        }
 }

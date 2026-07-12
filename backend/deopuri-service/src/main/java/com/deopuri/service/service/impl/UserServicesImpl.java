@@ -5,9 +5,14 @@ import com.deopuri.api.dto.UserUpdateRequest;
 import com.deopuri.api.model.UserRole;
 import com.deopuri.api.model.UserStatus;
 import com.deopuri.api.model.Users;
+import com.deopuri.exception.BusinessException;
 import com.deopuri.exception.EmailAlreadyRegisteredException;
 import com.deopuri.exception.ResourceNotFoundException;
 import com.deopuri.security.jwt.JwtUtil;
+import org.springframework.web.multipart.MultipartFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import com.deopuri.service.dao.UsersDao;
 import com.deopuri.service.service.UserServices;
@@ -246,7 +251,9 @@ public class UserServicesImpl implements UserServices {
             user.setLastName(request.lastName());
         if (request.email() != null) {
             String newEmail = normalizeEmail(request.email());
-            if (dao.existsByEmail(newEmail)) {
+            // Only reject if the email actually changed AND is taken by someone else — re-submitting
+            // your own unchanged email must not fail.
+            if (!newEmail.equalsIgnoreCase(user.getEmail()) && dao.existsByEmail(newEmail)) {
                 throw new EmailAlreadyRegisteredException("Email already in use");
             }
             user.setEmail(newEmail);
@@ -261,6 +268,35 @@ public class UserServicesImpl implements UserServices {
             user.setShopName(request.shopName());
 
         log.info("User profile updated id={}", id);
+        return UserMapper.toResponse(user);
+    }
+
+    @Override
+    public UserResponse uploadProfilePhoto(int id, MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            throw new BusinessException("photo_required", "Please choose an image to upload");
+        }
+        String contentType = image.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new BusinessException("invalid_image", "The file must be an image");
+        }
+        if (image.getSize() > 3 * 1024 * 1024) {
+            throw new BusinessException("image_too_large", "Image must be under 3 MB");
+        }
+
+        Users user = findById(id);
+        try {
+            String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
+            Path path = Paths.get("uploads", fileName);
+            Files.createDirectories(path.getParent());
+            Files.write(path, image.getBytes());
+            user.setPhotoUrl("/uploads/" + fileName);
+        } catch (Exception e) {
+            log.error("Profile photo upload failed userId={}", id, e);
+            throw new RuntimeException("Photo upload failed", e);
+        }
+
+        log.info("Profile photo updated userId={}", id);
         return UserMapper.toResponse(user);
     }
 
@@ -293,17 +329,7 @@ public List<UserResponse> getHospitals() {
 
     return dao.findByRole(UserRole.HOSPITAL_ADMIN)
             .stream()
-            .map(user -> new UserResponse(
-                    user.getId(),
-                    user.getFirstName(),
-                    user.getLastName(),
-                    user.getEmail(),
-                    user.getMobileNo(),
-                    user.getAddress(),
-                    user.getShopName(),
-                    user.getRole(),
-                    user.getStatus()
-            ))
+            .map(UserMapper::toResponse)
             .toList();
 }
 }

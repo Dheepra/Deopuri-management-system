@@ -72,9 +72,31 @@ function Topbar({ onMenu, search, onSearchChange }) {
 
   const notificationRef = useRef(null);
 
+  const [photoUrl, setPhotoUrl] = useState('');
+
+  const [displayName, setDisplayName] = useState('');
+
   const userId = user?.id;
 
-  const initial = (user?.email?.[0] || 'A').toUpperCase();
+  const initial = (displayName?.[0] || user?.email?.[0] || 'A').toUpperCase();
+
+  // Fetch the current user's photo + name once so the topbar avatar shows their picture and name.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await http.get('/deopuri/users/me');
+        if (!active) return;
+        if (data?.photoUrl) setPhotoUrl(data.photoUrl);
+        setDisplayName([data?.firstName, data?.lastName].filter(Boolean).join(' ').trim());
+      } catch (err) {
+        console.log(err);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // FETCH NOTIFICATIONS
   //
@@ -88,7 +110,7 @@ function Topbar({ onMenu, search, onSearchChange }) {
       if (!userId) return;
 
       // Relative path → Vite proxy → backend; the http interceptor attaches the JWT. Works on mobile.
-      const { data } = await http.get(`/api/notifications/${userId}`);
+      const { data } = await http.get(`/deopuri/notifications/${userId}`);
 
       setNotifications(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -139,7 +161,7 @@ function Topbar({ onMenu, search, onSearchChange }) {
     if (!userId || unreadCount === 0) return;
 
     try {
-      await http.put(`/api/notifications/read/${userId}`);
+      await http.put(`/deopuri/notifications/read/${userId}`);
 
       await loadNotifications();
       toast.success('All notifications marked as read');
@@ -274,13 +296,21 @@ function Topbar({ onMenu, search, onSearchChange }) {
             onClick={() => setMenuOpen(!menuOpen)}
             className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-ink-100"
           >
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-600 text-sm font-semibold text-white">
-              {initial}
-            </span>
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt="Profile"
+                className="h-9 w-9 rounded-full object-cover"
+              />
+            ) : (
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-600 text-sm font-semibold text-white">
+                {initial}
+              </span>
+            )}
 
             <div className="hidden text-left sm:block">
               <p className="text-sm font-medium text-ink-900">
-                {user?.email}
+                {displayName || user?.email}
               </p>
 
               <small className="text-xs text-ink-500">

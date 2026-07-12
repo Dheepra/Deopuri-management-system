@@ -1,8 +1,10 @@
 package com.deopuri.service.rest.impl;
 
 import com.deopuri.api.dto.CreatePasswordRequest;
+import com.deopuri.api.dto.ForgotPasswordRequest;
 import com.deopuri.api.dto.LoginRequest;
 import com.deopuri.api.dto.LoginResponse;
+import com.deopuri.api.dto.ResetPasswordRequest;
 import com.deopuri.api.dto.UserDto;
 import com.deopuri.api.rest.AuthController;
 import com.deopuri.service.service.AuthService;
@@ -43,5 +45,18 @@ public class AuthControllerImpl implements AuthController {
             @RequestBody CreatePasswordRequest request) {
 
         return doctorService.createPassword(userId, request);
+    }
+
+    @Override
+    public ResponseEntity<String> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        // Throws "User does not exist" (404) if the email isn't registered; otherwise mails an OTP.
+        authService.forgotPassword(request.email());
+        return ResponseEntity.ok("OTP sent to your email.");
+    }
+
+    @Override
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.email(), request.otp(), request.password());
+        return ResponseEntity.ok("Password reset successfully. Please sign in.");
     }
 }

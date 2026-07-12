@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import { http } from "../services/http.js";
 import {
   email as emailValidator,
   phone10,
@@ -73,10 +73,7 @@ export default function AppointmentReview({
 
       console.log("FINAL PAYLOAD:", payload);
 
-      await axios.post(
-        "http://localhost:8080/api/appointments",
-        payload
-      );
+      await http.post("/deopuri/appointments", payload);
 
       alert("Appointment Booked Successfully");
 

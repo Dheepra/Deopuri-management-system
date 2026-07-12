@@ -38,7 +38,7 @@ console.log("ADMIN ID =", adminId);
       console.log("CLICKED ID =", appointmentId);
     try {
       await axios.patch(
-        `http://localhost:8080/api/appointments/${appointmentId}/status?status=CONFIRMED`
+        `http://localhost:8080/deopuri/appointments/${appointmentId}/status?status=CONFIRMED`
       );
          console.log("SUCCESS =", response.data);
 

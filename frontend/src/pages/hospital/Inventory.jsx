@@ -68,7 +68,7 @@ export default function Inventory() {
             Medicine status
           </h1>
           <p className="mt-1 text-sm text-ink-600">
-            Live from <code className="rounded bg-ink-100 px-1.5 py-0.5 text-xs text-ink-700">/api/products</code>. Low-stock items are flagged.
+            Live from <code className="rounded bg-ink-100 px-1.5 py-0.5 text-xs text-ink-700">/deopuri/products</code>. Low-stock items are flagged.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

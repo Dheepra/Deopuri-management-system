@@ -21,20 +21,20 @@ public class PublicEndpoints {
                 // auth apis
                 builder.matcher(
                         HttpMethod.POST,
-                        "/api/auth/login"),
+                        "/deopuri/auth/login"),
 
                 builder.matcher(
                         HttpMethod.POST,
-                        "/api/auth/register"),
+                        "/deopuri/auth/register"),
 
                 builder.matcher(
                         HttpMethod.POST,
-                         "/api/auth/create-password/**"),
+                         "/deopuri/auth/create-password/**"),
 
                 // product public api
                 builder.matcher(
                         HttpMethod.GET,
-                        "/api/products/**"),
+                        "/deopuri/products/**"),
 
                 // cart apis are authenticated (IDOR fix — acting user is derived
                 // from the JWT principal, not the request body/path).

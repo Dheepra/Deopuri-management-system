@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from '../components/layout/Layout.jsx';
 import Home from '../pages/Home.jsx';
 
@@ -21,6 +21,7 @@ import TopCustomers from "../pages/admin/TopCustomers.jsx";
 import RawMaterial from "../pages/admin/RawMaterial.jsx";
 import Expenses from "../pages/admin/Expenses.jsx";
 import ProfitLoss from "../pages/admin/ProfitLoss.jsx";
+import Settings from "../pages/admin/Settings.jsx";
 
 import HospitalDashboardLayout from '../layouts/HospitalDashboardLayout.jsx';
 import HospitalDashboard from '../pages/hospital/HospitalDashboard.jsx';
@@ -29,9 +30,8 @@ import Orders from '../pages/hospital/Orders.jsx';
 import HospitalMyOffers from "../pages/hospital/MyOffers.jsx";
 import Staff from '../pages/hospital/Staff.jsx';
 import Patients from '../pages/hospital/Patients.jsx';
-import Inventory from '../pages/hospital/Inventory.jsx';
+import HospitalLeaves from '../pages/hospital/Leaves.jsx';
 import Appointments from '../pages/hospital/Appointments.jsx';
-import Reports from '../pages/hospital/Reports.jsx';
 import HospitalSettings from '../pages/hospital/Settings.jsx';
 
 import DoctorDashboardLayout from '../layouts/DoctorDashboardLayout.jsx';
@@ -40,7 +40,14 @@ import DoctorAppointments from '../pages/doctor/DoctorAppointments.jsx';
 import MyPatients from '../pages/doctor/MyPatients.jsx';
 import Prescriptions from '../pages/doctor/Prescriptions.jsx';
 import DoctorReports from '../pages/doctor/Reports.jsx';
+import DoctorLeaves from '../pages/doctor/DoctorLeaves.jsx';
 import Profile from '../pages/doctor/Profile.jsx';
+
+import StaffDashboardLayout from '../layouts/StaffDashboardLayout.jsx';
+import StaffDashboard from '../pages/staff/StaffDashboard.jsx';
+import StaffAttendance from '../pages/staff/StaffAttendance.jsx';
+import StaffLeaves from '../pages/staff/StaffLeaves.jsx';
+import StaffSettings from '../pages/staff/StaffSettings.jsx';
 
 import MedicalDashboardLayout from '../layouts/MedicalDashboardLayout.jsx';
 import MedicalDashboard from '../pages/medical/MedicalDashboard.jsx';
@@ -99,6 +106,9 @@ export default function AppRoutes() {
    path="profit-loss"
    element={<ProfitLoss />}
 />
+<Route path="settings" element={<Settings />} />
+        {/* Unknown /admin/* → stay in this dashboard (no marketing/403, no perceived logout). */}
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Route>
 
       {/* HOSPITAL_ADMIN */}
@@ -119,11 +129,11 @@ export default function AppRoutes() {
 />
         <Route path="doctors"      element={<Doctors />} />
         <Route path="staff"        element={<Staff />} />
+        <Route path="leaves"       element={<HospitalLeaves />} />
         <Route path="patients"     element={<Patients />} />
-        <Route path="inventory"    element={<Inventory />} />
         <Route path="appointments" element={<Appointments />} />
-        <Route path="reports"      element={<Reports />} />
         <Route path="settings"     element={<HospitalSettings />} />
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Route>
 
       {/* MEDICAL_ADMIN */}
@@ -138,12 +148,15 @@ export default function AppRoutes() {
         <Route index            element={<MedicalDashboard />} />
         <Route path="dashboard" element={<MedicalDashboard />} />
         <Route path="catalog"   element={<Catalog />} />
+        <Route path="staff"     element={<Staff />} />
+        <Route path="leaves"    element={<HospitalLeaves />} />
         <Route path="orders"    element={<Orders />} />
         <Route
   path="my-offers"
   element={<MedicalMyOffers />}
 />
         <Route path="settings"  element={<MedicalSettings />} />
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Route>
 
       {/* DOCTOR */}
@@ -162,8 +175,27 @@ export default function AppRoutes() {
           
           <Route path="prescriptions" element={<Prescriptions />} />
           <Route path="reports" element={<DoctorReports />} />
+          <Route path="leaves" element={<DoctorLeaves />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="*" element={<Navigate to="dashboard" replace />} />
         </Route>
+
+      {/* STAFF */}
+      <Route
+        path="/staff"
+        element={
+          <ProtectedRoute roles={[ROLES.STAFF]}>
+            <StaffDashboardLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index             element={<StaffDashboard />} />
+        <Route path="dashboard"  element={<StaffDashboard />} />
+        <Route path="attendance" element={<StaffAttendance />} />
+        <Route path="leaves"     element={<StaffLeaves />} />
+        <Route path="settings"   element={<StaffSettings />} />
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
+      </Route>
 
       {/* Marketing */}
       <Route element={<Layout />}>

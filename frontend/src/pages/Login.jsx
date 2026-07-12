@@ -37,6 +37,12 @@ const userId = searchParams.get("userId");
 
 
   useEffect(() => {
+    if (searchParams.get('expired')) {
+      toast.error('Your session expired. Please log in again.');
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (location.state?.justRegistered) {
       toast.success('Account created successfully. Please wait for admin approval.');
     }

@@ -7,7 +7,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("/api/notifications")
+@RequestMapping("/deopuri/notifications")
 public interface NotificationController {
 
     // GET NOTIFICATIONS

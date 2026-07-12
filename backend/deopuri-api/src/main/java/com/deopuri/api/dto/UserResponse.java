@@ -11,6 +11,7 @@ public record UserResponse(
         String mobileNo,
         String address,
         String shopName,
+        String photoUrl,
         UserRole role,
         UserStatus status) {
 }

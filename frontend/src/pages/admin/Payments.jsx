@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchAllOrders } from "../../services/adminOrders";
+import { downloadCsv, todayStamp } from "../../utils/exportCsv.js";
 
 export default function Payments() {
 
@@ -145,6 +146,23 @@ export default function Payments() {
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
         >
           Apply
+        </button>
+
+        <button
+          onClick={() =>
+            downloadCsv(`payments-${todayStamp()}.csv`, uniqueOrders, [
+              { header: "Order #", value: (o) => o.orderNumber },
+              { header: "Customer", value: (o) => o.userName },
+              { header: "Order date", value: (o) => formatDate(o.orderDate) },
+              { header: "Total", value: (o) => o.totalAmount },
+              { header: "Paid", value: (o) => o.paidAmount },
+              { header: "Remaining", value: (o) => o.remainingAmount },
+              { header: "Payment status", value: (o) => o.paymentStatus },
+            ])
+          }
+          className="border border-blue-600 text-blue-600 hover:bg-blue-50 px-6 py-2 rounded-lg"
+        >
+          ⬇️ Export CSV
         </button>
 
       </div>

@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.time.LocalDate;
 import java.util.List;
 
-@RequestMapping("/api/orders")
+@RequestMapping("/deopuri/orders")
 public interface OrdersController {
 
         @PostMapping

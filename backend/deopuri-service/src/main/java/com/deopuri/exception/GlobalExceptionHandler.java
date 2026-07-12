@@ -88,7 +88,6 @@ public class GlobalExceptionHandler {
                 // User-facing message — generic by design. The fieldErrors
                 // array carries the per-field detail the UI can highlight.
                 "Invalid request data. Please check the highlighted fields.",
-                request.getRequestURI(),
                 fieldErrors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
@@ -152,7 +151,9 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String error, String message,
             HttpServletRequest request) {
-        ErrorResponse body = ErrorResponse.of(status.value(), error, message, request.getRequestURI());
+        // No path in the client body — we never expose the real endpoint. The request is still
+        // available for server-side logging in the individual handlers above.
+        ErrorResponse body = ErrorResponse.of(status.value(), error, message);
         return ResponseEntity.status(status).body(body);
     }
 }

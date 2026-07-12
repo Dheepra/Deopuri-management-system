@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "orders")
-public class Orders {
+public class Orders extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -89,6 +89,9 @@ public class Orders {
         if (orderDate == null) {
             orderDate = LocalDateTime.now();
         }
+
+        // Orders' create-time IS its order date (use the entity's own field, not a separate stamp).
+        setCreatedTime(orderDate);
 
         if (status == null) {
             status = OrderStatus.PENDING;

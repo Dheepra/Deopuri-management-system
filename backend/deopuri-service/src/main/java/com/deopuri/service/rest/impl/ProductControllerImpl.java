@@ -1,5 +1,6 @@
 package com.deopuri.service.rest.impl;
 
+import com.deopuri.api.dto.ProductImportResult;
 import com.deopuri.api.dto.ProductRequest;
 import com.deopuri.api.dto.ProductResponse;
 import com.deopuri.api.dto.ProductVariantRequest;
@@ -73,5 +74,10 @@ public class ProductControllerImpl implements ProductController {
     @Override
     public ResponseEntity<ProductVariantResponse> addVariant(Long productId, ProductVariantRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.addVariant(productId, request));
+    }
+
+    @Override
+    public ResponseEntity<ProductImportResult> importProducts(MultipartFile file) {
+        return ResponseEntity.ok(productService.importProducts(file));
     }
 }

@@ -15,7 +15,7 @@ import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "product_variants", uniqueConstraints = @UniqueConstraint(columnNames = { "product_id", "size" }))
-public class ProductVariant {
+public class ProductVariant extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

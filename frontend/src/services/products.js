@@ -18,33 +18,42 @@ export function getFeaturedProducts() {
 }
 
   export async function fetchProducts({ signal } = {}) {
-    const { data } = await http.get('/api/products', { signal });
+    const { data } = await http.get('/deopuri/products', { signal });
     return data;
   }
 
 
   export const createProduct = (formData) =>
-  http.post("/api/products", formData, {
+  http.post("/deopuri/products", formData, {
     headers: {
       "Content-Type": "multipart/form-data"
     }
   });
   
 export const updateProduct = (id, formData) =>
-  http.post(`/api/products/${id}`, formData, {
+  http.post(`/deopuri/products/${id}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data"
     }
   });
 
 export async function deleteProduct(id) {
-  const { data } = await http.delete(`/api/products/${id}`);
+  const { data } = await http.delete(`/deopuri/products/${id}`);
+  return data;
+}
+
+export async function importProducts(file) {
+  const form = new FormData();
+  form.append('file', file);
+
+  // Let the browser set the multipart boundary — do NOT set Content-Type manually.
+  const { data } = await http.post('/deopuri/products/import', form);
   return data;
 }
 
 export async function addVariant(productId, payload) {
   const { data } = await http.post(
-    `/api/products/${productId}/variants`,
+    `/deopuri/products/${productId}/variants`,
     payload
   );
 

@@ -28,5 +28,6 @@ public interface UsersDao extends JpaRepository<Users, Integer> {
 
     Optional<Users> findByInvitationToken(String invitationToken);
 
-    
+    Optional<Users> findByResetToken(String resetToken);
+
 }

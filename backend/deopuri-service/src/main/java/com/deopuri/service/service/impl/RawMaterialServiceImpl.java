@@ -3,8 +3,12 @@ package com.deopuri.service.service.impl;
 import com.deopuri.api.dto.CreateRawMaterialRequest;
 import com.deopuri.api.dto.RawMaterialResponse;
 import com.deopuri.api.dto.UpdateRawMaterialRequest;
+import com.deopuri.api.model.Expense;
+import com.deopuri.api.model.ExpenseType;
 import com.deopuri.api.model.RawMaterial;
+import com.deopuri.api.model.ReferenceType;
 import com.deopuri.exception.ResourceNotFoundException;
+import com.deopuri.service.dao.ExpenseDao;
 import com.deopuri.service.dao.RawMaterialDao;
 import com.deopuri.service.service.RawMaterialService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +23,42 @@ public class RawMaterialServiceImpl implements RawMaterialService {
 
     @Autowired
     private RawMaterialDao rawMaterialDao;
+
+    // A raw-material purchase IS a raw-material expense. We mirror it into the Expense table so the
+    // Profit & Loss report counts it automatically (no double manual entry). The mirror row is linked
+    // back via referenceType=RAW_MATERIAL + referenceId, so update/delete stay in sync.
+    @Autowired
+    private ExpenseDao expenseDao;
+
+    private double lineCost(RawMaterial rm) {
+        double qty = rm.getQuantity() == null ? 0.0 : rm.getQuantity();
+        double unit = rm.getUnitPrice() == null ? 0.0 : rm.getUnitPrice();
+        return qty * unit;
+    }
+
+    private void upsertLinkedExpense(RawMaterial rm) {
+        List<Expense> existing =
+                expenseDao.findByReferenceTypeAndReferenceId(ReferenceType.RAW_MATERIAL, rm.getId());
+        Expense e = existing.isEmpty() ? new Expense() : existing.get(0);
+
+        e.setExpenseName("Raw material: " + rm.getName());
+        e.setExpenseType(ExpenseType.RAW_MATERIAL);
+        e.setAmount(lineCost(rm));
+        e.setDescription(rm.getSupplierName() != null ? "Supplier: " + rm.getSupplierName() : null);
+        e.setExpenseDate(rm.getPurchaseDate());
+        e.setReferenceType(ReferenceType.RAW_MATERIAL);
+        e.setReferenceId(rm.getId());
+
+        expenseDao.save(e);
+    }
+
+    private void deleteLinkedExpense(Long rawMaterialId) {
+        List<Expense> linked =
+                expenseDao.findByReferenceTypeAndReferenceId(ReferenceType.RAW_MATERIAL, rawMaterialId);
+        if (!linked.isEmpty()) {
+            expenseDao.deleteAll(linked);
+        }
+    }
 
     // ================= CREATE =================
 
@@ -37,6 +77,7 @@ public class RawMaterialServiceImpl implements RawMaterialService {
         rawMaterial.setPurchaseDate(request.purchaseDate());
 
         rawMaterialDao.save(rawMaterial);
+        upsertLinkedExpense(rawMaterial);
 
         return toResponse(rawMaterial);
     }
@@ -59,6 +100,7 @@ public class RawMaterialServiceImpl implements RawMaterialService {
         rawMaterial.setPurchaseDate(request.purchaseDate());
 
         rawMaterialDao.save(rawMaterial);
+        upsertLinkedExpense(rawMaterial);
 
         return toResponse(rawMaterial);
     }
@@ -93,6 +135,7 @@ public class RawMaterialServiceImpl implements RawMaterialService {
         RawMaterial rawMaterial = rawMaterialDao.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Raw Material not found with id " + id));
 
+        deleteLinkedExpense(rawMaterial.getId());
         rawMaterialDao.delete(rawMaterial);
     }
 

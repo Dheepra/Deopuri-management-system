@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { http } from "../services/http.js";
 import {
   email as emailValidator,
   phone10,
@@ -49,7 +49,7 @@ const [errors, setErrors] = useState({});
 
 
 useEffect(() => {
-  axios.get("http://localhost:8080/api/hospitals")
+  http.get("/deopuri/hospitals")
     .then(res => {
       setHospitals(res.data);
     })
@@ -60,11 +60,14 @@ useEffect(() => {
 
 useEffect(() => {
   const loadDoctors = async () => {
-    if (!formData.hospitalAdminId) return;
+    if (!formData.hospitalAdminId) {
+      setDoctors([]);
+      return;
+    }
 
     try {
-      const response = await axios.get(
-        `http://localhost:8080/api/hospital-admin/doctors/hospital/${formData.hospitalAdminId}`
+      const response = await http.get(
+        `/deopuri/hospital-admin/doctors/hospital/${formData.hospitalAdminId}`
       );
 
       setDoctors(response.data);
@@ -93,10 +96,15 @@ const handleHospitalChange = async (e) => {
   });
   clearError("hospitalAdminId");
 
+  if (!hospitalAdminId) {
+    setDoctors([]);
+    return;
+  }
+
   try {
 
-    const response = await axios.get(
-      `http://localhost:8080/api/hospital-admin/doctors/hospital/${hospitalAdminId}`
+    const response = await http.get(
+      `/deopuri/hospital-admin/doctors/hospital/${hospitalAdminId}`
     );
 
     setDoctors(response.data);

@@ -4,7 +4,7 @@ import { http } from "./http";
 // GET PAYMENT HISTORY BY ORDER NUMBER
 export async function getPaymentHistory(orderNumber) {
   const { data } = await http.get(
-    `/api/payments/order/${orderNumber}`
+    `/deopuri/payments/order/${orderNumber}`
   );
 
   return data;
@@ -15,7 +15,7 @@ export async function getPaymentHistory(orderNumber) {
 export async function addPayment(orderNumber, paymentData) {
 
   const { data } = await http.post(
-    `/api/payments/${orderNumber}`,
+    `/deopuri/payments/${orderNumber}`,
     paymentData
   );
 

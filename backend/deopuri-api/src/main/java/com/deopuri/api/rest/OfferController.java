@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RequestMapping("/api/offers")
+@RequestMapping("/deopuri/offers")
 public interface OfferController {
 
     @PostMapping

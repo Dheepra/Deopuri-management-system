@@ -9,7 +9,7 @@ import java.time.LocalTime;
 
 @Entity
 @Table(name = "appointments")
-public class Appointment {
+public class Appointment extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

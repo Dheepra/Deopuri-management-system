@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import com.deopuri.api.dto.PaymentRequest;
 
-@RequestMapping("/api/payments")
+@RequestMapping("/deopuri/payments")
 public interface PaymentController {
 
         @PostMapping("/{orderNumber}")

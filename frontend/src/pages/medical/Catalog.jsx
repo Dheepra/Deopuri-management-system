@@ -59,13 +59,12 @@ export default function Catalog() {
             Medicines in stock
           </h1>
           <p className="mt-1 text-sm text-ink-600">
-            Live from <code className="rounded bg-ink-100 px-1.5 py-0.5 text-xs">/api/products</code>.
+            Live from <code className="rounded bg-ink-100 px-1.5 py-0.5 text-xs">/deopuri/products</code>.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <SearchInput value={search} onChange={setSearch} placeholder="Search medicine" className="sm:w-72" />
           <Button size="md" variant="secondary" onClick={refresh}>Refresh</Button>
-          <Button size="md">Add medicine</Button>
         </div>
       </header>
 

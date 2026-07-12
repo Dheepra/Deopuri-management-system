@@ -10,4 +10,10 @@ public interface AuthService {
     String register(UserDto dto);
 
     LoginResponse login(LoginRequest dto);
+
+    // Forgot-password: emails a 6-digit OTP. Throws if the email is not registered.
+    void forgotPassword(String email);
+
+    // Reset-password: verifies the emailed OTP for the email, then sets the new password.
+    void resetPassword(String email, String otp, String newPassword);
 }

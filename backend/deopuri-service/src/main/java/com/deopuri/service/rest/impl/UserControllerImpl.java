@@ -54,6 +54,12 @@ public class UserControllerImpl implements UserController {
     }
 
     @Override
+    public ResponseEntity<UserResponse> uploadProfilePhoto(int id,
+            org.springframework.web.multipart.MultipartFile image) {
+        return ResponseEntity.ok(service.uploadProfilePhoto(id, image));
+    }
+
+    @Override
     public ResponseEntity<Void> deleteUser(int id) {
         service.deleteUser(id);
         return ResponseEntity.noContent().build();

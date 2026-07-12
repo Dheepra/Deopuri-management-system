@@ -5,6 +5,7 @@ import com.deopuri.api.dto.LoginRequest;
 import com.deopuri.api.dto.LoginResponse;
 import com.deopuri.api.model.Users;
 import com.deopuri.exception.BusinessException;
+import com.deopuri.exception.ResourceNotFoundException;
 import com.deopuri.security.jwt.JwtUtil;
 import com.deopuri.api.model.UserRole;
 import com.deopuri.api.model.UserStatus;
@@ -269,9 +270,15 @@ public class AuthServiceImpl implements AuthService {
                         throw new DisabledException("Account not active");
                 }
 
-                // 🔥 FIRST TIME LOGIN CHECK (FIXED)
-                if (user.getRole() == UserRole.DOCTOR
-                                && !Boolean.TRUE.equals(user.getPasswordCreated())) {
+                // 🔥 FIRST TIME LOGIN CHECK
+                // Any admin-invited account (staff, doctor, or future roles) is created with a temp
+                // password + a single-use invitation token and passwordCreated=false. Until they set
+                // their own password, force them through the create-password flow. Self-registered
+                // users (hospital/medical admins) never get an invitation token, so they log in
+                // normally. Once the password is created the token is burned → normal login.
+                boolean invited = user.getInvitationToken() != null
+                                && !user.getInvitationToken().isBlank();
+                if (invited && !Boolean.TRUE.equals(user.getPasswordCreated())) {
 
                         boolean match = passwordEncoder.matches(dto.password(), user.getPassword());
 
@@ -279,7 +286,7 @@ public class AuthServiceImpl implements AuthService {
                                 throw new BadCredentialsException("Invalid temporary password");
                         }
 
-                        log.info("First time login detected");
+                        log.info("First time login detected role={}", user.getRole());
 
                         return LoginResponse.firstTimeLogin(user.getId(), user.getInvitationToken());
                 }
@@ -298,5 +305,81 @@ public class AuthServiceImpl implements AuthService {
                                 jwtUtil.getExpiration().getSeconds(),
                                 user.getRole(),
                                 user.getId());
+        }
+
+        private static final java.security.SecureRandom OTP_RANDOM = new java.security.SecureRandom();
+
+        @Transactional
+        @Override
+        public void forgotPassword(String email) {
+                if (email == null || email.isBlank()) {
+                        throw new BusinessException("email_required", "Email is required");
+                }
+
+                // Per the requirement: tell the user explicitly when the email is not registered.
+                Users user = usersDao.findByEmail(email.trim().toLowerCase())
+                                .orElseThrow(() -> new ResourceNotFoundException("User does not exist"));
+
+                // 6-digit OTP, valid for 10 minutes.
+                String otp = String.format("%06d", OTP_RANDOM.nextInt(1_000_000));
+                user.setResetToken(otp);
+                user.setResetTokenExpiry(java.time.LocalDateTime.now().plusMinutes(10));
+                usersDao.save(user);
+
+                try {
+                        emailService.sendEmail(
+                                        user.getEmail(),
+                                        "Your password reset OTP - Deopuri",
+                                        """
+                                        <div style="font-family:Arial,sans-serif; padding:20px; text-align:center;">
+                                          <div style="max-width:600px; margin:0 auto; border:1px solid #ddd; border-radius:10px; padding:20px; background:#ffffff;">
+                                            <img src='cid:logoImage' width='120' style="margin-bottom:15px;"/>
+                                            <h2 style="color:#2e7d32;">Deopuri Herbal Drugs and Pharmaceuticals</h2>
+                                            <hr style="width:60%%; margin:15px auto;"/>
+                                            <h2>Password reset OTP 🔑</h2>
+                                            <p>Hello <b>%s</b>,</p>
+                                            <p>Use this One-Time Password to reset your password. It is valid for 10 minutes.</p>
+                                            <p style="font-size:32px; font-weight:bold; letter-spacing:8px; color:#2e7d32; margin:20px 0;">%s</p>
+                                            <p style="color:#777; font-size:13px;">If you didn't request this, you can safely ignore this email.</p>
+                                            <p>Regards,<br/><b>Deopuri Team</b></p>
+                                          </div>
+                                        </div>
+                                        """.formatted(user.getFirstName(), otp));
+                } catch (Exception e) {
+                        log.error("Forgot-password OTP mail failed userId={}", user.getId(), e);
+                        throw new BusinessException("mail_failed", "Could not send the OTP email. Please try again.");
+                }
+        }
+
+        @Transactional
+        @Override
+        public void resetPassword(String email, String otp, String newPassword) {
+                if (email == null || email.isBlank() || otp == null || otp.isBlank()) {
+                        throw new BusinessException("invalid_otp", "Email and OTP are required");
+                }
+                if (newPassword == null || newPassword.trim().length() < 6) {
+                        throw new BusinessException("weak_password", "Password must be at least 6 characters");
+                }
+
+                Users user = usersDao.findByEmail(email.trim().toLowerCase())
+                                .orElseThrow(() -> new ResourceNotFoundException("User does not exist"));
+
+                if (user.getResetToken() == null || !user.getResetToken().equals(otp.trim())) {
+                        throw new BusinessException("invalid_otp", "Invalid OTP");
+                }
+                if (user.getResetTokenExpiry() == null
+                                || user.getResetTokenExpiry().isBefore(java.time.LocalDateTime.now())) {
+                        throw new BusinessException("expired_otp", "This OTP has expired. Please request a new one.");
+                }
+
+                user.setPassword(passwordEncoder.encode(newPassword.trim()));
+                user.setPasswordCreated(true);
+                // Single-use: burn the OTP (and any pending invite token).
+                user.setResetToken(null);
+                user.setResetTokenExpiry(null);
+                user.setInvitationToken(null);
+                usersDao.save(user);
+
+                log.info("Password reset via OTP success userId={}", user.getId());
         }
 }

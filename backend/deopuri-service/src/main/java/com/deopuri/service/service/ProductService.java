@@ -1,5 +1,6 @@
 package com.deopuri.service.service;
 
+import com.deopuri.api.dto.ProductImportResult;
 import com.deopuri.api.dto.ProductRequest;
 import com.deopuri.api.dto.ProductResponse;
 import com.deopuri.api.dto.ProductVariantRequest;
@@ -24,4 +25,6 @@ public interface ProductService {
     String uploadImage(MultipartFile image);
 
     ProductVariantResponse addVariant(Long productId, ProductVariantRequest request);
+
+    ProductImportResult importProducts(MultipartFile file);
 }

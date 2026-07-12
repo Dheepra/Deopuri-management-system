@@ -11,7 +11,7 @@ export default defineConfig({
     host: true,
     port: 5173,
     proxy: {
-      '/api': {
+      '/deopuri': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         // The phone's browser sends Origin: http://<PC-IP>:5173. Rewrite it to the localhost dev
@@ -22,6 +22,12 @@ export default defineConfig({
             proxyReq.setHeader('origin', 'http://localhost:5173');
           });
         },
+      },
+      // Locally-uploaded images (profile photos, product images) are served by the backend under
+      // /uploads. Proxy it so <img src="/uploads/x.jpg"> works relative (and on mobile via the phone).
+      '/uploads': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
       },
     },
   },

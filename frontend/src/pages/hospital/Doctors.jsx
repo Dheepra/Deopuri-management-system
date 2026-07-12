@@ -133,7 +133,7 @@ const handleDoctorSubmit = async (e) => {
     const hospitalAdminId = session.user.id;
 
     const response = await fetch(
-      `http://localhost:8080/api/hospital-admin/doctors?hospitalAdminId=${hospitalAdminId}`,
+      `http://localhost:8080/deopuri/hospital-admin/doctors?hospitalAdminId=${hospitalAdminId}`,
       {
         method: 'POST',
         headers: {

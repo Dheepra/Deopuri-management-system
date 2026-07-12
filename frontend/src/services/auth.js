@@ -31,7 +31,26 @@ function normalizeError(err) {
 // -------------------- SIGN UP --------------------
 export async function signUp(payload) {
   try {
-    const { data } = await http.post('/api/auth/register', payload);
+    const { data } = await http.post('/deopuri/auth/register', payload);
+    return data;
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+// -------------------- FORGOT / RESET PASSWORD --------------------
+export async function forgotPassword(email) {
+  try {
+    const { data } = await http.post('/deopuri/auth/forgot-password', { email });
+    return data;
+  } catch (err) {
+    throw normalizeError(err);
+  }
+}
+
+export async function resetPassword(email, otp, password) {
+  try {
+    const { data } = await http.post('/deopuri/auth/reset-password', { email, otp, password });
     return data;
   } catch (err) {
     throw normalizeError(err);
@@ -41,7 +60,7 @@ export async function signUp(payload) {
 // -------------------- SIGN IN (FIXED) --------------------
 export async function signIn({ email, password }) {
   try {
-    const { data } = await http.post('/api/auth/login', {
+    const { data } = await http.post('/deopuri/auth/login', {
       email,
       password,
     });
@@ -73,7 +92,7 @@ export async function signIn({ email, password }) {
 // -------------------- ADMIN FUNCTIONS --------------------
 export async function getPendingUsers() {
   try {
-    const { data } = await http.get('/api/admin/users/pending');
+    const { data } = await http.get('/deopuri/admin/users/pending');
     return data;
   } catch (err) {
     throw normalizeError(err);
@@ -82,7 +101,7 @@ export async function getPendingUsers() {
 
 export async function approveUser(id) {
   try {
-    const { data } = await http.put(`/api/admin/users/${id}/approve`);
+    const { data } = await http.put(`/deopuri/admin/users/${id}/approve`);
     return data;
   } catch (err) {
     throw normalizeError(err);
@@ -91,7 +110,7 @@ export async function approveUser(id) {
 
 export async function rejectUser(id) {
   try {
-    const { data } = await http.put(`/api/admin/users/${id}/reject`);
+    const { data } = await http.put(`/deopuri/admin/users/${id}/reject`);
     return data;
   } catch (err) {
     throw normalizeError(err);

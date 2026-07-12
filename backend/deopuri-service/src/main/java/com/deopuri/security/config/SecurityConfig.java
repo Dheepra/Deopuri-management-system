@@ -50,24 +50,32 @@ public class SecurityConfig {
                         .permitAll()
 
                         // 🔥 IMPORTANT FIX (fallback safety)
-                        .requestMatchers("/api/auth/**")
+                        .requestMatchers("/deopuri/auth/**")
                         .permitAll()
 
                         // Creating a doctor is a privileged hospital-admin action — never public.
-                        .requestMatchers(HttpMethod.POST, "/api/hospital-admin/doctors")
+                        .requestMatchers(HttpMethod.POST, "/deopuri/hospital-admin/doctors")
                         .hasRole("HOSPITAL_ADMIN")
+                        // Public patient booking page needs the doctor list for a chosen hospital.
+                        // Read-only, non-sensitive → allow anonymously (booking users aren't logged in).
+                        .requestMatchers(HttpMethod.GET, "/deopuri/hospital-admin/doctors/hospital/**")
+                        .permitAll()
                         // The rest of the hospital-admin surface (doctor lookups) requires a login.
-                        .requestMatchers("/api/hospital-admin/**").authenticated()
+                        .requestMatchers("/deopuri/hospital-admin/**").authenticated()
 
-                        // NOTE: /api/appointments/** is still public here (IDOR — Tier-2).
+                        // Staff portal (attendance / leave). Method-level @PreAuthorize("hasRole('STAFF')")
+                        // on the controller does the fine-grained role check; here we just require auth.
+                        .requestMatchers("/deopuri/staff/**").authenticated()
+
+                        // NOTE: /deopuri/appointments/** is still public here (IDOR — Tier-2).
                         // Securing it needs the frontend to send the JWT on those calls first
                         // (several use tokenless axios/fetch), so tighten together.
                         .requestMatchers(
-                                "/api/appointments/**")
+                                "/deopuri/appointments/**")
                         .permitAll()
 
                         .requestMatchers(
-                                "/api/hospitals")
+                                "/deopuri/hospitals")
                         .permitAll()
 
                         .requestMatchers(
@@ -75,41 +83,41 @@ public class SecurityConfig {
                         .permitAll()
 
                         // approve-user is state-changing and admin-only. It falls through to the
-                        // /api/admin/** -> hasRole('ADMIN') rule below (no permitAll).
+                        // /deopuri/admin/** -> hasRole('ADMIN') rule below (no permitAll).
 
                         // Cart is per-user; the acting user is derived from the JWT.
-                        .requestMatchers("/api/cart/**")
+                        .requestMatchers("/deopuri/cart/**")
                         .authenticated()
 
-                        .requestMatchers("/api/orders/**")
+                        .requestMatchers("/deopuri/orders/**")
                         .authenticated()
 
                         // Recording a payment is an admin-only action (admin Payments UI).
                         // GET history stays authenticated and is owner/admin-scoped in the service.
-                        .requestMatchers(HttpMethod.POST, "/api/payments/**")
+                        .requestMatchers(HttpMethod.POST, "/deopuri/payments/**")
                         .hasRole("ADMIN")
 
-                        .requestMatchers("/api/payments/**")
+                        .requestMatchers("/deopuri/payments/**")
                         .authenticated()
 
                         // USER NOTIFICATIONS
-                        .requestMatchers("/api/user/notifications")
+                        .requestMatchers("/deopuri/user/notifications")
                         .authenticated()
 
                         // ADMIN NOTIFICATIONS
-                        .requestMatchers("/api/admin/notifications")
+                        .requestMatchers("/deopuri/admin/notifications")
                         .hasRole("ADMIN")
 
-                        .requestMatchers("/api/admin/**")
+                        .requestMatchers("/deopuri/admin/**")
                         .hasRole("ADMIN")
 
-                        .requestMatchers(HttpMethod.POST, "/api/products/**")
+                        .requestMatchers(HttpMethod.POST, "/deopuri/products/**")
                         .hasRole("ADMIN")
 
-                        .requestMatchers(HttpMethod.PUT, "/api/products/**")
+                        .requestMatchers(HttpMethod.PUT, "/deopuri/products/**")
                         .hasRole("ADMIN")
 
-                        .requestMatchers(HttpMethod.DELETE, "/api/products/**")
+                        .requestMatchers(HttpMethod.DELETE, "/deopuri/products/**")
                         .hasRole("ADMIN")
 
                         .anyRequest()

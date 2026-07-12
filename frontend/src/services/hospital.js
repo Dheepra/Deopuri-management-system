@@ -1,8 +1,8 @@
 import { http } from './http.js';
 
-// Real backend calls — inventory uses /api/products from the existing Spring Boot API.
+// Real backend calls — inventory uses /deopuri/products from the existing Spring Boot API.
 export async function getInventoryFromBackend({ signal } = {}) {
-  const { data } = await http.get('/api/products', { signal });
+  const { data } = await http.get('/deopuri/products', { signal });
   return data;
 }
 
@@ -75,7 +75,7 @@ const ADMISSIONS_7D = [
 export async function getDoctors() {
   const session = JSON.parse(localStorage.getItem('auth.session'));
 
-  const { data } = await http.get('/api/hospital-admin/doctors', {
+  const { data } = await http.get('/deopuri/hospital-admin/doctors', {
     headers: {
       Authorization: `Bearer ${session?.token}`,
     },
@@ -88,7 +88,7 @@ export async function getPatients()     { await delay(140); return PATIENTS; }
 
 export async function getAppointments(adminId, { signal } = {}) {
   const { data } = await http.get(
-    `/api/appointments/admin/${adminId}`,
+    `/deopuri/appointments/admin/${adminId}`,
     { signal }
   );
 

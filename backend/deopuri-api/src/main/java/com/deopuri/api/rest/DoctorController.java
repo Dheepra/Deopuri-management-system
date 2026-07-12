@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.deopuri.api.dto.CreateDoctorRequest;
 
-@RequestMapping("/api/hospital-admin")
+@RequestMapping("/deopuri/hospital-admin")
 public interface DoctorController {
 
         @PostMapping("/doctors")

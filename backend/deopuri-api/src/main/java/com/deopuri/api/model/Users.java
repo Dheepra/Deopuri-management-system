@@ -13,7 +13,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "users")
-public class Users {
+public class Users extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,8 +42,13 @@ public class Users {
     @Column(name = "shop_name", nullable = false)
     private String shopName;
 
+    // Profile photo, stored locally under /uploads and referenced by its relative URL.
+    private String photoUrl;
+
+    // Stored as VARCHAR (not a MySQL ENUM) so new roles like STAFF can be added without an
+    // ALTER — a native enum column rejects values it wasn't created with ("Data truncated").
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
+    @Column(name = "role", nullable = false, columnDefinition = "varchar(30)")
     private UserRole role;
 
     @Enumerated(EnumType.STRING)
@@ -56,7 +61,30 @@ public class Users {
     @Column(name = "password_created")
     private Boolean passwordCreated = false;
 
+    // Single-use password-reset token + its expiry (forgot-password flow).
+    @Column(name = "reset_token")
+    private String resetToken;
+
+    @Column(name = "reset_token_expiry")
+    private java.time.LocalDateTime resetTokenExpiry;
+
     public Users() {
+    }
+
+    public String getResetToken() {
+        return resetToken;
+    }
+
+    public void setResetToken(String resetToken) {
+        this.resetToken = resetToken;
+    }
+
+    public java.time.LocalDateTime getResetTokenExpiry() {
+        return resetTokenExpiry;
+    }
+
+    public void setResetTokenExpiry(java.time.LocalDateTime resetTokenExpiry) {
+        this.resetTokenExpiry = resetTokenExpiry;
     }
 
     @PrePersist
@@ -132,6 +160,14 @@ public class Users {
 
     public void setShopName(String shopName) {
         this.shopName = shopName;
+    }
+
+    public String getPhotoUrl() {
+        return photoUrl;
+    }
+
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
     }
 
     public UserRole getRole() {

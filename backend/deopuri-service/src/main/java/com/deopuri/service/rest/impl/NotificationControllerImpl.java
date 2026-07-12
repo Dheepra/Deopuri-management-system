@@ -1,7 +1,10 @@
 package com.deopuri.service.rest.impl;
 
 import com.deopuri.api.model.Notification;
+import com.deopuri.api.model.Users;
 import com.deopuri.api.rest.NotificationController;
+import com.deopuri.security.SecurityUtils;
+import com.deopuri.service.dao.UsersDao;
 import com.deopuri.service.service.NotificationService;
 
 import java.util.List;
@@ -9,6 +12,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,11 +25,22 @@ public class NotificationControllerImpl
             LoggerFactory.getLogger(NotificationControllerImpl.class);
 
     private final NotificationService notificationService;
+    private final UsersDao usersDao;
 
     public NotificationControllerImpl(
-            NotificationService notificationService
+            NotificationService notificationService,
+            UsersDao usersDao
     ) {
         this.notificationService = notificationService;
+        this.usersDao = usersDao;
+    }
+
+    // The acting user ALWAYS comes from the JWT — the path {userId} is ignored. This stops one user
+    // from reading or clearing another user's notifications by passing someone else's id (IDOR).
+    private Integer currentUserId() {
+        return usersDao.findByEmail(SecurityUtils.currentUserEmail())
+                .map(Users::getId)
+                .orElseThrow(() -> new AccessDeniedException("Authenticated user no longer exists"));
     }
 
     // GET NOTIFICATIONS
@@ -33,36 +48,20 @@ public class NotificationControllerImpl
     public List<Notification> getNotifications(
             Integer userId
     ) {
-
-        log.debug("GET notifications userId={}", userId);
-
-        List<Notification> result =
-                notificationService.getNotifications(userId);
-
-        log.debug(
-                "GET notifications userId={} returning count={}",
-                userId,
-                result.size());
-
+        Integer me = currentUserId();
+        List<Notification> result = notificationService.getNotifications(me);
+        log.debug("GET notifications userId={} returning count={}", me, result.size());
         return result;
     }
 
     // MARK ALL READ
-    //
-    // INFO level here (not DEBUG) because this is a one-shot user action; the
-    // log volume is fine and operators will want to see the trail when a user
-    // reports "I clicked the bell but my notifications didn't clear."
     @Override
     public ResponseEntity<String> markAllRead(
             Integer userId
     ) {
-
-        log.info("PUT mark-all-read userId={}", userId);
-
-        notificationService.markAllNotificationsAsRead(userId);
-
-        return ResponseEntity.ok(
-                "Notifications marked as read"
-        );
+        Integer me = currentUserId();
+        log.info("PUT mark-all-read userId={}", me);
+        notificationService.markAllNotificationsAsRead(me);
+        return ResponseEntity.ok("Notifications marked as read");
     }
 }

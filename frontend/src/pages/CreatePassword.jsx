@@ -34,7 +34,7 @@ export default function CreatePassword({ userId, token, onSuccess }) {
     try {
       setLoading(true);
       // Relative path → Vite proxy → backend. token authorises the password set for this userId.
-      await http.post(`/api/auth/create-password/${userId}`, { userId, password, token });
+      await http.post(`/deopuri/auth/create-password/${userId}`, { userId, password, token });
       toast.success("Password created — please log in");
       onSuccess?.();
     } catch (error) {

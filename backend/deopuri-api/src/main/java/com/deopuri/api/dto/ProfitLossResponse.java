@@ -1,32 +1,39 @@
 package com.deopuri.api.dto;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
 public record ProfitLossResponse(
 
-                Double totalSales,
+                BigDecimal totalSales,
 
-                Double rawMaterialExpense,
+                // Per-category expenses
+                BigDecimal rawMaterialExpense,
+                BigDecimal manufacturingExpense,
+                BigDecimal packagingExpense,
+                BigDecimal deliveryExpense,
+                BigDecimal salaryExpense,
+                BigDecimal electricityExpense,
+                BigDecimal rentExpense,
+                BigDecimal otherExpense,
 
-                Double manufacturingExpense,
+                // Grouped
+                BigDecimal cogs,             // cost of goods sold = raw material + manufacturing + packaging
+                BigDecimal operatingExpense, // salary + electricity + rent + delivery + other
+                BigDecimal totalExpense,     // cogs + operatingExpense
 
-                Double packagingExpense,
+                // Results
+                BigDecimal grossProfit,      // totalSales - cogs (can be negative = gross loss)
+                BigDecimal netProfit,        // shown when status = PROFIT (else 0)
+                BigDecimal netLoss,          // shown when status = LOSS  (positive; else 0)
+                BigDecimal grossMargin,      // grossProfit / totalSales * 100
+                BigDecimal netMargin,        // signed net / totalSales * 100
 
-                Double deliveryExpense,
+                String status,               // PROFIT | LOSS
 
-                Double salaryExpense,
-
-                Double electricityExpense,
-
-                Double rentExpense,
-
-                Double otherExpense,
-
-                Double totalExpense,
-
-                Double netProfit,
-
-                Double netloss,
-
-                String status
+                // Period (null = all-time)
+                LocalDate fromDate,
+                LocalDate toDate
 
 ) {
 }
