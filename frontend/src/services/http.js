@@ -37,6 +37,17 @@ http.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // 4️⃣ MULTIPART FIX: for file uploads (FormData) the browser must set
+    // Content-Type itself so it can add the multipart boundary. The instance
+    // default of application/json would otherwise clobber it and the backend
+    // would fail to parse the upload. Remove it so axios/browser fills it in.
+    if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+      if (config.headers) {
+        delete config.headers["Content-Type"];
+        delete config.headers["content-type"];
+      }
+    }
+
   } catch (err) {
     console.log("Auth interceptor error:", err);
   }
