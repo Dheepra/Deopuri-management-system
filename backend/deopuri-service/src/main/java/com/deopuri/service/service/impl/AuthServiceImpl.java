@@ -22,6 +22,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -297,6 +299,26 @@ public class AuthServiceImpl implements AuthService {
                 if (!passwordMatch) {
                         throw new BadCredentialsException("Incorrect password");
                 }
+
+                String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+
+                return LoginResponse.bearer(
+                                token,
+                                jwtUtil.getExpiration().getSeconds(),
+                                user.getRole(),
+                                user.getId());
+        }
+
+        @Override
+        public LoginResponse refresh() {
+                Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+                if (auth == null || !auth.isAuthenticated() || auth.getName() == null) {
+                        // No valid token reached this point — treat as unauthenticated.
+                        throw new BadCredentialsException("Not authenticated");
+                }
+
+                Users user = usersDao.findByEmail(auth.getName())
+                                .orElseThrow(() -> new ResourceNotFoundException("User does not exist"));
 
                 String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
 

@@ -19,9 +19,13 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.time.LocalDate;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AppointmentServiceImpl implements AppointmentService {
+
+    private static final Logger log = LoggerFactory.getLogger(AppointmentServiceImpl.class);
 
         private final AppointmentDao appointmentDao;
         private final DoctorDao doctorDao;
@@ -232,9 +236,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                 Appointment saved = appointmentDao.save(appointment);
 
                 if (status == AppointmentStatus.CONFIRMED) {
-
-                        System.out.println("CONFIRMED BLOCK EXECUTED");
-                        System.out.println("EMAIL = " + saved.getPatientEmail());
+                  // Confirmation email is best-effort — a mail failure (missing/invalid
+                  // patient email, SMTP down) must NOT roll back the status change.
+                  try {
                         String subject = "Appointment Confirmed";
 
                         String body = """
@@ -292,6 +296,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                                         saved.getPatientEmail(),
                                         subject,
                                         body);
+                  } catch (Exception mailEx) {
+                        log.warn("Confirmation email failed for appointment {}: {}",
+                                        saved.getId(), mailEx.getMessage());
+                  }
                 }
 
                 return AppointmentResponse.from(saved);

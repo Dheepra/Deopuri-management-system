@@ -40,6 +40,11 @@ public class AuthControllerImpl implements AuthController {
     }
 
     @Override
+    public ResponseEntity<LoginResponse> refresh() {
+        return ResponseEntity.ok(authService.refresh());
+    }
+
+    @Override
     public ResponseEntity<String> createPassword(
             @PathVariable Integer userId,
             @RequestBody CreatePasswordRequest request) {
