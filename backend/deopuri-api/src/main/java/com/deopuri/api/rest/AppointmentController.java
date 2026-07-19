@@ -3,6 +3,7 @@ package com.deopuri.api.rest;
 import com.deopuri.api.dto.AppointmentResponse;
 import com.deopuri.api.dto.CreateAppointmentRequest;
 import com.deopuri.api.model.AppointmentStatus;
+import com.deopuri.api.model.AppointmentPaymentStatus;
 
 import java.util.List;
 
@@ -41,4 +42,10 @@ public interface AppointmentController {
         @PatchMapping("/{id}/cancel")
         ResponseEntity<AppointmentResponse> cancelAppointment(
                         @PathVariable Long id);
+
+        // Hospital verifies / updates the payment (e.g. PAID after checking the UPI reference).
+        @PatchMapping("/{id}/payment")
+        ResponseEntity<AppointmentResponse> updatePaymentStatus(
+                        @PathVariable Long id,
+                        @RequestParam AppointmentPaymentStatus status);
 }

@@ -7,6 +7,7 @@ import com.deopuri.api.dto.DoctorResponse;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,4 +34,10 @@ ResponseEntity<List<DoctorResponse>> getDoctorsByHospital(
         @GetMapping("/doctors/me")
 ResponseEntity<DoctorResponse> getDoctorByUserId(
         @RequestParam Integer userId);
+
+        // Hospital admin sets/updates a doctor's consultation fee.
+        @PatchMapping("/doctors/{id}/fee")
+        ResponseEntity<DoctorResponse> updateConsultationFee(
+                        @PathVariable Long id,
+                        @RequestParam Double fee);
 }

@@ -5,12 +5,14 @@ import Container from '../ui/Container.jsx';
 import Button from '../ui/Button.jsx';
 import logo2 from "../../assets/picture/logo2.png";
 
+// Only real destinations: Home (route) + on-page section anchors. Dead routes
+// (/catalog, /pricing, /about, /contact) removed.
 const NAV_LINKS = [
   { label: 'Home', to: '/' },
-  { label: 'Catalog', to: '/catalog' },
-  { label: 'Pricing', to: '/pricing' },
-  { label: 'About', to: '/about' },
-  { label: 'Contact', to: '/contact' },
+  { label: 'Remedies', href: '#products' },
+  { label: 'Our Story', href: '#philosophy' },
+  { label: 'Contact', href: '#contact' },
+  { label: 'Book', href: '#consult' },
 ];
 function Logo() {
   return (
@@ -43,19 +45,29 @@ export default function Navbar() {
 
         <nav className="hidden items-center gap-8 md:flex">
           {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.to === '/'}
-              className={({ isActive }) =>
-                [
-                  'text-sm font-medium transition-colors duration-200',
-                  isActive ? 'text-brand-700' : 'text-ink-600 hover:text-ink-900',
-                ].join(' ')
-              }
-            >
-              {link.label}
-            </NavLink>
+            link.to ? (
+              <NavLink
+                key={link.label}
+                to={link.to}
+                end={link.to === '/'}
+                className={({ isActive }) =>
+                  [
+                    'text-sm font-medium transition-colors duration-200',
+                    isActive ? 'text-brand-700' : 'text-ink-600 hover:text-ink-900',
+                  ].join(' ')
+                }
+              >
+                {link.label}
+              </NavLink>
+            ) : (
+              <a
+                key={link.label}
+                href={link.href}
+                className="text-sm font-medium text-ink-600 transition-colors duration-200 hover:text-ink-900"
+              >
+                {link.label}
+              </a>
+            )
           ))}
         </nav>
 
@@ -98,20 +110,31 @@ export default function Navbar() {
       >
         <Container className="space-y-1 py-4">
           {NAV_LINKS.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.to === '/'}
-              onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                [
-                  'block rounded-lg px-3 py-2 text-base font-medium transition-colors',
-                  isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-700 hover:bg-ink-100',
-                ].join(' ')
-              }
-            >
-              {link.label}
-            </NavLink>
+            link.to ? (
+              <NavLink
+                key={link.label}
+                to={link.to}
+                end={link.to === '/'}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  [
+                    'block rounded-lg px-3 py-2 text-base font-medium transition-colors',
+                    isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-700 hover:bg-ink-100',
+                  ].join(' ')
+                }
+              >
+                {link.label}
+              </NavLink>
+            ) : (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className="block rounded-lg px-3 py-2 text-base font-medium text-ink-700 transition-colors hover:bg-ink-100"
+              >
+                {link.label}
+              </a>
+            )
           ))}
           <div className="grid grid-cols-2 gap-2 pt-3">
             <Button as={Link} to="/login" variant="secondary" size="sm" onClick={() => setOpen(false)}>

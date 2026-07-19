@@ -13,6 +13,8 @@ public record CreateDoctorRequest(String firstName,
 
         String specialization,
 
-        Integer experienceYears) {
+        Integer experienceYears,
+
+        Double consultationFee) {
 
 }

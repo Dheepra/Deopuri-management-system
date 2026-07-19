@@ -18,6 +18,7 @@ final class UserMapper {
                 user.getAddress(),
                 user.getShopName(),
                 user.getPhotoUrl(),
+                user.getUpiId(),
                 user.getRole(),
                 user.getStatus());
     }

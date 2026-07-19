@@ -201,4 +201,16 @@ public class Users extends BaseEntity {
     public void setPasswordCreated(Boolean passwordCreated) {
         this.passwordCreated = passwordCreated;
     }
+
+    // UPI id used to collect appointment payments (shown as a pay link/QR to patients).
+    @jakarta.persistence.Column(name = "upi_id")
+    private String upiId;
+
+    public String getUpiId() {
+        return upiId;
+    }
+
+    public void setUpiId(String upiId) {
+        this.upiId = upiId;
+    }
 }

@@ -89,6 +89,14 @@ export async function signIn({ email, password }) {
   }
 }
 
+// Sliding-session refresh. The interceptor attaches the current Bearer token; the backend
+// only issues a new one while that token is still valid, so an active user never expires.
+// Returns the new token, or throws (401) if the session has already lapsed.
+export async function refreshSession() {
+  const { data } = await http.post('/deopuri/auth/refresh');
+  return data?.token ?? null;
+}
+
 // -------------------- ADMIN FUNCTIONS --------------------
 export async function getPendingUsers() {
   try {

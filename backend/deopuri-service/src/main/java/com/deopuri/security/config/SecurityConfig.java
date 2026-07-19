@@ -92,6 +92,11 @@ public class SecurityConfig {
                         .requestMatchers("/deopuri/orders/**")
                         .authenticated()
 
+                        // Medical admin's own ledger (stock / sales / expenses / P&L) — the owner
+                        // is derived from the JWT inside the service, so plain authentication is enough.
+                        .requestMatchers("/deopuri/medical/**")
+                        .authenticated()
+
                         // Recording a payment is an admin-only action (admin Payments UI).
                         // GET history stays authenticated and is owner/admin-scoped in the service.
                         .requestMatchers(HttpMethod.POST, "/deopuri/payments/**")

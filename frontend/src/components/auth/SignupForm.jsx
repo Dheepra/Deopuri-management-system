@@ -122,9 +122,15 @@ export default function SignupForm() {
     navigate('/login');
 
   } catch (err) {
-    if (err.type === 'api' && err.status === 409) {
-      toast.error('That email is already registered');
-      setErrors((prev) => ({ ...prev, email: 'Email already in use' }));
+    if (err.type === 'api' && err.code === 'address_exists') {
+      toast.error(err.message || 'This address is already registered');
+      setErrors((prev) => ({ ...prev, address: 'This address is already registered for another shop' }));
+    } else if (err.type === 'api' && err.code === 'mobile_exists') {
+      toast.error(err.message || 'That mobile number is already registered');
+      setErrors((prev) => ({ ...prev, phone: 'This mobile number is already registered' }));
+    } else if (err.type === 'api' && (err.code === 'email_exists' || err.status === 409)) {
+      toast.error(err.message || 'That email is already registered');
+      setErrors((prev) => ({ ...prev, email: 'This email is already registered' }));
     } else if (err.type === 'api' && err.status === 400 && err.fieldErrors?.length) {
       toast.error('Some fields need attention');
       const next = {};

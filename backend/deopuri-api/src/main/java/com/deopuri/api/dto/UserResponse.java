@@ -12,6 +12,7 @@ public record UserResponse(
         String address,
         String shopName,
         String photoUrl,
+        String upiId,
         UserRole role,
         UserStatus status) {
 }

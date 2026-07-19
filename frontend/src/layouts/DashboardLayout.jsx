@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -9,7 +9,42 @@ import { ROLE_LABELS } from '../auth/roles.js';
 import SearchInput from '../components/ui/SearchInput.jsx';
 import { http } from '../services/http.js';
 
-function Sidebar({ navItems, open, onClose }) {
+// Map a nav label → the notification keywords that belong to that section, so an unread notification
+// about e.g. "leave" lights up the Leaves menu item. Heuristic (title/message text match) — no
+// backend change needed.
+const NOTIF_KEYWORDS = [
+  { k: 'leave', words: ['leave'] },
+  { k: 'appointment', words: ['appointment', 'appoint', 'booking', 'booked', 'schedule'] },
+  { k: 'order', words: ['order'] },
+  { k: 'patient', words: ['patient'] },
+  { k: 'doctor', words: ['doctor'] },
+  { k: 'staff', words: ['staff'] },
+  { k: 'offer', words: ['offer'] },
+  { k: 'payment', words: ['payment', 'paid'] },
+];
+
+const keywordsForLabel = (label) => {
+  const l = (label || '').toLowerCase();
+  const hit = NOTIF_KEYWORDS.find((m) => l.includes(m.k));
+  return hit ? hit.words : [];
+};
+
+const computeBadges = (navItems, notifications) => {
+  const unread = notifications.filter((n) => !n.isRead);
+  const badges = {};
+  navItems.forEach((item) => {
+    const words = keywordsForLabel(item.label);
+    if (!words.length) return;
+    const count = unread.filter((n) => {
+      const text = `${n.title || ''} ${n.message || ''}`.toLowerCase();
+      return words.some((w) => text.includes(w));
+    }).length;
+    if (count > 0) badges[item.to] = count;
+  });
+  return badges;
+};
+
+function Sidebar({ navItems, badges, open, onClose }) {
   return (
     <>
       <AnimatePresence>
@@ -26,45 +61,113 @@ function Sidebar({ navItems, open, onClose }) {
 
       <aside
         className={[
-          'fixed inset-y-0 left-0 z-40 w-64 border-r bg-[var(--color-night-800)] text-white transition-transform',
+          'fixed inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto bg-[var(--color-night-800)] text-white transition-transform',
+          'lg:static lg:z-10 lg:h-full lg:translate-x-0 lg:border-r lg:border-white/5 lg:shadow-[10px_0_30px_-16px_rgba(15,23,42,0.55)]',
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         ].join(' ')}
       >
-        <div className="flex h-16 items-center justify-center px-4 mt-2">
-  <img
-    src={logo}
-    alt="Deopuri"
-    className="h-12 w-auto"
-  />
-</div>
+        <div className="relative flex h-16 items-center justify-center border-b border-white/5 px-4">
+          {/* soft brand glow behind the mark */}
+          <div className="pointer-events-none absolute h-12 w-36 rounded-full bg-brand-500/25 blur-2xl" />
+          <div className="relative rounded-2xl bg-white p-1.5 shadow-lg ring-1 ring-black/5 transition-transform duration-300 hover:scale-[1.04]">
+            <img src={logo} alt="Deopuri Herbal" className="h-9 w-auto" />
+          </div>
+        </div>
 
-        <nav className="space-y-1 px-3 py-5">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={onClose}
-              className={({ isActive }) =>
-                isActive
-                  ? 'flex rounded-lg px-3 py-2 bg-white/10'
-                  : 'flex rounded-lg px-3 py-2 text-white/60 hover:bg-white/5'
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+        <nav className="space-y-0.5 px-3 py-3">
+          {navItems.map((item) => {
+            const count = badges?.[item.to] || 0;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  [
+                    'group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200',
+                    isActive ? 'bg-white/10 text-white' : 'text-white/55 hover:bg-white/5 hover:text-white',
+                  ].join(' ')
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {/* active accent bar */}
+                    <span
+                      className={[
+                        'absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-brand-400 transition-all duration-200',
+                        isActive ? 'h-6 w-1 opacity-100' : 'h-0 w-0 opacity-0',
+                      ].join(' ')}
+                    />
+                    <span
+                      className={[
+                        'grid h-7 w-7 shrink-0 place-items-center rounded-lg transition-all duration-200',
+                        isActive ? 'bg-brand-500/20 text-brand-300' : 'text-white/50 group-hover:scale-110 group-hover:text-white',
+                      ].join(' ')}
+                    >
+                      {item.icon ? (
+                        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d={item.icon} />
+                        </svg>
+                      ) : (
+                        <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                      )}
+                    </span>
+
+                    <span className="flex-1 truncate transition-transform duration-200 group-hover:translate-x-0.5">
+                      {item.label}
+                    </span>
+
+                    {count > 0 && (
+                      <span className="relative flex shrink-0">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-60" />
+                        <span className="relative inline-flex min-w-[18px] justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold leading-[18px] text-white">
+                          {count > 9 ? '9+' : count}
+                        </span>
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
       </aside>
     </>
   );
 }
 
-function Topbar({ onMenu, search, onSearchChange }) {
+function Topbar({ onMenu, navItems = [] }) {
   const { user, role, signOut } = useAuth();
 
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Quick-nav search over the sidebar sections (type "doctors", "orders"… → jump there).
+  const [q, setQ] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef(null);
+
+  const searchResults = q.trim()
+    ? navItems.filter((it) => it.label.toLowerCase().includes(q.trim().toLowerCase()))
+    : [];
+
+  const goToResult = (item) => {
+    setQ('');
+    setSearchOpen(false);
+    navigate(item.to);
+  };
+
+  useEffect(() => {
+    if (!searchOpen) return undefined;
+    const onDown = (e) => {
+      if (searchRef.current?.contains(e.target)) return;
+      setSearchOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [searchOpen]);
 
   const [notificationOpen, setNotificationOpen] = useState(false);
 
@@ -200,23 +303,59 @@ function Topbar({ onMenu, search, onSearchChange }) {
         <span className="font-display text-base font-bold tracking-tight text-ink-900">Deopuri</span>
       </div>
 
-      {/* SEARCH */}
-      <div className="hidden flex-1 lg:block">
+      {/* SEARCH — quick jump to any section */}
+      <div
+        className="relative hidden flex-1 lg:block"
+        ref={searchRef}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setSearchOpen(false);
+          if (e.key === 'Enter' && searchResults[0]) goToResult(searchResults[0]);
+        }}
+      >
         <SearchInput
-          value={search ?? ''}
-          onChange={onSearchChange ?? (() => {})}
-          placeholder="Search..."
+          value={q}
+          onChange={(v) => { setQ(v); setSearchOpen(true); }}
+          placeholder="Search sections… e.g. Doctors, Orders"
         />
+
+        {searchOpen && q.trim() && (
+          <div className="absolute inset-x-0 top-12 z-30 overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-[var(--shadow-card)]">
+            {searchResults.length === 0 ? (
+              <p className="p-4 text-sm text-ink-500">No matches for “{q}”.</p>
+            ) : (
+              searchResults.map((item) => (
+                <button
+                  key={item.to}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => goToResult(item)}
+                  className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-brand-50"
+                >
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink-50 text-ink-500">
+                    {item.icon ? (
+                      <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={item.icon} /></svg>
+                    ) : (
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                    )}
+                  </span>
+                  <span className="text-sm font-medium text-ink-900">{item.label}</span>
+                  <span className="ml-auto text-xs text-ink-400">↵</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       <div className="ml-auto flex items-center gap-3">
 
         {/* NOTIFICATION */}
-        {/* NOTIFICATION */}
 {[
   "COMPANY_ADMIN",
   "HOSPITAL_ADMIN",
-  "MEDICAL_ADMIN"
+  "MEDICAL_ADMIN",
+  "DOCTOR",
+  "STAFF"
 ].includes(role) && (
   <div className="relative" ref={notificationRef}>
 
@@ -341,7 +480,7 @@ function Topbar({ onMenu, search, onSearchChange }) {
 // Mobile app-style bottom tab bar. Shows the primary destinations with icons; if there are more
 // than 5, the last slot becomes "More" and opens the full drawer. Hidden on desktop (lg+), where the
 // sidebar is the navigation — so it reads like a website on PC and like an app on the phone.
-function BottomNav({ navItems, onMore }) {
+function BottomNav({ navItems, badges, onMore }) {
   const compact = navItems.length > 5;
   const items = compact ? navItems.slice(0, 4) : navItems.slice(0, 5);
 
@@ -365,17 +504,22 @@ function BottomNav({ navItems, onMore }) {
           >
             {({ isActive }) => (
               <>
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-6 w-6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={isActive ? 2.2 : 1.7}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d={item.icon} />
-                </svg>
+                <span className="relative">
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={isActive ? 2.2 : 1.7}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d={item.icon} />
+                  </svg>
+                  {(badges?.[item.to] || 0) > 0 && (
+                    <span className="absolute -right-1.5 -top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+                  )}
+                </span>
                 <span className="max-w-[64px] truncate">{item.label}</span>
               </>
             )}
@@ -406,31 +550,64 @@ export default function DashboardLayout({
 }) {
   const [open, setOpen] = useState(false);
 
+  // Notifications drive the per-menu badges. Fetched here (not just in the topbar bell) so the
+  // sidebar can show which section a new notification belongs to.
+  const { user } = useAuth();
+  const userId = user?.id;
+  const [notifications, setNotifications] = useState([]);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      if (!userId) return;
+      const { data } = await http.get(`/deopuri/notifications/${userId}`);
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.log(err);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    loadNotifications();
+    const id = setInterval(loadNotifications, 60000);
+    const onFocus = () => loadNotifications();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [loadNotifications]);
+
+  const badges = useMemo(() => computeBadges(navItems, notifications), [navItems, notifications]);
+
   return (
-    <div className="min-h-screen bg-ink-50">
+    // Framed app-shell: the whole window (sidebar + content) sits inside one rounded, bordered frame
+    // with a small gap to the browser edge. Only the content area scrolls, so the frame never "cuts".
+    <div className="bg-ink-100 lg:h-dvh lg:overflow-hidden lg:p-1.5">
+      <div className="relative flex min-h-dvh flex-col bg-ink-50 lg:h-full lg:flex-row lg:overflow-hidden lg:rounded-2xl lg:border lg:border-ink-200 lg:shadow-sm">
 
-      <Sidebar
-        navItems={navItems}
-        open={open}
-        onClose={() => setOpen(false)}
-      />
-
-      <div className="lg:pl-64">
-
-        <Topbar
-          onMenu={() => setOpen(true)}
-          search={search}
-          onSearchChange={onSearchChange}
+        <Sidebar
+          navItems={navItems}
+          badges={badges}
+          open={open}
+          onClose={() => setOpen(false)}
         />
 
-        {/* extra bottom padding on mobile so content clears the bottom tab bar */}
-        <main className="p-4 pb-28 sm:p-6 lg:p-8 lg:pb-8">
-          <Outlet />
-        </main>
+        <div className="flex min-w-0 flex-1 flex-col">
 
+          <Topbar
+            onMenu={() => setOpen(true)}
+            navItems={navItems}
+          />
+
+          {/* Only this area scrolls; extra bottom padding on mobile clears the bottom tab bar. */}
+          <main className="flex-1 p-4 pb-28 sm:p-6 lg:overflow-y-auto lg:pb-8">
+            <Outlet />
+          </main>
+
+        </div>
       </div>
 
-      <BottomNav navItems={navItems} onMore={() => setOpen(true)} />
+      <BottomNav navItems={navItems} badges={badges} onMore={() => setOpen(true)} />
     </div>
   );
 }

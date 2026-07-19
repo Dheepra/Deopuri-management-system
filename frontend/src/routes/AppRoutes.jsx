@@ -18,8 +18,7 @@ import Payments from "../pages/admin/Payments.jsx";
 import PaymentDetails from "../pages/admin/PaymentDetails.jsx";
 import Offers from "../pages/admin/Offers.jsx";
 import TopCustomers from "../pages/admin/TopCustomers.jsx";
-import RawMaterial from "../pages/admin/RawMaterial.jsx";
-import Expenses from "../pages/admin/Expenses.jsx";
+import ExpensesMaterials from "../pages/admin/ExpensesMaterials.jsx";
 import ProfitLoss from "../pages/admin/ProfitLoss.jsx";
 import Settings from "../pages/admin/Settings.jsx";
 
@@ -52,6 +51,13 @@ import StaffSettings from '../pages/staff/StaffSettings.jsx';
 import MedicalDashboardLayout from '../layouts/MedicalDashboardLayout.jsx';
 import MedicalDashboard from '../pages/medical/MedicalDashboard.jsx';
 import Catalog from '../pages/medical/Catalog.jsx';
+import MedicalInventory from '../pages/medical/Inventory.jsx';
+import MedicalSales from '../pages/medical/Sales.jsx';
+import MedicalBilling from '../pages/medical/Billing.jsx';
+import MedicalKhata from '../pages/medical/Khata.jsx';
+import MedicalExpenses from '../pages/medical/MedicalExpenses.jsx';
+import MedicalProfitLoss from '../pages/medical/MedicalProfitLoss.jsx';
+import MedicalDayClose from '../pages/medical/DayClose.jsx';
 import MedicalMyOffers from "../pages/medical/MyOffers.jsx";
 
 import MedicalSettings from '../pages/medical/Settings.jsx';
@@ -97,11 +103,8 @@ export default function AppRoutes() {
   path="top-customers"
   element={<TopCustomers />}
 />
-<Route path="raw-material" element={<RawMaterial />} />
-<Route
-  path="expenses"
-  element={<Expenses />}
-/>
+<Route path="expenses" element={<ExpensesMaterials />} />
+<Route path="raw-material" element={<ExpensesMaterials />} />
 <Route
    path="profit-loss"
    element={<ProfitLoss />}
@@ -148,6 +151,13 @@ export default function AppRoutes() {
         <Route index            element={<MedicalDashboard />} />
         <Route path="dashboard" element={<MedicalDashboard />} />
         <Route path="catalog"   element={<Catalog />} />
+        <Route path="inventory"  element={<MedicalInventory />} />
+        <Route path="billing"    element={<MedicalBilling />} />
+        <Route path="khata"      element={<MedicalKhata />} />
+        <Route path="sales"      element={<MedicalSales />} />
+        <Route path="expenses"   element={<MedicalExpenses />} />
+        <Route path="profit-loss" element={<MedicalProfitLoss />} />
+        <Route path="day-close" element={<MedicalDayClose />} />
         <Route path="staff"     element={<Staff />} />
         <Route path="leaves"    element={<HospitalLeaves />} />
         <Route path="orders"    element={<Orders />} />

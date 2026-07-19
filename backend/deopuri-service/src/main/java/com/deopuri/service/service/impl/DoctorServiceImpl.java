@@ -9,6 +9,7 @@ import com.deopuri.api.model.UserStatus;
 import com.deopuri.api.model.Users;
 import com.deopuri.service.dao.DoctorDao;
 import com.deopuri.service.dao.UsersDao;
+import com.deopuri.security.SecurityUtils;
 import com.deopuri.service.service.DoctorService;
 import com.deopuri.service.service.EmailService;
 import com.deopuri.exception.ResourceNotFoundException;
@@ -17,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,6 +93,7 @@ public class DoctorServiceImpl implements DoctorService {
         doctor.setQualification(request.qualification());
         doctor.setSpecialization(request.specialization());
         doctor.setExperienceYears(request.experienceYears());
+        doctor.setConsultationFee(request.consultationFee());
 
         doctorDao.save(doctor);
 
@@ -221,7 +224,13 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
 public List<Doctor> getAllDoctors() {
-    return doctorDao.findAll();
+    // Scoped to the signed-in hospital admin: each only sees the doctors THEY registered,
+    // never every hospital's doctors. The admin id is derived from the JWT, so passing a
+    // different id can't widen the result.
+    String email = SecurityUtils.currentUserEmail();
+    Users admin = usersDao.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Authenticated user no longer exists"));
+    return doctorDao.findByHospitalAdminId(admin.getId());
 }
 @Override
 public List<DoctorResponse> getDoctorsByHospital(Integer hospitalAdminId) {
@@ -232,7 +241,15 @@ public List<DoctorResponse> getDoctorsByHospital(Integer hospitalAdminId) {
                     doctor.getId(),
                     doctor.getUser().getFirstName(),
                     doctor.getUser().getLastName(),
-                    doctor.getSpecialization()
+                    doctor.getSpecialization(),
+                    doctor.getQualification(),
+                    doctor.getExperienceYears(),
+                    doctor.getRegistrationNumber(),
+                    // Public booking endpoint — never leak the doctor's contact details.
+                    null,
+                    null,
+                    null,
+                    doctor.getConsultationFee()
             ))
             .toList();
 }
@@ -248,7 +265,46 @@ public DoctorResponse getDoctorByUserId(Integer userId) {
             doctor.getId(),
             doctor.getUser().getFirstName(),
             doctor.getUser().getLastName(),
-            doctor.getSpecialization()
+            doctor.getSpecialization(),
+            doctor.getQualification(),
+            doctor.getExperienceYears(),
+            doctor.getRegistrationNumber(),
+            doctor.getUser().getEmail(),
+            doctor.getUser().getMobileNo(),
+            doctor.getUser().getStatus() != null ? doctor.getUser().getStatus().name() : null,
+            doctor.getConsultationFee()
     );
+}
+
+@Override
+public DoctorResponse updateConsultationFee(Long doctorId, Double fee) {
+    // Only the hospital admin who owns the doctor may change the fee (derived from the JWT).
+    String email = SecurityUtils.currentUserEmail();
+    Users admin = usersDao.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("Authenticated user no longer exists"));
+
+    Doctor doctor = doctorDao.findById(doctorId)
+            .orElseThrow(() -> new ResourceNotFoundException("Doctor not found"));
+
+    if (doctor.getHospitalAdmin() == null
+            || doctor.getHospitalAdmin().getId() != admin.getId()) {
+        throw new AccessDeniedException("You can only edit your own doctors");
+    }
+
+    doctor.setConsultationFee(fee);
+    Doctor saved = doctorDao.save(doctor);
+
+    return new DoctorResponse(
+            saved.getId(),
+            saved.getUser().getFirstName(),
+            saved.getUser().getLastName(),
+            saved.getSpecialization(),
+            saved.getQualification(),
+            saved.getExperienceYears(),
+            saved.getRegistrationNumber(),
+            saved.getUser().getEmail(),
+            saved.getUser().getMobileNo(),
+            saved.getUser().getStatus() != null ? saved.getUser().getStatus().name() : null,
+            saved.getConsultationFee());
 }
 }

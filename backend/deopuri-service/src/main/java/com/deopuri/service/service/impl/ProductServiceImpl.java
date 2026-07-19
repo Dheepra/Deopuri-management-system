@@ -26,6 +26,7 @@ import java.nio.file.Paths;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,20 +55,33 @@ public ProductResponse create(ProductRequest request, String imageUrl) {
     product.setManufacturingDate(request.manufacturingDate());
     product.setImageUrl(imageUrl);
 
-    // ✅ IMPORTANT FIX
+    // Build the variants, de-duplicating by size. (product_id, size) is UNIQUE in the DB, so two
+    // variants with the same size in the payload would each fire an insert and every duplicate would
+    // fail with SQLState 23000 (duplicate entry) — turning one bad request into hundreds of failed
+    // inserts and a 409. Keeping the first occurrence of each size avoids that and is idempotent.
     if (request.variants() != null) {
-        List<ProductVariant> list = new ArrayList<>();
+        Map<String, ProductVariant> bySize = new LinkedHashMap<>();
 
         for (ProductVariantRequest v : request.variants()) {
+            String size = v.size() == null ? null : v.size().trim();
+            if (size == null || size.isEmpty()) {
+                log.warn("Skipping variant with blank size for product '{}'", request.name());
+                continue;
+            }
+            if (bySize.containsKey(size)) {
+                log.warn("Duplicate variant size '{}' in create payload for product '{}' — keeping the first",
+                        size, request.name());
+                continue;
+            }
             ProductVariant pv = new ProductVariant();
-            pv.setSize(v.size());
+            pv.setSize(size);
             pv.setStock(v.stock());
             pv.setPrice(v.price());
             pv.setProduct(product);
-            list.add(pv);
+            bySize.put(size, pv);
         }
 
-        product.setVariants(list);
+        product.setVariants(new ArrayList<>(bySize.values()));
     }
 
     Product saved = productRepository.save(product);

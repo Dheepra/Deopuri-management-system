@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import SearchInput from '../../components/ui/SearchInput.jsx';
-import Table from '../../components/ui/Table.jsx';
 import Button from '../../components/ui/Button.jsx';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import {
@@ -38,28 +37,109 @@ const [formData, setFormData] = useState({
   variants: product.variants || []
 }); // modal me data fill
 
-
+  setTouched({});
+  setSubmitted(false);
   setEditId(product.id);
   setShowModal(true);
 };
 
 
 
-console.log("FORM DATA", formData);
+// Which fields the user has interacted with (so we only show an error once they've left it),
+// and whether a save was attempted (which reveals every remaining error at once).
+const [touched, setTouched] = useState({});
+const [submitted, setSubmitted] = useState(false);
+
+const markTouched = (key) => setTouched((prev) => ({ ...prev, [key]: true }));
+// Show a field's error only after it's been touched or a save was attempted — so the form doesn't
+// scream red the moment it opens, but a skipped column lights up as soon as you move past it.
+const isVisible = (key) => submitted || touched[key];
+
+// Per-field validation. Returns { name, image, novariants, variants: [{size,stock,price}] }.
+// Computed every render so errors update live as the user types — no round-trip to the backend.
+// Price/stock live ONLY on the variants; the product's own price & total quantity are derived from
+// them at save time (see handleSave), so the admin never enters those numbers twice.
+const computeErrors = () => {
+  const e = { variants: [] };
+
+  if (!(formData.name || '').trim()) e.name = 'Product name is required.';
+
+  // Image is mandatory when creating; on edit the existing image is kept if none is chosen.
+  if (!editId && !formData.image) e.image = 'Please choose a product image.';
+
+  // At least one variant is required — the product's price & quantity come from the variants.
+  if (!(formData.variants || []).length)
+    e.novariants = 'Add at least one variant (size, stock, price).';
+
+  const seenSizes = new Set();
+  (formData.variants || []).forEach((v, i) => {
+    const ve = {};
+    const size = (v.size || '').trim();
+    if (!size) {
+      ve.size = 'Size is required.';
+    } else {
+      // MySQL's unique index on (product_id, size) is case-insensitive, so "200ml" and "200ML"
+      // collide — compare case-insensitively to catch it before the DB rejects it.
+      const key = size.toLowerCase();
+      if (seenSizes.has(key)) ve.size = `"${size}" is used twice.`;
+      seenSizes.add(key);
+    }
+    if (v.stock === '' || v.stock == null || Number.isNaN(Number(v.stock)) || Number(v.stock) < 0)
+      ve.stock = 'Stock must be 0 or more.';
+    if (v.price === '' || v.price == null || Number.isNaN(Number(v.price)) || Number(v.price) < 0)
+      ve.price = 'Price must be 0 or more.';
+    e.variants[i] = ve;
+  });
+  return e;
+};
+
+const errors = computeErrors();
+const hasErrors = Boolean(
+  errors.name || errors.image || errors.novariants
+    || errors.variants.some((ve) => ve && Object.keys(ve).length > 0),
+);
+
+// Border colour helper: red once a field's error is visible, brand-blue otherwise.
+const fieldBorder = (showRed) => (showRed
+  ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+  : 'border-ink-200 focus:border-brand-500 focus:ring-brand-100');
+
 const handleSave = async () => {
+  // First save attempt: reveal every outstanding error inline (no need to touch each field).
+  setSubmitted(true);
+  if (hasErrors) {
+    toast.error('Please fix the highlighted fields.');
+    return;
+  }
+
+  const savingToast = toast.loading(editId ? 'Updating product…' : 'Adding product…');
   try {
     const form = new FormData();
+
+    // Coerce each variant's numbers so the payload never carries "" / strings for stock/price.
+    const variants = (formData.variants || []).map((v) => ({
+      size: (v.size || '').trim(),
+      stock: Number(v.stock),
+      price: Number(v.price),
+    }));
+
+    // The backend still requires a product-level price & quantity, but the admin only enters them
+    // per variant now. Derive them: price = the lowest variant price ("starting from"), quantity =
+    // the total stock across all variants. One source of truth — no double entry.
+    const derivedPrice = Math.min(...variants.map((v) => v.price));
+    const derivedQuantity = variants.reduce((sum, v) => sum + v.stock, 0);
 
     form.append(
       "data",
       new Blob(
         [JSON.stringify({
-          name: formData.name,
+          name: formData.name.trim(),
           description: formData.description,
-          price: Number(formData.price),
-          quantity: Number(formData.quantity),
-          manufacturingDate: formData.manufacturingDate,
-          variants: formData.variants
+          price: derivedPrice,
+          quantity: derivedQuantity,
+          // Empty date string would fail LocalDate parsing on the server — send null instead.
+          manufacturingDate: formData.manufacturingDate || null,
+          variants,
         })],
         { type: "application/json" }
       )
@@ -75,11 +155,18 @@ const handleSave = async () => {
       await createProduct(form);
     }
 
+    toast.success(editId ? 'Product updated' : 'Product added', { id: savingToast });
     refresh();
     setShowModal(false);
     setEditId(null);
 
   } catch (error) {
+    // Surface the backend's real reason (field errors first, then the message) instead of swallowing it.
+    const data = error?.response?.data;
+    const message = data?.fieldErrors?.length
+      ? data.fieldErrors.map((f) => f.message || f.field).join(', ')
+      : data?.message || 'Could not save product. Please try again.';
+    toast.error(message, { id: savingToast });
     console.error(error);
   }
 };
@@ -164,61 +251,7 @@ const handleDownloadSample = () => {
   link.click();
   URL.revokeObjectURL(url);
 };
-  const columns = [
-    {
-      key: 'name',
-      header: 'Product Name',
-    },
-    {
-  key: 'description',
-  header: 'Description',
-  render: (row) =>
-    row.description?.length > 50
-      ? row.description.slice(0, 50) + '...'
-      : row.description,
-},
-  
-    {
-  key: 'image',
-  header: 'Image',
-  render: (row) => (
-    <img
-      src={`http://localhost:8080${row.imageUrl}`}
-      alt={row.name}
-      style={{ width: 50, height: 50, objectFit: 'cover' }}
-    />
-  ),
-},
-
-{
-  key: 'variants',
-  header: 'Variants',
-  render: (row) =>
-    row.variants?.length
-      ? row.variants.map(
-          (v) => `${v.size} | Stock: ${v.stock} | ₹${v.price}`
-        ).join(' , ')
-      : 'No Variants'
-},
-    {
-  key: 'actions',
-  header: 'Actions',
-  render: (row) => (
-    <div className="flex gap-2">
-      <Button onClick={() => handleEdit(row)}>
-        Edit
-      </Button>
-
-      <Button
-        
-        onClick={() => handleDelete(row.id)}
-      >
-        Delete
-      </Button>
-    </div>
-  ),
-},
-  ];
+  // Products are rendered as modern cards below (see the grid in the return), so no table columns.
 
   const filteredRows = useMemo(() => {
     const base = data ?? [];
@@ -243,7 +276,7 @@ return (
     <div className="flex items-center justify-between gap-4 mb-2">
   <SearchInput
     value={search}
-    onChange={(e) => setSearch(e.target.value)}
+    onChange={(val) => setSearch(val)}
     placeholder="Search products..."
   />
 
@@ -272,6 +305,8 @@ return (
    image: null,
     variants: []
   });
+  setTouched({});
+  setSubmitted(false);
 
       setShowModal(true);
     }}
@@ -291,12 +326,92 @@ return (
   </button>
 </div>
 
-    <Table
-      columns={columns}
-      rows={filteredRows}
-      loading={loading}
-      pageSize={8}
-    />
+    {loading ? (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="h-52 animate-pulse rounded-2xl bg-ink-100" />
+        ))}
+      </div>
+    ) : filteredRows.length === 0 ? (
+      <div className="rounded-2xl border border-dashed border-ink-200 bg-white/60 p-12 text-center">
+        <div className="text-4xl">📦</div>
+        <p className="mt-2 text-sm font-semibold text-ink-600">No products found</p>
+        <p className="text-xs text-ink-400">Add a product or adjust your search.</p>
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {filteredRows.map((p, i) => (
+          <div
+            key={p.id}
+            style={{ animationDelay: `${Math.min(i, 12) * 55}ms` }}
+            className="group flex animate-fade-up flex-col overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover"
+          >
+            {/* Image — blurred backdrop fills the frame (full-bleed look) while the real
+                product sits on top with object-contain, so nothing is ever cropped. */}
+            <div className="relative flex h-32 items-center justify-center overflow-hidden bg-ink-100">
+              <img
+                src={`http://localhost:8080${p.imageUrl}`}
+                aria-hidden
+                alt=""
+                className="absolute inset-0 h-full w-full scale-110 object-cover opacity-50 blur-xl"
+                onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
+              />
+              <img
+                src={`http://localhost:8080${p.imageUrl}`}
+                alt={p.name}
+                className="relative max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
+              />
+              <span className="absolute left-1.5 top-1.5 z-10 rounded-full bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-ink-600 shadow-sm">
+                🎚️ {p.variants?.length || 0} variant{(p.variants?.length || 0) === 1 ? "" : "s"}
+              </span>
+            </div>
+
+            {/* Body */}
+            <div className="flex flex-1 flex-col p-3">
+              <h3 className="truncate text-sm font-bold text-ink-900">{p.name}</h3>
+              <p className="mt-0.5 line-clamp-1 text-[11px] text-ink-500">{p.description || "—"}</p>
+
+              {/* Variant chips */}
+              <div className="mt-2 flex flex-wrap gap-1">
+                {p.variants?.length ? (
+                  p.variants.map((v) => (
+                    <span
+                      key={v.id ?? v.size}
+                      className="inline-flex items-center gap-1 rounded-md bg-ink-50 px-1.5 py-0.5 text-[10px] font-medium text-ink-700 ring-1 ring-inset ring-ink-100"
+                    >
+                      <b className="text-ink-900">{v.size}</b>
+                      <span className="text-ink-300">·</span>
+                      📦 {v.stock}
+                      <span className="text-ink-300">·</span>
+                      <span className="font-bold text-brand-700">₹{v.price}</span>
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-[11px] text-ink-400">No variants</span>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="mt-3 flex gap-1.5 border-t border-ink-50 pt-2.5">
+                <button
+                  onClick={() => handleEdit(p)}
+                  className="flex-1 rounded-lg bg-brand-600 py-1.5 text-xs font-semibold text-white transition-all hover:bg-brand-700 active:scale-[.97]"
+                >
+                  ✏️ Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  className="flex-1 rounded-lg border border-red-200 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 active:scale-[.97]"
+                >
+                  🗑️ Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
 
    {showModal && (
   <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
@@ -315,7 +430,7 @@ return (
         </div>
         <button
           type="button"
-          onClick={() => { setShowModal(false); setEditId(null); }}
+          onClick={() => { setShowModal(false); setEditId(null); setTouched({}); setSubmitted(false); }}
           className="ml-auto grid h-9 w-9 place-items-center rounded-full text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700"
           aria-label="Close"
         >✕</button>
@@ -327,11 +442,15 @@ return (
         <label className="block">
           <span className="mb-1.5 block text-sm font-semibold text-ink-700">🏷️ Product name</span>
           <input
-            className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            className={`w-full rounded-xl border px-3 py-2.5 text-sm text-ink-900 outline-none transition-shadow focus:ring-2 ${fieldBorder(isVisible('name') && errors.name)}`}
             placeholder="e.g. Paracetamol 500mg"
             value={formData.name}
+            onBlur={() => markTouched('name')}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           />
+          {isVisible('name') && errors.name && (
+            <p className="mt-1 text-xs font-medium text-red-500">{errors.name}</p>
+          )}
         </label>
 
         <label className="block">
@@ -361,10 +480,16 @@ return (
             type="file"
             accept="image/*"
             className="block w-full text-sm text-ink-500 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700"
-            onChange={(e) => setFormData({ ...formData, image: e.target.files[0] })}
+            onChange={(e) => {
+              markTouched('image');
+              setFormData({ ...formData, image: e.target.files[0] });
+            }}
           />
           {formData.image?.name && (
             <p className="mt-1 text-xs text-ink-400">Selected: {formData.image.name}</p>
+          )}
+          {isVisible('image') && errors.image && (
+            <p className="mt-1 text-xs font-medium text-red-500">{errors.image}</p>
           )}
         </div>
 
@@ -381,6 +506,10 @@ return (
             <p className="rounded-xl border border-dashed border-ink-200 bg-white/60 p-4 text-center text-xs text-ink-400">
               No variants yet — add sizes like <b>100ml</b> / <b>250ml</b> with their stock &amp; price.
             </p>
+          )}
+
+          {submitted && errors.novariants && (
+            <p className="mt-2 text-xs font-medium text-red-500">{errors.novariants}</p>
           )}
 
           <div className="space-y-2">
@@ -401,49 +530,61 @@ return (
                   >🗑️</button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 items-start gap-2">
                   <label className="block">
                     <span className="mb-1 block text-[11px] font-semibold text-ink-500">📐 Size</span>
                     <input
-                      className="w-full rounded-lg border border-ink-200 px-2 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                      className={`w-full rounded-lg border px-2 py-2 text-sm outline-none focus:ring-2 ${fieldBorder(isVisible(`v${index}.size`) && errors.variants[index]?.size)}`}
                       placeholder="500ml"
                       value={variant.size}
+                      onBlur={() => markTouched(`v${index}.size`)}
                       onChange={(e) => {
                         const updated = [...formData.variants];
-                        updated[index].size = e.target.value;
+                        updated[index] = { ...updated[index], size: e.target.value };
                         setFormData({ ...formData, variants: updated });
                       }}
                     />
+                    {isVisible(`v${index}.size`) && errors.variants[index]?.size && (
+                      <p className="mt-1 text-[11px] font-medium text-red-500">{errors.variants[index].size}</p>
+                    )}
                   </label>
 
                   <label className="block">
                     <span className="mb-1 block text-[11px] font-semibold text-ink-500">📊 Stock</span>
                     <input
                       type="number"
-                      className="w-full rounded-lg border border-ink-200 px-2 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                      className={`w-full rounded-lg border px-2 py-2 text-sm outline-none focus:ring-2 ${fieldBorder(isVisible(`v${index}.stock`) && errors.variants[index]?.stock)}`}
                       placeholder="0"
                       value={variant.stock}
+                      onBlur={() => markTouched(`v${index}.stock`)}
                       onChange={(e) => {
                         const updated = [...formData.variants];
-                        updated[index].stock = e.target.value;
+                        updated[index] = { ...updated[index], stock: e.target.value };
                         setFormData({ ...formData, variants: updated });
                       }}
                     />
+                    {isVisible(`v${index}.stock`) && errors.variants[index]?.stock && (
+                      <p className="mt-1 text-[11px] font-medium text-red-500">{errors.variants[index].stock}</p>
+                    )}
                   </label>
 
                   <label className="block">
                     <span className="mb-1 block text-[11px] font-semibold text-ink-500">💰 Price</span>
                     <input
                       type="number"
-                      className="w-full rounded-lg border border-ink-200 px-2 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                      className={`w-full rounded-lg border px-2 py-2 text-sm outline-none focus:ring-2 ${fieldBorder(isVisible(`v${index}.price`) && errors.variants[index]?.price)}`}
                       placeholder="₹0"
                       value={variant.price}
+                      onBlur={() => markTouched(`v${index}.price`)}
                       onChange={(e) => {
                         const updated = [...formData.variants];
-                        updated[index].price = e.target.value;
+                        updated[index] = { ...updated[index], price: e.target.value };
                         setFormData({ ...formData, variants: updated });
                       }}
                     />
+                    {isVisible(`v${index}.price`) && errors.variants[index]?.price && (
+                      <p className="mt-1 text-[11px] font-medium text-red-500">{errors.variants[index].price}</p>
+                    )}
                   </label>
                 </div>
               </div>
@@ -470,6 +611,8 @@ return (
           onClick={() => {
             setShowModal(false);
             setEditId(null);
+            setTouched({});
+            setSubmitted(false);
             setFormData({
               name: '', description: '', price: '', quantity: '',
               manufacturingDate: '', imageUrl: '', variants: [],

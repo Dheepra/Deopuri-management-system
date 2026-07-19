@@ -45,6 +45,8 @@ export default function AppointmentBooking({
 
   const [doctors, setDoctors] = useState([]);
 const [hospitals, setHospitals] = useState([]);
+const [doctorsLoading, setDoctorsLoading] = useState(false);
+const [qrUrl, setQrUrl] = useState("");
 const [errors, setErrors] = useState({});
 
 
@@ -58,21 +60,24 @@ useEffect(() => {
 
 
 
+// Load the chosen hospital's doctors whenever the hospital changes.
 useEffect(() => {
   const loadDoctors = async () => {
     if (!formData.hospitalAdminId) {
       setDoctors([]);
       return;
     }
-
+    setDoctorsLoading(true);
     try {
       const response = await http.get(
         `/deopuri/hospital-admin/doctors/hospital/${formData.hospitalAdminId}`
       );
-
-      setDoctors(response.data);
+      setDoctors(response.data || []);
     } catch (error) {
       console.log(error);
+      setDoctors([]);
+    } finally {
+      setDoctorsLoading(false);
     }
   };
 
@@ -85,33 +90,14 @@ const clearError = (name) => {
   }
 };
 
-const handleHospitalChange = async (e) => {
-
-  const hospitalAdminId = e.target.value;
-
+const handleHospitalChange = (e) => {
+  // Reset the doctor when the hospital changes; the effect above loads the new list.
   setFormData({
     ...formData,
-    hospitalAdminId,
+    hospitalAdminId: e.target.value,
     doctorId: ""
   });
   clearError("hospitalAdminId");
-
-  if (!hospitalAdminId) {
-    setDoctors([]);
-    return;
-  }
-
-  try {
-
-    const response = await http.get(
-      `/deopuri/hospital-admin/doctors/hospital/${hospitalAdminId}`
-    );
-
-    setDoctors(response.data);
-
-  } catch (error) {
-    console.log(error);
-  }
 };
 
 const handleChange = (e) => {
@@ -155,6 +141,33 @@ const handleChange = (e) => {
 
 
 
+
+  // Payment context derived from the chosen doctor + hospital.
+  const selectedDoctor = doctors.find((d) => String(d.id) === String(formData.doctorId));
+  const selectedHospital = hospitals.find((h) => String(h.id) === String(formData.hospitalAdminId));
+  const fee = selectedDoctor?.consultationFee;
+  const feeNum = Number(fee) || 0;
+  const upiId = selectedHospital?.upiId;
+  const method = formData.paymentMethod || "UPI";
+  const upiLink = upiId
+    ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(selectedHospital?.shopName || "Hospital")}` +
+      `${feeNum > 0 ? `&am=${feeNum}` : ""}&cu=INR&tn=${encodeURIComponent("Consultation fee")}`
+    : null;
+
+  // Build a scannable QR for the UPI link so desktop users can pay from their phone.
+  // Dynamic import keeps the page working even if the "qrcode" package isn't installed yet.
+  useEffect(() => {
+    if (method !== "UPI" || !upiLink) {
+      setQrUrl("");
+      return;
+    }
+    let alive = true;
+    import("qrcode")
+      .then((m) => (m.default || m).toDataURL(upiLink, { width: 220, margin: 1 }))
+      .then((url) => { if (alive) setQrUrl(url); })
+      .catch(() => { if (alive) setQrUrl(""); });
+    return () => { alive = false; };
+  }, [upiLink, method]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-50 p-4">
@@ -252,8 +265,9 @@ const handleChange = (e) => {
             <span className="mb-3 block text-sm font-bold text-ink-800">🏥 Appointment details</span>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className={labelClass}>🏥 Hospital</span>
+              {/* Step 1: pick the hospital */}
+              <label className="block sm:col-span-2">
+                <span className={labelClass}>🏥 Hospital <span className="font-normal text-brand-600">— select this first</span></span>
                 <select
                   className={inputClass}
                   name="hospitalAdminId"
@@ -270,21 +284,34 @@ const handleChange = (e) => {
                 {errors.hospitalAdminId && <p className={errorClass}>{errors.hospitalAdminId}</p>}
               </label>
 
-              <label className="block">
+              {/* Step 2: pick a doctor from that hospital (disabled until a hospital is chosen) */}
+              <label className="block sm:col-span-2">
                 <span className={labelClass}>👨‍⚕️ Doctor</span>
                 <select
-                  className={inputClass}
+                  className={`${inputClass} disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400`}
                   name="doctorId"
                   value={formData.doctorId}
                   onChange={handleChange}
+                  disabled={!formData.hospitalAdminId || doctorsLoading}
                 >
-                  <option value="">Select doctor</option>
+                  <option value="">
+                    {!formData.hospitalAdminId
+                      ? "Select a hospital first"
+                      : doctorsLoading
+                        ? "Loading doctors…"
+                        : doctors.length === 0
+                          ? "No doctors at this hospital"
+                          : "Select doctor"}
+                  </option>
                   {doctors.map((doc) => (
                     <option key={doc.id} value={doc.id}>
                       Dr. {doc.firstName} {doc.lastName} - {doc.specialization}
                     </option>
                   ))}
                 </select>
+                {formData.hospitalAdminId && !doctorsLoading && doctors.length === 0 && (
+                  <p className="mt-1 text-xs text-amber-600">This hospital has no doctors listed yet.</p>
+                )}
                 {errors.doctorId && <p className={errorClass}>{errors.doctorId}</p>}
               </label>
 
@@ -313,6 +340,102 @@ const handleChange = (e) => {
               </label>
             </div>
           </div>
+
+          {/* Payment */}
+          {formData.doctorId && (
+            <div className="rounded-2xl border border-ink-100 bg-ink-50/50 p-3">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm font-bold text-ink-800">💳 Payment</span>
+                {fee != null && (
+                  <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-bold text-brand-700">
+                    Consultation fee: ₹{Number(fee).toLocaleString("en-IN")}
+                  </span>
+                )}
+              </div>
+
+              {/* Method toggle */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, paymentMethod: "UPI" })}
+                  className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${method === "UPI" ? "border-brand-500 bg-brand-50 text-brand-700" : "border-ink-200 text-ink-600 hover:bg-ink-50"}`}
+                >
+                  📲 Pay online (UPI)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, paymentMethod: "CASH", paymentRef: "" })}
+                  className={`rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${method === "CASH" ? "border-brand-500 bg-brand-50 text-brand-700" : "border-ink-200 text-ink-600 hover:bg-ink-50"}`}
+                >
+                  🏥 Pay at hospital
+                </button>
+              </div>
+
+              {method === "UPI" && (
+                <div className="mt-3 space-y-2">
+                  {upiId ? (
+                    <>
+                      {feeNum === 0 && (
+                        <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                          This doctor’s consultation fee isn’t set — you can still pay any amount to the UPI ID, or choose “Pay at hospital”.
+                        </p>
+                      )}
+
+                      {/* Scan on phone (works on desktop too) */}
+                      {qrUrl && (
+                        <div className="flex flex-col items-center gap-1 rounded-xl border border-ink-100 bg-white p-3">
+                          <img src={qrUrl} alt="UPI QR code" className="h-40 w-40" />
+                          <p className="text-xs font-semibold text-ink-600">📷 Scan with any UPI app (GPay / PhonePe / Paytm)</p>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-ink-100 bg-white p-2.5 text-sm">
+                        <span className="text-ink-500">UPI ID:</span>
+                        <span className="font-semibold text-ink-900">{upiId}</span>
+                        <button
+                          type="button"
+                          onClick={() => { navigator.clipboard?.writeText(upiId); }}
+                          className="ml-auto rounded-lg border border-ink-200 px-2 py-1 text-xs font-semibold text-ink-600 hover:bg-ink-50"
+                        >
+                          Copy
+                        </button>
+                      </div>
+
+                      {/* Deep link — only useful on a phone */}
+                      <a
+                        href={upiLink}
+                        className="block w-full rounded-xl bg-brand-600 py-2.5 text-center text-sm font-bold text-white transition-colors hover:bg-brand-700"
+                      >
+                        📲 Pay {feeNum > 0 ? `₹${feeNum.toLocaleString("en-IN")}` : ""} via UPI app
+                      </a>
+                      <p className="text-xs text-ink-400">
+                        On a phone this opens your UPI app. On a computer, scan the QR above with your phone.
+                        After paying, enter the reference below.
+                      </p>
+
+                      <input
+                        className={inputClass}
+                        name="paymentRef"
+                        value={formData.paymentRef}
+                        onChange={handleChange}
+                        placeholder="UPI reference / transaction ID (after paying)"
+                      />
+                    </>
+                  ) : (
+                    <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">
+                      This hospital hasn’t set up online payment yet. Please choose “Pay at hospital”.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {method === "CASH" && (
+                <p className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-ink-500">
+                  🏥 Pay {fee != null ? `₹${Number(fee).toLocaleString("en-IN")}` : "the fee"} at the reception when you arrive. The hospital will mark it paid.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Notes */}
           <label className="block">

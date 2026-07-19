@@ -22,6 +22,11 @@ public interface AuthController {
         ResponseEntity<LoginResponse> login(
                         @RequestBody LoginRequest dto);
 
+        // Sliding-session refresh: needs a still-valid token (JWT filter authenticates it),
+        // returns a brand-new token so an active client never gets logged out.
+        @PostMapping("/refresh")
+        ResponseEntity<LoginResponse> refresh();
+
         @PostMapping("/create-password/{userId}")
         ResponseEntity<String> createPassword(Integer userId, CreatePasswordRequest request);
 

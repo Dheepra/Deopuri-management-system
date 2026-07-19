@@ -17,7 +17,12 @@ public record AppointmentResponse(
         String appointmentTime,
         String notes,
 
-        String status) {
+        String status,
+
+        Double amount,
+        String paymentMethod,
+        String paymentStatus,
+        String paymentRef) {
 
     public static AppointmentResponse from(Appointment appointment) {
         return new AppointmentResponse(
@@ -32,6 +37,10 @@ public record AppointmentResponse(
                 appointment.getAppointmentDate().toString(),
                 appointment.getAppointmentTime().toString(),
                 appointment.getNotes(),
-                appointment.getStatus().name());
+                appointment.getStatus().name(),
+                appointment.getAmount(),
+                appointment.getPaymentMethod(),
+                appointment.getPaymentStatus() != null ? appointment.getPaymentStatus().name() : null,
+                appointment.getPaymentRef());
     }
 }

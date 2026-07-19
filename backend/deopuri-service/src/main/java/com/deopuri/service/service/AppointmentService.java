@@ -20,5 +20,7 @@ public interface AppointmentService {
                         Integer adminId);
 
         AppointmentResponse updateStatus(Long id, AppointmentStatus status);
+
+    AppointmentResponse updatePaymentStatus(Long id, com.deopuri.api.model.AppointmentPaymentStatus paymentStatus);
         AppointmentResponse cancelAppointment(Long id);
 }

@@ -17,6 +17,7 @@ import com.deopuri.service.dao.OrdersDao;
 import com.deopuri.service.dao.ProductRepository;
 import com.deopuri.service.dao.ProductVariantDao;
 import com.deopuri.service.dao.UsersDao;
+import com.deopuri.service.service.MedicalLedgerService;
 import com.deopuri.service.service.NotificationService;
 import com.deopuri.service.service.OrdersService;
 import org.slf4j.Logger;
@@ -42,18 +43,21 @@ public class OrdersServiceImpl implements OrdersService {
         private final ProductVariantDao variantDao;
         private final UsersDao usersDao;
         private final NotificationService notificationService;
+        private final MedicalLedgerService medicalLedgerService;
 
         public OrdersServiceImpl(
                         OrdersDao dao,
                         ProductRepository productRepository,
                         ProductVariantDao variantDao,
                         UsersDao usersDao,
-                        NotificationService notificationService) {
+                        NotificationService notificationService,
+                        MedicalLedgerService medicalLedgerService) {
                 this.dao = dao;
                 this.productRepository = productRepository;
                 this.variantDao = variantDao;
                 this.usersDao = usersDao;
                 this.notificationService = notificationService;
+                this.medicalLedgerService = medicalLedgerService;
         }
 
         @Override
@@ -206,10 +210,16 @@ public OrderResponse updateOrderStatus(Long id, OrderStatus status) {
     } else {
 
         for (Orders o : groupOrders) {
+            boolean wasDelivered = o.getStatus() == OrderStatus.DELIVERED;
             o.setStatus(status);
 
             if (status == OrderStatus.DELIVERED) {
                 o.setDeliveredDate(LocalDateTime.now());
+
+                // A medical admin's delivered purchase becomes their own stock (once).
+                if (!wasDelivered && "MEDICAL".equals(o.getContext())) {
+                    medicalLedgerService.ingestDeliveredOrder(o);
+                }
             }
         }
 

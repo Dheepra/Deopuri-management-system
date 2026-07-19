@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import Badge from '../../components/ui/Badge.jsx';
 import SearchInput from '../../components/ui/SearchInput.jsx';
-import Table from '../../components/ui/Table.jsx';
 import Button from '../../components/ui/Button.jsx';
 import { useAsyncData } from '../../hooks/useAsyncData.js';
 import { email as emailValidator, phone10, required, runValidators } from '../../utils/validators.js';
@@ -13,8 +11,6 @@ import {
   deleteStaff,
 } from '../../services/staff.js';
 
-const STATUS_TONE = { active: 'success', 'on-leave': 'warning', inactive: 'neutral' };
-
 const EMPTY_FORM = {
   name: '',
   role: '',
@@ -24,6 +20,34 @@ const EMPTY_FORM = {
   email: '',
   mobileNo: '',
 };
+
+// Soft gradient per avatar so the grid feels lively but stays on-brand.
+const AVATAR_GRADIENTS = [
+  "from-brand-500 to-brand-700",
+  "from-sky-500 to-blue-600",
+  "from-violet-500 to-purple-600",
+  "from-amber-500 to-orange-600",
+  "from-emerald-500 to-teal-600",
+  "from-pink-500 to-rose-600",
+];
+
+const statusMeta = (s) => {
+  const k = (s || "").toLowerCase();
+  if (k === "active") return { label: "Active", emoji: "🟢", pill: "bg-emerald-50 text-emerald-700 ring-emerald-200" };
+  if (k === "on-leave" || k === "on leave") return { label: "On leave", emoji: "🌴", pill: "bg-amber-50 text-amber-700 ring-amber-200" };
+  if (k === "inactive") return { label: "Inactive", emoji: "⚪", pill: "bg-ink-100 text-ink-500 ring-ink-200" };
+  return { label: s || "Active", emoji: "🩺", pill: "bg-sky-50 text-sky-700 ring-sky-200" };
+};
+
+function StatusPill({ status }) {
+  const m = statusMeta(status);
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${m.pill}`}>
+      <span>{m.emoji}</span>
+      {m.label}
+    </span>
+  );
+}
 
 function validate(values) {
   return {
@@ -47,21 +71,8 @@ export default function Staff() {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const columns = [
-    { key: 'name', header: 'Name' },
-    { key: 'role', header: 'Role' },
-    { key: 'department', header: 'Department' },
-    { key: 'shift', header: 'Shift' },
-    {
-      key: 'status',
-      header: 'Status',
-      render: (row) => <Badge tone={STATUS_TONE[row.status] ?? 'neutral'}>{row.status}</Badge>,
-    },
-  ];
-
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
-    // Clear the field error as the user edits it (follows SignupForm.jsx).
     setErrors((prev) => (prev[key] ? { ...prev, [key]: null } : prev));
   };
 
@@ -130,20 +141,33 @@ export default function Staff() {
     }
   };
 
-  const rows = useMemo(() => data ?? [], [data]);
+  const staff = useMemo(() => {
+    const list = data ?? [];
+    const q = search.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((s) =>
+      (s?.name || '').toLowerCase().includes(q)
+      || (s?.department || '').toLowerCase().includes(q)
+      || (s?.role || '').toLowerCase().includes(q),
+    );
+  }, [data, search]);
 
   return (
-    <section className="space-y-6">
+    <>
+    <section className="animate-fade-up space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">
-            Medical staff
+            🏥 Medical staff
           </p>
-          <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink-900">
-            Staff management
+          <h1 className="mt-1 flex items-center gap-2 font-display text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
+            🧑‍⚕️ Staff
+            <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-sm font-semibold text-brand-700">
+              {(data ?? []).length}
+            </span>
           </h1>
           <p className="mt-1 text-sm text-ink-600">
-            Nurses, lab techs, pharmacists, and support staff across departments.
+            Nurses, lab techs, pharmacists &amp; support staff across departments.
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -157,35 +181,85 @@ export default function Staff() {
         </div>
       </header>
 
-      <Table
-        columns={columns}
-        rows={rows}
-        search={search}
-        loading={loading}
-        pageSize={8}
-        actions={(row) => (
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => openEdit(row)}
-              className="text-sm font-semibold text-brand-700 hover:text-brand-800"
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => handleDelete(row)}
-              className="text-sm font-semibold text-red-600 hover:text-red-700"
-            >
-              Delete
-            </button>
-          </div>
-        )}
-      />
+      {/* Staff cards */}
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-44 animate-pulse rounded-2xl bg-ink-100" />
+          ))}
+        </div>
+      ) : staff.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-ink-200 bg-white/60 p-12 text-center">
+          <div className="text-4xl">🧑‍⚕️</div>
+          <p className="mt-2 text-sm font-semibold text-ink-600">No staff yet</p>
+          <p className="text-xs text-ink-400">Add your first team member to get started.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {staff.map((s, i) => {
+            const fullName = (s?.name || 'Unknown').trim();
+            const initial = fullName.charAt(0).toUpperCase() || 'S';
+            const grad = AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length];
+            const nightShift = (s?.shift || '').toLowerCase() === 'night';
+            return (
+              <div
+                key={s?.id ?? i}
+                style={{ animationDelay: `${Math.min(i, 12) * 55}ms` }}
+                className="group animate-fade-up rounded-2xl border border-ink-100 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover"
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br ${grad} text-lg font-bold text-white transition-transform group-hover:scale-110`}>
+                    {initial}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold text-ink-900">{fullName}</p>
+                    <p className="truncate text-xs text-ink-500">🩺 {s?.role || '—'}</p>
+                  </div>
+                  <StatusPill status={s?.status} />
+                </div>
 
-      {showModal && (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl bg-ink-50 px-2.5 py-1.5">
+                    <p className="text-[10px] font-semibold text-ink-400">🏥 Department</p>
+                    <p className="truncate text-xs font-bold text-ink-800">{s?.department || '—'}</p>
+                  </div>
+                  <div className="rounded-xl bg-ink-50 px-2.5 py-1.5">
+                    <p className="text-[10px] font-semibold text-ink-400">{nightShift ? '🌙 Shift' : '☀️ Shift'}</p>
+                    <p className="text-xs font-bold text-ink-800">{s?.shift || '—'}</p>
+                  </div>
+                </div>
+
+                {(s?.email || s?.mobileNo) && (
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-500">
+                    {s?.email && <span className="truncate">📧 {s.email}</span>}
+                    {s?.mobileNo && <span>📱 {s.mobileNo}</span>}
+                  </div>
+                )}
+
+                <div className="mt-3 flex gap-2 border-t border-ink-50 pt-3">
+                  <button
+                    onClick={() => openEdit(s)}
+                    className="flex-1 rounded-xl bg-brand-600 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-700 active:scale-[.97]"
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(s)}
+                    className="flex-1 rounded-xl border border-red-200 py-2 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 active:scale-[.97]"
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+
+    {showModal && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
-          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl">
+          <div className="animate-pop flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl">
 
             {/* Header */}
             <div className="flex items-center gap-3 border-b border-ink-100 px-5 py-4">
@@ -319,6 +393,6 @@ export default function Staff() {
           </div>
         </div>
       )}
-    </section>
+    </>
   );
 }

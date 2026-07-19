@@ -100,3 +100,49 @@ img {
 .animate-float {
   animation: float-soft 5s ease-in-out infinite;
 }
+
+/* Quick scale-in "pop" — used for cards, badges and counts so changes feel alive, not static. */
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.9); }
+  60%  { transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.animate-pop {
+  animation: pop-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Infinite horizontal marquee — the row is duplicated in markup, so -50% loops seamlessly. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 32s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Gentle attention wiggle — e.g. an empty-cart or "add something" hint. */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(-6deg); }
+  75%      { transform: rotate(6deg); }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.6s ease-in-out;
+}
+
+/* Respect users who prefer less motion — disable the looping/entrance animations for them. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-float,
+  .animate-mesh,
+  .animate-pop,
+  .animate-wiggle,
+  .animate-marquee {
+    animation: none !important;
+  }
+}

@@ -83,6 +83,13 @@ export async function getDoctors() {
 
   return data;
 }
+
+// Hospital admin sets/updates a doctor's consultation fee.
+export async function updateDoctorFee(id, fee) {
+  const { data } = await http.patch(`/deopuri/hospital-admin/doctors/${id}/fee?fee=${fee}`);
+  return data;
+}
+
 export async function getStaff()        { await delay(120); return STAFF; }
 export async function getPatients()     { await delay(140); return PATIENTS; }
 

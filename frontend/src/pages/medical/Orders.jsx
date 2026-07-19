@@ -2,8 +2,41 @@ import { useEffect, useMemo, useState } from "react";
 import { useAsyncData } from "../../hooks/useAsyncData";
 import { fetchProducts } from "../../services/products";
 import { placeOrder, fetchMyOrders } from "../../services/orders";
-import Button from "../../components/ui/Button";
 import { getAuthUser } from "../../services/auth";
+
+// Resolve a stored image path to a full URL (backend serves /uploads/... on :8080).
+const getImageUrl = (url) => {
+  if (!url) return "/placeholder.png";
+  if (url.startsWith("http")) return url;
+  return `http://localhost:8080${url}`;
+};
+
+const formatDate = (d) => (d ? new Date(d).toLocaleDateString("en-IN") : "-");
+
+const statusMeta = (status) => {
+  switch (status) {
+    case "PENDING":
+      return { label: "Pending", emoji: "⏳", pill: "bg-amber-50 text-amber-700 ring-amber-200" };
+    case "CONFIRMED":
+      return { label: "Confirmed", emoji: "✅", pill: "bg-sky-50 text-sky-700 ring-sky-200" };
+    case "SHIPPED":
+      return { label: "Shipped", emoji: "📮", pill: "bg-violet-50 text-violet-700 ring-violet-200" };
+    case "DELIVERED":
+      return { label: "Delivered", emoji: "🚚", pill: "bg-emerald-50 text-emerald-700 ring-emerald-200" };
+    default:
+      return { label: status || "—", emoji: "•", pill: "bg-ink-100 text-ink-600 ring-ink-200" };
+  }
+};
+
+const StatusPill = ({ status }) => {
+  const m = statusMeta(status);
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${m.pill}`}>
+      <span>{m.emoji}</span>
+      {m.label}
+    </span>
+  );
+};
 
 export default function MedicalOrders() {
 
@@ -12,34 +45,29 @@ export default function MedicalOrders() {
   const [showProducts, setShowProducts] = useState(true);
   const [showCart, setShowCart] = useState(false);
   const [showOrders, setShowOrders] = useState(false);
+  const [showPayments, setShowPayments] = useState(false);
+  const [payFilter, setPayFilter] = useState('all');
 
   // CART + ORDERS
   const [selectedVariants, setSelectedVariants] = useState({});
 
-
   const user = getAuthUser();
-const userId = user?.id;
-const role = user?.role;
+  const userId = user?.id;
+  const role = user?.role;
 
-const CART_KEY = `cart_${role}_${userId}`;
+  const CART_KEY = `cart_${role}_${userId}`;
 
-const [cart, setCart] = useState(() => {
-  const user = getAuthUser();
-  if (!user) return [];
-
-  const key = `cart_${user.role}_${user.id}`;
-  const saved = localStorage.getItem(key);
-
-  return saved ? JSON.parse(saved) : [];
-});
+  const [cart, setCart] = useState(() => {
+    const u = getAuthUser();
+    if (!u) return [];
+    const key = `cart_${u.role}_${u.id}`;
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [orders, setOrders] = useState([]);
 
-  const user = getAuthUser();
-
   // PRODUCTS API
-  const { data: products, loading } = useAsyncData(() =>
-    fetchProducts()
-  );
+  const { data: products, loading } = useAsyncData(() => fetchProducts());
 
   // FILTER PRODUCTS
   const filteredProducts = useMemo(() => {
@@ -53,10 +81,10 @@ const [cart, setCart] = useState(() => {
 
   // SAVE CART LOCAL STORAGE
   useEffect(() => {
-  if (userId && role) {
-    localStorage.setItem(CART_KEY, JSON.stringify(cart));
-  }
-}, [cart, CART_KEY]);
+    if (userId && role) {
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    }
+  }, [cart, CART_KEY]);
 
   // LOAD ORDERS FROM BACKEND
   const loadOrders = async () => {
@@ -81,19 +109,16 @@ const [cart, setCart] = useState(() => {
       return;
     }
 
-    const variant = product.variants.find(v => v.id === variantId);
+    const variant = product.variants.find((v) => v.id === variantId);
 
     setCart((prev) => {
       const existing = prev.find(
-        (i) =>
-          i.productId === product.id &&
-          i.variantId === variant.id
+        (i) => i.productId === product.id && i.variantId === variant.id
       );
 
       if (existing) {
         return prev.map((i) =>
-          i.productId === product.id &&
-          i.variantId === variant.id
+          i.productId === product.id && i.variantId === variant.id
             ? { ...i, quantity: i.quantity + 1 }
             : i
         );
@@ -153,205 +178,343 @@ const [cart, setCart] = useState(() => {
       alert("Order placed successfully");
 
       setCart([]);
-localStorage.removeItem(CART_KEY);
+      localStorage.removeItem(CART_KEY);
 
       loadOrders();
       setShowOrders(true);
-
+      setShowProducts(false);
+      setShowCart(false);
     } catch (err) {
       console.log("Order Error =", err);
       alert("Failed to place order");
     }
   };
 
-  if (loading) return <p>Loading...</p>;
+  const goTo = (tab) => {
+    setShowProducts(tab === "products");
+    setShowCart(tab === "cart");
+    setShowOrders(tab === "orders");
+    setShowPayments(tab === "payments");
+    if (tab === "orders" || tab === "payments") loadOrders();
+  };
+
+  const payMeta = (status, remaining, paid) => {
+    const s = status || (remaining <= 0 && paid > 0 ? "PAID" : paid > 0 ? "PARTIALLY_PAID" : "UNPAID");
+    if (s === "PAID") return { label: "Paid", emoji: "✅", pill: "bg-emerald-50 text-emerald-700 ring-emerald-200" };
+    if (s === "PARTIALLY_PAID") return { label: "Partial", emoji: "🟡", pill: "bg-amber-50 text-amber-700 ring-amber-200" };
+    return { label: "Unpaid", emoji: "❌", pill: "bg-red-50 text-red-700 ring-red-200" };
+  };
+
+  const payments = useMemo(() => {
+    const seen = new Set();
+    const items = [];
+    let billed = 0, paid = 0, outstanding = 0;
+    orders.forEach((o) => {
+      if (!o.orderNumber || seen.has(o.orderNumber)) return;
+      seen.add(o.orderNumber);
+      const b = Number(o.totalAmount) || 0;
+      const p = Number(o.paidAmount) || 0;
+      const r = Number(o.remainingAmount) || 0;
+      billed += b; paid += p; outstanding += r;
+      items.push({ orderNumber: o.orderNumber, orderDate: o.orderDate, billed: b, paid: p, remaining: r, paymentStatus: o.paymentStatus });
+    });
+    items.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+    return { items, billed, paid, outstanding };
+  }, [orders]);
+
+  const payFilters = [
+    { key: 'all', label: 'All', emoji: '📋' },
+    { key: 'UNPAID', label: 'Unpaid', emoji: '❌' },
+    { key: 'PARTIALLY_PAID', label: 'Partial', emoji: '🟡' },
+    { key: 'PAID', label: 'Paid', emoji: '✅' },
+  ];
+
+  const filteredPayments = useMemo(() => {
+    if (payFilter === 'all') return payments.items;
+    return payments.items.filter((o) => {
+      const s = o.paymentStatus || (o.remaining <= 0 && o.paid > 0 ? "PAID" : o.paid > 0 ? "PARTIALLY_PAID" : "UNPAID");
+      return s === payFilter;
+    });
+  }, [payments, payFilter]);
+
+  const tabClass = (active) =>
+    `flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ${
+      active
+        ? "bg-brand-600 text-white shadow-sm"
+        : "text-ink-600 hover:bg-white hover:text-ink-900"
+    }`;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <p className="animate-pop text-sm font-semibold text-ink-500">⏳ Loading medicines…</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="min-h-screen animate-fade-up p-6">
 
-      {/* TOP NAV */}
-      <div className="flex gap-4 mb-6">
+      {/* Header */}
+      <div className="mb-5">
+        <h1 className="font-display text-2xl font-bold text-ink-900">🛒 Shop &amp; Orders</h1>
+        <p className="text-sm text-ink-500">Browse medicines, build your cart &amp; track orders</p>
+      </div>
 
-        <button
-          onClick={() => {
-            setShowProducts(true);
-            setShowCart(false);
-            setShowOrders(false);
-          }}
-          className="px-4 py-2 rounded text-white"
-          style={{ backgroundColor: "#157d58" }}
-        >
-          Products
+      {/* Segmented nav */}
+      <div className="mb-6 inline-flex flex-wrap gap-1 rounded-full bg-ink-100 p-1">
+        <button onClick={() => goTo("products")} className={tabClass(showProducts)}>
+          🛍️ Products
         </button>
-
-        <button
-          onClick={() => {
-            setShowProducts(false);
-            setShowCart(true);
-            setShowOrders(false);
-          }}
-          className="px-4 py-2 rounded bg-gray-200"
-        >
-          Cart ({cart.length})
+        <button onClick={() => goTo("cart")} className={tabClass(showCart)}>
+          🛒 Cart
+          <span key={cart.length} className="animate-pop rounded-full bg-white/25 px-1.5 text-xs">
+            {cart.length}
+          </span>
         </button>
-
-        <button
-          onClick={() => {
-            setShowProducts(false);
-            setShowCart(false);
-            setShowOrders(true);
-            loadOrders();
-          }}
-          className="px-4 py-2 rounded bg-gray-200"
-        >
-          Orders ({orders.length})
+        <button onClick={() => goTo("orders")} className={tabClass(showOrders)}>
+          📦 Orders
+          <span key={orders.length} className="animate-pop rounded-full bg-white/25 px-1.5 text-xs">
+            {orders.length}
+          </span>
         </button>
-
+        <button onClick={() => goTo("payments")} className={tabClass(showPayments)}>
+          💳 Payments
+        </button>
       </div>
 
       {/* PRODUCTS */}
       {showProducts && (
-        <div className="grid grid-cols-3 gap-4">
+        <>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="🔍 Search medicines…"
+            className="mb-4 w-full max-w-md rounded-xl border border-ink-200 px-3 py-2.5 text-sm outline-none transition-shadow focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          />
 
-          {filteredProducts.map((p) => (
-            <div key={p.id} className="bg-white p-3 rounded shadow">
-
-              <img
-                src={p.imageUrl}
-                className="h-32 w-full object-cover rounded"
-              />
-
-              <h3 className="font-semibold mt-2">{p.name}</h3>
-
-              <select
-                className="border w-full mt-2 p-1"
-                onChange={(e) =>
-                  setSelectedVariants({
-                    ...selectedVariants,
-                    [p.id]: Number(e.target.value),
-                  })
-                }
-              >
-                <option value="">Select size</option>
-                {p.variants?.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.size}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                onClick={() =>
-                  addToCart(p, selectedVariants[p.id])
-                }
-                className="w-full mt-2 text-white py-2 rounded"
-                style={{ backgroundColor: "#157d58" }}
-              >
-                Add to Cart
-              </button>
-
+          {filteredProducts.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-ink-200 bg-white/60 p-10 text-center">
+              <div className="text-4xl">🔍</div>
+              <p className="mt-2 text-sm font-semibold text-ink-600">No medicines found</p>
             </div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {filteredProducts.map((p, i) => (
+                <div
+                  key={p.id}
+                  style={{ animationDelay: `${Math.min(i, 12) * 55}ms` }}
+                  className="group animate-fade-up overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover"
+                >
+                  <div className="overflow-hidden">
+                    <img
+                      src={getImageUrl(p.imageUrl)}
+                      alt={p.name}
+                      className="h-32 w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  </div>
 
-        </div>
+                  <div className="p-3">
+                    <h3 className="truncate font-semibold text-ink-900">{p.name}</h3>
+
+                    <select
+                      className="mt-2 w-full rounded-lg border border-ink-200 p-1.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                      onChange={(e) =>
+                        setSelectedVariants({
+                          ...selectedVariants,
+                          [p.id]: Number(e.target.value),
+                        })
+                      }
+                    >
+                      <option value="">Select size</option>
+                      {p.variants?.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.size}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      onClick={() => addToCart(p, selectedVariants[p.id])}
+                      className="mt-2 w-full rounded-lg bg-brand-600 py-2 text-sm font-semibold text-white transition-all hover:bg-brand-700 active:scale-[.97]"
+                    >
+                      ➕ Add to cart
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* CART */}
       {showCart && (
-        <div className="bg-white p-4 rounded shadow">
-
+        <div className="animate-fade-up rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
           {cart.length === 0 ? (
-            <p>No items in cart</p>
-          ) : (
-            cart.map((item) => (
-              <div
-                key={item.cartId}
-                className="flex justify-between border-b py-2"
+            <div className="p-8 text-center">
+              <div className="animate-wiggle text-4xl">🛒</div>
+              <p className="mt-2 text-sm font-semibold text-ink-600">Your cart is empty</p>
+              <button
+                onClick={() => goTo("products")}
+                className="mt-3 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
               >
-                <div className="flex items-center gap-3">
-  
-  <img
-   src={getImageUrl(item.imageUrl)} 
-    alt={item.name}
-    className="w-14 h-14 object-cover rounded"
-  />
+                🛍️ Browse medicines
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {cart.map((item, i) => (
+                  <div
+                    key={item.cartId}
+                    style={{ animationDelay: `${Math.min(i, 12) * 45}ms` }}
+                    className="flex animate-fade-up items-center justify-between gap-3 rounded-xl border border-ink-100 p-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <img
+                        src={getImageUrl(item.imageUrl)}
+                        alt={item.name}
+                        className="h-14 w-14 shrink-0 rounded-lg object-cover"
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-ink-900">
+                          {item.name} <span className="text-ink-400">· {item.size}</span>
+                        </p>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateQuantity(item.cartId, e.target.value)}
+                          className="mt-1 w-20 rounded-lg border border-ink-200 px-2 py-1 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+                        />
+                      </div>
+                    </div>
 
-  <div>
-    <p className="font-medium">{item.name}</p>
-
-    <input
-      type="number"
-      min="1"
-      value={item.quantity}
-      onChange={(e) =>
-        updateQuantity(item.cartId, e.target.value)
-      }
-      className="border w-20 mt-1"
-    />
-  </div>
-
-</div>
-
-                <button
-                  onClick={() => removeFromCart(item.cartId)}
-                  className="text-red-500"
-                >
-                  Remove
-                </button>
+                    <button
+                      onClick={() => removeFromCart(item.cartId)}
+                      className="rounded-lg px-2 py-1 text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
+                    >
+                      🗑️ Remove
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))
-          )}
 
-          {cart.length > 0 && (
-            <button
-              onClick={handlePlaceOrder}
-              className="w-full mt-4 text-white py-2 rounded"
-              style={{ backgroundColor: "#157d58" }}
-            >
-              Place Order
-            </button>
+              <button
+                onClick={handlePlaceOrder}
+                className="mt-4 w-full rounded-xl bg-brand-600 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-brand-700 active:scale-[.99]"
+              >
+                ✅ Place order
+              </button>
+            </>
           )}
-
         </div>
       )}
 
       {/* ORDERS */}
       {showOrders && (
-        <div className="bg-white p-4 rounded shadow">
-
+        <div className="animate-fade-up rounded-2xl border border-ink-100 bg-white p-4 shadow-card">
           {orders.length === 0 ? (
-            <p>No orders found</p>
+            <div className="p-8 text-center">
+              <div className="text-4xl">📭</div>
+              <p className="mt-2 text-sm font-semibold text-ink-600">No orders yet</p>
+            </div>
           ) : (
-            orders.map((o) => (
-              <div
-                key={o.id}
-                className="flex justify-between border-b py-2"
-              >
+            <div className="space-y-2">
+              {orders.map((o, i) => (
+                <div
+                  key={o.id}
+                  style={{ animationDelay: `${Math.min(i, 12) * 45}ms` }}
+                  className="flex animate-fade-up items-center justify-between gap-3 rounded-xl border border-ink-100 p-3 transition-colors hover:bg-ink-50/50"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-ink-900">💊 {o.productName}</p>
+                    <p className="text-sm text-ink-500">
+                      Size: {o.size} · Qty: {o.quantity}
+                    </p>
+                  </div>
 
-                <div>
-                  <p className="font-semibold">
-                    {o.productName}
-                  </p>
-
-                  <p className="text-sm text-gray-500">
-                    Size: {o.size} | Qty: {o.quantity}
-                  </p>
+                  <div className="flex flex-col items-end gap-1">
+                    <p className="font-bold text-ink-800">₹{o.totalAmount}</p>
+                    <StatusPill status={o.status} />
+                  </div>
                 </div>
-
-                <div className="text-right">
-                  <p>₹{o.totalAmount}</p>
-
-                  <span className="text-xs px-2 py-1 rounded text-white"
-                    style={{ backgroundColor: "#157d58" }}
-                  >
-                    {o.status}
-                  </span>
-                </div>
-
-              </div>
-            ))
+              ))}
+            </div>
           )}
+        </div>
+      )}
 
+      {/* PAYMENTS */}
+      {showPayments && (
+        <div className="animate-fade-up">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-ink-200/70 bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold text-ink-500">🧾 Total billed</p>
+              <p className="mt-1 text-2xl font-bold text-ink-900">₹{payments.billed}</p>
+            </div>
+            <div className="rounded-2xl border border-ink-200/70 bg-white p-4 shadow-sm">
+              <p className="text-xs font-semibold text-ink-500">✅ Paid</p>
+              <p className="mt-1 text-2xl font-bold text-emerald-600">₹{payments.paid}</p>
+            </div>
+            <div className="rounded-2xl border border-red-100 bg-red-50/50 p-4 shadow-sm">
+              <p className="text-xs font-semibold text-red-600">🔴 You owe</p>
+              <p className="mt-1 text-2xl font-bold text-red-600">₹{payments.outstanding}</p>
+            </div>
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {payFilters.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setPayFilter(f.key)}
+                className={[
+                  'flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold ring-1 ring-inset transition-colors',
+                  payFilter === f.key ? 'bg-brand-600 text-white ring-brand-600' : 'bg-white text-ink-700 ring-ink-200 hover:bg-ink-50',
+                ].join(' ')}
+              >
+                {f.emoji} {f.label}
+              </button>
+            ))}
+          </div>
+
+          {filteredPayments.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-ink-200 bg-white/60 p-10 text-center">
+              <div className="text-4xl">💳</div>
+              <p className="mt-2 text-sm font-semibold text-ink-600">No payment records</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {filteredPayments.map((o, i) => {
+                const m = payMeta(o.paymentStatus, o.remaining, o.paid);
+                const pct = o.billed > 0 ? Math.min(100, Math.round((o.paid / o.billed) * 100)) : 0;
+                return (
+                  <div
+                    key={o.orderNumber}
+                    style={{ animationDelay: `${Math.min(i, 12) * 45}ms` }}
+                    className="group animate-fade-up rounded-2xl border border-ink-200/70 bg-white p-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-card-hover"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 px-2.5 py-1 text-sm font-semibold text-brand-700">📦 #{o.orderNumber}</span>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${m.pill}`}><span>{m.emoji}</span>{m.label}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-ink-400">📅 {formatDate(o.orderDate)}</p>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-ink-100">
+                      <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-600 transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="mt-1 text-[11px] text-ink-400">{pct}% paid</p>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                      <div className="rounded-lg bg-ink-50 py-1.5"><p className="text-[10px] text-ink-400">Total</p><p className="text-xs font-bold text-ink-800">₹{o.billed}</p></div>
+                      <div className="rounded-lg bg-ink-50 py-1.5"><p className="text-[10px] text-ink-400">Paid</p><p className="text-xs font-bold text-emerald-600">₹{o.paid}</p></div>
+                      <div className="rounded-lg bg-ink-50 py-1.5"><p className="text-[10px] text-ink-400">Remaining</p><p className="text-xs font-bold text-red-600">₹{o.remaining}</p></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

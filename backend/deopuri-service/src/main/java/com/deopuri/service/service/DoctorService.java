@@ -20,4 +20,7 @@ public interface DoctorService {
 
               DoctorResponse getDoctorByUserId(Integer userId);
 
+              // Hospital admin sets/updates one of their own doctor's consultation fee.
+              DoctorResponse updateConsultationFee(Long doctorId, Double fee);
+
 }

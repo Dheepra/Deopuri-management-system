@@ -4,6 +4,7 @@ import com.deopuri.api.rest.AppointmentController;
 import com.deopuri.api.dto.AppointmentResponse;
 import com.deopuri.api.dto.CreateAppointmentRequest;
 import com.deopuri.api.model.AppointmentStatus;
+import com.deopuri.api.model.AppointmentPaymentStatus;
 import com.deopuri.service.service.AppointmentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -69,5 +70,14 @@ public class AppointmentControllerImpl
 
         return ResponseEntity.ok(
                 appointmentService.cancelAppointment(id));
+    }
+
+    @Override
+    public ResponseEntity<AppointmentResponse> updatePaymentStatus(
+            @PathVariable Long id,
+            @RequestParam AppointmentPaymentStatus status) {
+
+        return ResponseEntity.ok(
+                appointmentService.updatePaymentStatus(id, status));
     }
 }

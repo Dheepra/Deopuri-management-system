@@ -14,6 +14,7 @@ const INITIAL = {
   mobileNo: '',
   address: '',
   shopName: '',
+  upiId: '',
 };
 
 function validate(values) {
@@ -56,6 +57,7 @@ export default function Settings() {
           mobileNo: data.mobileNo || '',
           address: data.address || '',
           shopName: data.shopName || '',
+          upiId: data.upiId || '',
         });
       } catch (err) {
         console.error(err);
@@ -113,6 +115,7 @@ export default function Settings() {
         mobileNo: values.mobileNo.trim(),
         address: values.address.trim(),
         shopName: values.shopName.trim(),
+        upiId: values.upiId.trim(),
       });
       if (data?.photoUrl !== undefined) setPhotoUrl(data.photoUrl || '');
       toast.success('Profile saved');
@@ -244,6 +247,17 @@ export default function Settings() {
                   placeholder="Hospital name"
                 />
                 {errors.shopName && <p className={errCls}>{errors.shopName}</p>}
+              </label>
+
+              <label className="block">
+                <span className={labelCls}>💳 UPI ID (for appointment payments)</span>
+                <input
+                  className={inputCls}
+                  value={values.upiId}
+                  onChange={(e) => setField('upiId', e.target.value)}
+                  placeholder="e.g. hospital@okhdfcbank"
+                />
+                <p className="mt-1 text-xs text-ink-400">Patients pay consultation fees to this UPI ID when booking.</p>
               </label>
 
               <button

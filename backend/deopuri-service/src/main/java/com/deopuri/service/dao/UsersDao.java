@@ -18,6 +18,9 @@ public interface UsersDao extends JpaRepository<Users, Integer> {
     
     Optional<Users> findByMobileNo(String mobileNo);
 
+    // Two shops (hospital/medical) may share a name but NOT the same address.
+    boolean existsByAddressIgnoreCaseAndRoleIn(String address, java.util.List<UserRole> roles);
+
     boolean existsByRoleAndStatus(UserRole role, UserStatus status);
 
     List<Users> findByFirstNameStartingWithIgnoreCase(String firstName);

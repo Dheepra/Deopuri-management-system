@@ -1,7 +1,7 @@
 import DashboardLayout from './DashboardLayout.jsx';
 
 const NAV = [
-  { label: 'Overview',  to: '/admin/dashboard', icon: 'M3 12 12 3l9 9M5 10v10h14V10', end: true },
+  { label: 'Dashboard',  to: '/admin/dashboard', icon: 'M3 12 12 3l9 9M5 10v10h14V10', end: true },
     { label: 'Products',  to: '/admin/products', icon: 'M20 7H4V5h16v2zm0 4H4v2h16v-2zm0 4H4v2h16v-2z' },
   { label: 'Orders',    to: '/admin/orders',    icon: 'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11' },
   {
@@ -21,12 +21,7 @@ const NAV = [
   icon: "M12 17l-5 3 1-6-4-4 6-.9L12 3l2 6.1 6 .9-4 4 1 6z"
 },
 {
-  label: "Raw Material",
-  to: "/admin/raw-material",
-  icon: "M3 7l9-4 9 4-9 4-9-4zm0 6l9 4 9-4M3 7v6m18-6v6"
-},
-{
-  label: "Expenses",
+  label: "Expenses & Materials",
   to: "/admin/expenses",
   icon: "M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0-6v2m0 16v2m10-10h-2M4 12H2"
 },

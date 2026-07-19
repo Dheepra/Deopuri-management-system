@@ -266,6 +266,8 @@ public class UserServicesImpl implements UserServices {
             user.setAddress(request.address());
         if (request.shopName() != null)
             user.setShopName(request.shopName());
+        if (request.upiId() != null)
+            user.setUpiId(request.upiId());
 
         log.info("User profile updated id={}", id);
         return UserMapper.toResponse(user);

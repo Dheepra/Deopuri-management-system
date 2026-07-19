@@ -39,7 +39,14 @@ public ResponseEntity<List<DoctorResponse>> getAllDoctors() {
                 doc.getId(),
                 doc.getUser().getFirstName(),
                 doc.getUser().getLastName(),
-                doc.getSpecialization()
+                doc.getSpecialization(),
+                doc.getQualification(),
+                doc.getExperienceYears(),
+                doc.getRegistrationNumber(),
+                doc.getUser().getEmail(),
+                doc.getUser().getMobileNo(),
+                doc.getUser().getStatus() != null ? doc.getUser().getStatus().name() : null,
+                doc.getConsultationFee()
         ))
         .toList();
     return ResponseEntity.ok(response);
@@ -58,6 +65,16 @@ public ResponseEntity<DoctorResponse> getDoctorByUserId(
 
     return ResponseEntity.ok(
             doctorService.getDoctorByUserId(userId)
+    );
+}
+
+@Override
+public ResponseEntity<DoctorResponse> updateConsultationFee(
+        Long id,
+        Double fee) {
+
+    return ResponseEntity.ok(
+            doctorService.updateConsultationFee(id, fee)
     );
 }
 }

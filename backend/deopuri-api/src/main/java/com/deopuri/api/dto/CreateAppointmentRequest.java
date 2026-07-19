@@ -16,7 +16,12 @@ public record CreateAppointmentRequest(
         LocalDate appointmentDate,
         LocalTime appointmentTime,
 
-        String notes
+        String notes,
+
+        // Payment (optional). paymentMethod: "UPI" | "CASH". paymentRef: UPI transaction id when paid.
+        Double amount,
+        String paymentMethod,
+        String paymentRef
 
 ) {
 }

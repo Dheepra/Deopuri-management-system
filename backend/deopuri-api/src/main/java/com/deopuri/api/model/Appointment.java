@@ -193,4 +193,51 @@ public class Appointment extends BaseEntity {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    // ---- Payment (no gateway — patient pays by UPI/cash, hospital verifies) ----
+
+    @jakarta.persistence.Column(name = "amount")
+    private Double amount;
+
+    @jakarta.persistence.Column(name = "payment_method")
+    private String paymentMethod; // "UPI" or "CASH"
+
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @jakarta.persistence.Column(name = "payment_status")
+    private AppointmentPaymentStatus paymentStatus;
+
+    @jakarta.persistence.Column(name = "payment_ref")
+    private String paymentRef; // UPI transaction / reference id
+
+    public Double getAmount() {
+        return amount;
+    }
+
+    public void setAmount(Double amount) {
+        this.amount = amount;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public AppointmentPaymentStatus getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(AppointmentPaymentStatus paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public String getPaymentRef() {
+        return paymentRef;
+    }
+
+    public void setPaymentRef(String paymentRef) {
+        this.paymentRef = paymentRef;
+    }
 }

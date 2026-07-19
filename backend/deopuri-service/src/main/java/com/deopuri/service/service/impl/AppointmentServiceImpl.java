@@ -3,6 +3,7 @@ package com.deopuri.service.service.impl;
 import com.deopuri.api.dto.AppointmentResponse;
 import com.deopuri.api.dto.CreateAppointmentRequest;
 import com.deopuri.api.model.AppointmentStatus;
+import com.deopuri.api.model.AppointmentPaymentStatus;
 import com.deopuri.api.model.Appointment;
 import com.deopuri.api.model.Doctor;
 import com.deopuri.service.dao.AppointmentDao;
@@ -19,9 +20,13 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.time.LocalDate;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class AppointmentServiceImpl implements AppointmentService {
+
+    private static final Logger log = LoggerFactory.getLogger(AppointmentServiceImpl.class);
 
         private final AppointmentDao appointmentDao;
         private final DoctorDao doctorDao;
@@ -106,6 +111,27 @@ public class AppointmentServiceImpl implements AppointmentService {
 
                 appointment.setStatus(
                                 AppointmentStatus.BOOKED);
+
+                // Payment (no gateway): amount comes from the doctor's fee; the patient either
+                // paid by UPI and submitted a reference, chose to pay cash at the hospital, or
+                // left it unpaid. The hospital later verifies UPI payments.
+                Double fee = doctor.getConsultationFee() != null
+                                ? doctor.getConsultationFee()
+                                : request.amount();
+                appointment.setAmount(fee);
+                appointment.setPaymentMethod(request.paymentMethod());
+                appointment.setPaymentRef(request.paymentRef());
+
+                String method = request.paymentMethod();
+                if ("CASH".equalsIgnoreCase(method)) {
+                        appointment.setPaymentStatus(AppointmentPaymentStatus.PAY_AT_HOSPITAL);
+                } else if ("UPI".equalsIgnoreCase(method)
+                                && request.paymentRef() != null
+                                && !request.paymentRef().isBlank()) {
+                        appointment.setPaymentStatus(AppointmentPaymentStatus.SUBMITTED);
+                } else {
+                        appointment.setPaymentStatus(AppointmentPaymentStatus.UNPAID);
+                }
 
                 Appointment saved = appointmentDao.save(appointment);
                 Notification notification = new Notification();
@@ -232,9 +258,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                 Appointment saved = appointmentDao.save(appointment);
 
                 if (status == AppointmentStatus.CONFIRMED) {
-
-                        System.out.println("CONFIRMED BLOCK EXECUTED");
-                        System.out.println("EMAIL = " + saved.getPatientEmail());
+                  // Confirmation email is best-effort — a mail failure (missing/invalid
+                  // patient email, SMTP down) must NOT roll back the status change.
+                  try {
                         String subject = "Appointment Confirmed";
 
                         String body = """
@@ -292,9 +318,22 @@ public class AppointmentServiceImpl implements AppointmentService {
                                         saved.getPatientEmail(),
                                         subject,
                                         body);
+                  } catch (Exception mailEx) {
+                        log.warn("Confirmation email failed for appointment {}: {}",
+                                        saved.getId(), mailEx.getMessage());
+                  }
                 }
 
                 return AppointmentResponse.from(saved);
+        }
+
+        @Transactional
+        @Override
+        public AppointmentResponse updatePaymentStatus(Long id, AppointmentPaymentStatus paymentStatus) {
+                Appointment appointment = appointmentDao.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException("Appointment not found"));
+                appointment.setPaymentStatus(paymentStatus);
+                return AppointmentResponse.from(appointmentDao.save(appointment));
         }
 
         @Transactional

@@ -88,6 +88,18 @@ public class Doctor extends BaseEntity {
         this.registrationNumber = registrationNumber;
     }
 
+    // Per-doctor consultation fee shown to the patient at booking.
+    @jakarta.persistence.Column(name = "consultation_fee")
+    private Double consultationFee;
+
+    public Double getConsultationFee() {
+        return consultationFee;
+    }
+
+    public void setConsultationFee(Double consultationFee) {
+        this.consultationFee = consultationFee;
+    }
+
     @Override
     public String toString() {
         return "Doctor [id=" + id
