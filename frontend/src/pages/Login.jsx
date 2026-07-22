@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import LoginForm from '../components/auth/LoginForm.jsx';
 import CreatePassword from './CreatePassword';
-import logo from '../assets/picture/logo.jpg';
+import logo from '../assets/picture/c.png';
 import { heroImage } from '../assets/picture';
 
 const BULLETS = [

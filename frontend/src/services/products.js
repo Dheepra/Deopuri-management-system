@@ -31,7 +31,7 @@ export function getFeaturedProducts() {
   });
   
 export const updateProduct = (id, formData) =>
-  http.post(`/deopuri/products/${id}`, formData, {
+  http.put(`/deopuri/products/${id}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data"
     }

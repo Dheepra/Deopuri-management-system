@@ -14,6 +14,7 @@ public record UserOfferResponse(
         Double discountValue,
         OfferType offerType,
         LocalDate assignedDate,
+        LocalDate endDate,
         Boolean claimed,
         Boolean expired
 

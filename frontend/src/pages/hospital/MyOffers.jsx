@@ -92,6 +92,10 @@ console.log("User UserId:", user?.userId);
                 <span className="font-semibold">Assigned Date :</span>{" "}
                 {offer.assignedDate?.substring(0, 10)}
               </p>
+              <p>
+  <span className="font-semibold">Expiry Date :</span>{" "}
+  {offer.endDate?.substring(0, 10)}
+</p>
 
               <div className="flex gap-2 mt-4">
 

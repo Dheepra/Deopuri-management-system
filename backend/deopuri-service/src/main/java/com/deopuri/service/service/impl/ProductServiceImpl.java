@@ -29,6 +29,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -45,49 +47,53 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-public ProductResponse create(ProductRequest request, String imageUrl) {
+    public ProductResponse create(ProductRequest request, String imageUrl) {
 
-    Product product = new Product();
-    product.setName(request.name());
-    product.setDescription(request.description());
-    product.setPrice(request.price());
-    product.setQuantity(request.quantity());
-    product.setManufacturingDate(request.manufacturingDate());
-    product.setImageUrl(imageUrl);
+        Product product = new Product();
+        product.setName(request.name());
+        product.setDescription(request.description());
+        product.setPrice(request.price());
+        product.setQuantity(request.quantity());
+        product.setManufacturingDate(request.manufacturingDate());
+        product.setImageUrl(imageUrl);
 
-    // Build the variants, de-duplicating by size. (product_id, size) is UNIQUE in the DB, so two
-    // variants with the same size in the payload would each fire an insert and every duplicate would
-    // fail with SQLState 23000 (duplicate entry) — turning one bad request into hundreds of failed
-    // inserts and a 409. Keeping the first occurrence of each size avoids that and is idempotent.
-    if (request.variants() != null) {
-        Map<String, ProductVariant> bySize = new LinkedHashMap<>();
+        // Build the variants, de-duplicating by size. (product_id, size) is UNIQUE in
+        // the DB, so two
+        // variants with the same size in the payload would each fire an insert and
+        // every duplicate would
+        // fail with SQLState 23000 (duplicate entry) — turning one bad request into
+        // hundreds of failed
+        // inserts and a 409. Keeping the first occurrence of each size avoids that and
+        // is idempotent.
+        if (request.variants() != null) {
+            Map<String, ProductVariant> bySize = new LinkedHashMap<>();
 
-        for (ProductVariantRequest v : request.variants()) {
-            String size = v.size() == null ? null : v.size().trim();
-            if (size == null || size.isEmpty()) {
-                log.warn("Skipping variant with blank size for product '{}'", request.name());
-                continue;
+            for (ProductVariantRequest v : request.variants()) {
+                String size = v.size() == null ? null : v.size().trim();
+                if (size == null || size.isEmpty()) {
+                    log.warn("Skipping variant with blank size for product '{}'", request.name());
+                    continue;
+                }
+                if (bySize.containsKey(size)) {
+                    log.warn("Duplicate variant size '{}' in create payload for product '{}' — keeping the first",
+                            size, request.name());
+                    continue;
+                }
+                ProductVariant pv = new ProductVariant();
+                pv.setSize(size);
+                pv.setStock(v.stock());
+                pv.setPrice(v.price());
+                pv.setProduct(product);
+                bySize.put(size, pv);
             }
-            if (bySize.containsKey(size)) {
-                log.warn("Duplicate variant size '{}' in create payload for product '{}' — keeping the first",
-                        size, request.name());
-                continue;
-            }
-            ProductVariant pv = new ProductVariant();
-            pv.setSize(size);
-            pv.setStock(v.stock());
-            pv.setPrice(v.price());
-            pv.setProduct(product);
-            bySize.put(size, pv);
+
+            product.setVariants(new ArrayList<>(bySize.values()));
         }
 
-        product.setVariants(new ArrayList<>(bySize.values()));
+        Product saved = productRepository.save(product);
+
+        return ProductMapper.toResponse(saved);
     }
-
-    Product saved = productRepository.save(product);
-
-    return ProductMapper.toResponse(saved);
-}
 
     @Override
     @Transactional(readOnly = true)
@@ -103,7 +109,7 @@ public ProductResponse create(ProductRequest request, String imageUrl) {
 
     @Override
     @Transactional
-  public ProductResponse update(Long id, ProductRequest request, String imageUrl) {
+    public ProductResponse update(Long id, ProductRequest request, String imageUrl) {
 
         log.info("🔵 UPDATE PRODUCT START - id={}", id);
 
@@ -137,6 +143,15 @@ public ProductResponse create(ProductRequest request, String imageUrl) {
                 product.setVariants(new java.util.ArrayList<>());
             }
 
+            // ================= DELETE REMOVED VARIANTS =================
+            Set<String> requestSizes = request.variants()
+                    .stream()
+                    .map(ProductVariantRequest::size)
+                    .collect(Collectors.toSet());
+
+            product.getVariants().removeIf(
+                    variant -> !requestSizes.contains(variant.getSize()));
+
             for (ProductVariantRequest v : request.variants()) {
 
                 product.getVariants()
@@ -154,6 +169,13 @@ public ProductResponse create(ProductRequest request, String imageUrl) {
                         }, () -> {
 
                             // ❌ NO ADD (your requirement)
+                            ProductVariant variant = new ProductVariant();
+                            variant.setSize(v.size());
+                            variant.setStock(v.stock());
+                            variant.setPrice(v.price());
+                            variant.setProduct(product);
+
+                            product.getVariants().add(variant);
                             log.warn("⚠️ Variant not found for size={}, skipping", v.size());
                         });
             }
@@ -337,9 +359,9 @@ public ProductResponse create(ProductRequest request, String imageUrl) {
                             description == null ? null : description.trim(),
                             price,
                             quantity,
-                            null,   // manufacturingDate
-                            null,   // imageUrl
-                            null    // variants
+                            null, // manufacturingDate
+                            null, // imageUrl
+                            null // variants
                     );
 
                     create(request, null);
@@ -403,7 +425,9 @@ public ProductResponse create(ProductRequest request, String imageUrl) {
         return result;
     }
 
-    /** Safely read a cell by (possibly null) column index, returning null if absent. */
+    /**
+     * Safely read a cell by (possibly null) column index, returning null if absent.
+     */
     private static String cell(List<String> cells, Integer index) {
         if (index == null || index < 0 || index >= cells.size()) {
             return null;

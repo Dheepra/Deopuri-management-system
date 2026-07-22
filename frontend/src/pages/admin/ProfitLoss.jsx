@@ -150,7 +150,7 @@ export default function ProfitLoss() {
       .map((c) => ({ label: c.label, emoji: c.emoji, v: Number(report[c.key] || 0) }))
       .sort((a, b) => b.v - a.v)[0];
     if (top && top.v > 0) {
-      s.push(`${top.emoji} Sabse bada kharcha "${top.label}" (${inr(top.v)}) — yahan bachat sabse zyada asar karegi.`);
+     s.push(`${top.emoji} "${top.label}" is your largest expense (${inr(top.v)}). Optimizing this cost can improve your profit margin.`);
     }
     if (isProfit && !cashIsProfit) {
       s.push(`🧠 Paper pe PROFIT hai par cash me nahi — bahut sara paisa abhi collect nahi hua. Pehle udhaar wasoolo.`);

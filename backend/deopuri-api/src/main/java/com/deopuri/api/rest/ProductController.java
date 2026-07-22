@@ -19,17 +19,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.multipart.MultipartFile;
 
-
 import java.util.List;
 
 @RequestMapping("/deopuri/products")
 public interface ProductController {
 
     @PostMapping(consumes = "multipart/form-data")
-ResponseEntity<ProductResponse> addProduct(
-        @Valid @RequestPart("data") ProductRequest request,
-        @RequestPart("image") MultipartFile image
-);
+    ResponseEntity<ProductResponse> addProduct(
+            @Valid @RequestPart("data") ProductRequest request,
+            @RequestPart("image") MultipartFile image);
 
     @GetMapping
     ResponseEntity<List<ProductResponse>> findAll();
@@ -38,18 +36,17 @@ ResponseEntity<ProductResponse> addProduct(
     ResponseEntity<ProductResponse> findById(@PathVariable Long id);
 
     @PutMapping(value = "/{id}", consumes = "multipart/form-data")
-ResponseEntity<ProductResponse> update(
-        @PathVariable Long id,
-        @Valid @RequestPart("data") ProductRequest request,
-        @RequestPart(value = "image", required = false) MultipartFile image
-);
+    ResponseEntity<ProductResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestPart("data") ProductRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image);
 
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@PathVariable Long id);
 
     @PostMapping("/{productId}/variants")
     ResponseEntity<ProductVariantResponse> addVariant(@PathVariable Long productId,
-                                                     @Valid @RequestBody ProductVariantRequest request);
+            @Valid @RequestBody ProductVariantRequest request);
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/import", consumes = "multipart/form-data")

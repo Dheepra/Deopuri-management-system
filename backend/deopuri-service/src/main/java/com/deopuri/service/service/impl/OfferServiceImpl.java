@@ -224,6 +224,7 @@ public class OfferServiceImpl implements OfferService {
                         userOffer.getOffer().getOfferType(),
 
                         userOffer.getAssignedDate(),
+                        userOffer.getOffer().getEndDate(),
 
                         userOffer.getClaimed(),
 
