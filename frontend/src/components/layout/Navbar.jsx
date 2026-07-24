@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useScrollPosition } from '../../hooks/useScrollPosition.js';
 import Container from '../ui/Container.jsx';
 import Button from '../ui/Button.jsx';
+import { Search } from "lucide-react";
 import logo2 from "../../assets/picture/logo2.png";
 
 // Only real destinations: Home (route) + on-page section anchors. Dead routes
@@ -12,17 +13,18 @@ const NAV_LINKS = [
   { label: 'Remedies', href: '#products' },
   { label: 'Our Story', href: '#philosophy' },
   { label: 'Contact', href: '#contact' },
-  { label: 'Book', href: '#consult' },
+  { label: 'Book Appoinment ', href: "#consult" },
 ];
+
 function Logo() {
   return (
-    <Link to="/" className="flex items-center hover:opacity-80 transition mt-2">
-  <img
-    src={logo2}
-    alt="Deopuri Logo"
-    className="h-16 w-20 object-contain"
-  />
-</Link>
+    <Link to="/" className="flex items-center gap-3">
+      <img
+        src={logo2}
+        alt="Deopuri Herbal"
+        className="h-12 w-auto object-contain"
+      />
+    </Link>
   );
 }
 
@@ -30,20 +32,23 @@ function Logo() {
 export default function Navbar() {
   const scrolled = useScrollPosition(8);
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
   return (
     <header
+      style={{ backgroundColor: scrolled ? "#f1faf7" : "#d5f0e4" }}
       className={[
-        'sticky top-0 z-40 w-full transition-all duration-300',
+        "sticky top-0 z-50 w-full transition-all duration-300",
         scrolled
-          ? 'border-b border-ink-100 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/70'
-          : 'bg-transparent',
-      ].join(' ')}
+          ? "shadow-lg border-b border-gray-200"
+          : "",
+      ].join(" ")}
+
     >
       <Container className="flex h-16 items-center justify-between">
         <Logo />
 
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-10 lg:gap-12 md:flex">
           {NAV_LINKS.map((link) => (
             link.to ? (
               <NavLink
@@ -52,9 +57,11 @@ export default function Navbar() {
                 end={link.to === '/'}
                 className={({ isActive }) =>
                   [
-                    'text-sm font-medium transition-colors duration-200',
-                    isActive ? 'text-brand-700' : 'text-ink-600 hover:text-ink-900',
-                  ].join(' ')
+                    "text-[15px] font-semibold transition-all duration-300",
+                    isActive
+                      ? "text-brand-700"
+                      : "text-gray-700 hover:text-brand-700",
+                  ].join(" ")
                 }
               >
                 {link.label}
@@ -71,13 +78,31 @@ export default function Navbar() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-4 md:flex">
+
+          <div className="relative">
+            <Search
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
+            <input
+  type="text"
+  placeholder="Search herbal products..."
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  className="w-64 rounded-full border border-green-200 bg-white py-2 pl-10 pr-4 text-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-200"
+/>
+          </div>
+
           <Button as={Link} to="/login" variant="ghost" size="sm">
             Sign in
           </Button>
+
           <Button as={Link} to="/register" size="sm">
             Get started
           </Button>
+
         </div>
 
         <button
@@ -136,14 +161,38 @@ export default function Navbar() {
               </a>
             )
           ))}
+
           <div className="grid grid-cols-2 gap-2 pt-3">
-            <Button as={Link} to="/login" variant="secondary" size="sm" onClick={() => setOpen(false)}>
+            <Button
+              as={NavLink}
+              to="/login"
+              variant="ghost"
+              size="sm"
+              onClick={() => setOpen(false)}
+              className={({ isActive }) =>
+                isActive
+                  ? "bg-green-700 text-white"
+                  : "text-gray-700 hover:bg-green-100"
+              }
+            >
               Sign in
             </Button>
-            <Button as={Link} to="/register" size="sm" onClick={() => setOpen(false)}>
+
+            <Button
+              as={NavLink}
+              to="/register"
+              size="sm"
+              onClick={() => setOpen(false)}
+              className={({ isActive }) =>
+                isActive
+                  ? "bg-green-700 text-white"
+                  : ""
+              }
+            >
               Get started
             </Button>
           </div>
+
         </Container>
       </div>
     </header>

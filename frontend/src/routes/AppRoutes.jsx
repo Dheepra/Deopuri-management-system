@@ -208,10 +208,11 @@ export default function AppRoutes() {
       </Route>
 
       {/* Marketing */}
-      <Route element={<Layout />}>
-        <Route index element={<Home />} />
-        <Route path="*" element={<NotFound />} />
-      </Route>
+     <Route element={<Layout />}>
+  <Route index element={<Home />} />
+<Route path="appointments" element={<Appointments />} />
+  <Route path="*" element={<NotFound />} />
+</Route>
     </Routes>
 
     

@@ -119,7 +119,7 @@ export default function Home() {
                 onClick={() => { resetAppointmentFlow(); setShowAppointmentForm(true); }}
                 className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/70 px-6 py-3 text-sm font-semibold text-brand-700 backdrop-blur transition-colors hover:bg-brand-50"
               >
-                📅 Book a consultation
+                📅 Book Appoinment
               </button>
             </motion.div>
             <motion.div variants={reveal} className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink-500">
@@ -355,7 +355,7 @@ export default function Home() {
                 onClick={() => { resetAppointmentFlow(); setShowAppointmentForm(true); }}
                 className="rounded-full bg-white px-7 py-3 text-sm font-bold text-brand-700 shadow-sm transition-transform hover:scale-[1.03] active:scale-[.98]"
               >
-                📅 Book a consultation
+                📅 Book Appoinment
               </button>
               <Link to="/register" className="rounded-full border border-white/40 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10">
                 Join Deopuri →
